@@ -177,10 +177,15 @@ def convertgcf() :
                 if file.find(search) != -1 :
                     file = file.replace(search, replace)
                     print("Replaced default HL2 Master server IP 2")
+                    
+                search = binascii.a2b_hex("2245787069726174696F6E59656172436F6D626F220D0A09092278706F7322090922323632220D0A09092279706F7322090922313634220D0A09092277696465220909223636220D0A09092274616C6C220909223234220D0A0909226175746F526573697A652209092230220D0A09092270696E436F726E65722209092230220D0A09092276697369626C652209092231220D0A090922656E61626C65642209092231220D0A090922746162506F736974696F6E2209092234220D0A0909227465787448696464656E2209092230220D0A0909226564697461626C65220909223022")
+                replace = binascii.a2b_hex("2245787069726174696F6E59656172436F6D626F220D0A09092278706F7322090922323632220D0A09092279706F7322090922313634220D0A09092277696465220909223636220D0A09092274616C6C220909223234220D0A0909226175746F526573697A652209092230220D0A09092270696E436F726E65722209092230220D0A09092276697369626C652209092231220D0A090922656E61626C65642209092231220D0A090922746162506F736974696F6E2209092234220D0A0909227465787448696464656E2209092230220D0A0909226564697461626C65220909223122")
+                file = file.replace(search, replace)
+                print("Replaced CC expiry date field")
 
                 if config["tracker_ip"] != "0.0.0.0" :
                     search = "tracker.valvesoftware.com:1200"
-                    ip = config["tracker_ip"] + config["masterhl2_server_port"]
+                    ip = config["tracker_ip"] + config["tracker_port"]
                     searchlength = len(search)
                     iplength = len(ip)
                     numtoreplace = searchlength // iplength
@@ -192,7 +197,7 @@ def convertgcf() :
 
                 if config["tracker_ip"] != "0.0.0.0" :
                     search = '"207.173.177.42:1200"'
-                    ip = '"' + config["tracker_ip"] + config["masterhl2_server_port"] + '"'
+                    ip = '"' + config["tracker_ip"] + config["tracker_port"] + '"'
                     searchlength = len(search)
                     iplength = len(ip)
                     numtoreplace = searchlength // iplength
@@ -204,7 +209,7 @@ def convertgcf() :
 
                 if config["tracker_ip"] != "0.0.0.0" :
                     search = '"207.173.177.43:1200"'
-                    ip = '"' + config["tracker_ip"] + config["masterhl2_server_port"] + '"'
+                    ip = '"' + config["tracker_ip"] + config["tracker_port"] + '"'
                     searchlength = len(search)
                     iplength = len(ip)
                     numtoreplace = searchlength // iplength
@@ -216,7 +221,7 @@ def convertgcf() :
 
                 if config["tracker_ip"] != "0.0.0.0" :
                     search = '"207.173.177.44:1200"'
-                    ip = '"' + config["tracker_ip"] + config["masterhl2_server_port"] + '"'
+                    ip = '"' + config["tracker_ip"] + config["tracker_port"] + '"'
                     searchlength = len(search)
                     iplength = len(ip)
                     numtoreplace = searchlength // iplength
@@ -228,7 +233,7 @@ def convertgcf() :
 
                 if config["tracker_ip"] != "0.0.0.0" :
                     search = '"207.173.177.45:1200"'
-                    ip = '"' + config["tracker_ip"] + config["masterhl2_server_port"] + '"'
+                    ip = '"' + config["tracker_ip"] + config["tracker_port"] + '"'
                     searchlength = len(search)
                     iplength = len(ip)
                     numtoreplace = searchlength // iplength

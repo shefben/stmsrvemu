@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 02, 2023 at 03:42 AM
+-- Generation Time: Jul 09, 2023 at 07:48 AM
 -- Server version: 10.1.38-MariaDB
 -- PHP Version: 5.6.40
 
@@ -21,6 +21,148 @@ SET time_zone = "+00:00";
 --
 -- Database: `stmserver`
 --
+CREATE DATABASE IF NOT EXISTS `stmserver` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE `stmserver`;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accountexternalbillinginforecord`
+--
+
+CREATE TABLE `accountexternalbillinginforecord` (
+  `UniqueID` int(11) NOT NULL,
+  `ExternalAccountName` varchar(256) DEFAULT NULL,
+  `ExternalAccountPassword` varchar(256) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accountpaymentcardreceiptrecord`
+--
+
+CREATE TABLE `accountpaymentcardreceiptrecord` (
+  `recordID` int(11) NOT NULL,
+  `PaymentCardTypeID` int(11) DEFAULT NULL,
+  `CardNumber` varchar(255) DEFAULT NULL,
+  `CardHolderName` varchar(255) DEFAULT NULL,
+  `field4` varchar(255) DEFAULT NULL,
+  `field5` varchar(255) DEFAULT NULL,
+  `field6` varchar(255) DEFAULT NULL,
+  `BillingAddress1` varchar(255) DEFAULT NULL,
+  `BillingAddress2` varchar(255) DEFAULT NULL,
+  `BillingCity` varchar(255) DEFAULT NULL,
+  `BillingZip` varchar(255) DEFAULT NULL,
+  `BillingState` varchar(255) DEFAULT NULL,
+  `BillingCountry` varchar(255) DEFAULT NULL,
+  `CCApprovalCode` varchar(255) DEFAULT NULL,
+  `PriceBeforeTax` decimal(10,2) DEFAULT NULL,
+  `TaxAmount` decimal(10,2) DEFAULT NULL,
+  `TransDate` date DEFAULT NULL,
+  `TransTime` time DEFAULT NULL,
+  `AStoBBSTxnId` varchar(255) DEFAULT NULL,
+  `ShippingCost` decimal(10,2) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accountprepurchasedinforecord`
+--
+
+CREATE TABLE `accountprepurchasedinforecord` (
+  `UniqueID` int(11) NOT NULL,
+  `TypeOfProofOfPurchase` varchar(45) DEFAULT NULL,
+  `BinaryProofOfPurchaseToken` varchar(45) DEFAULT NULL,
+  `TokenRejectionReason` varchar(45) DEFAULT NULL,
+  `AStoBBSTxnId` varchar(45) DEFAULT NULL,
+  `SubsId` varchar(45) DEFAULT NULL,
+  `AcctName` varchar(45) DEFAULT NULL,
+  `CustSupportName` varchar(45) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accountsubscriptionsbillinginforecord`
+--
+
+CREATE TABLE `accountsubscriptionsbillinginforecord` (
+  `UniqueID` int(11) NOT NULL,
+  `UserRegistry_UniqueID` int(11) NOT NULL,
+  `Subscriptionid` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `AccountPaymentCardInfoRecord` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `AccountPrepurchasedInfoRecord_UniqueID1` int(11) NOT NULL,
+  `AccountExternalBillingInfoRecord_UniqueID` int(11) NOT NULL,
+  `AccountPaymentCardReceiptRecord_recordID` int(11) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accountsubscriptionsrecord`
+--
+
+CREATE TABLE `accountsubscriptionsrecord` (
+  `UniqueID` int(11) NOT NULL,
+  `UserRegistry_UniqueID` int(11) NOT NULL,
+  `SubscriptionID` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `SubscribedDate` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT 'e0 e0 e0 e0 e0 e0 e0 00',
+  `UnsubscribedDate` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT '00 00 00 00 00 00 00 00',
+  `SubscriptionStatus` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '01 00',
+  `StatusChangeFlag` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '00',
+  `PreviousSubscriptionState` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '1f 00'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ccardtype`
+--
+
+CREATE TABLE `ccardtype` (
+  `uniqueid` int(11) NOT NULL,
+  `card_type` varchar(255) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `ccardtype`
+--
+
+INSERT INTO `ccardtype` (`uniqueid`, `card_type`) VALUES
+(1, 'Visa'),
+(2, 'Master'),
+(3, 'AmericanExpress'),
+(4, 'Discover'),
+(5, 'DinnersClub'),
+(6, 'JCB');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `custsupportaccountrecord`
+--
+
+CREATE TABLE `custsupportaccountrecord` (
+  `UniqueID` int(11) NOT NULL,
+  `AccountSubscriptionsRecord_UniqueID` int(11) NOT NULL,
+  `UserRegistry_UniqueID` int(11) NOT NULL,
+  `AccountStatus` varchar(45) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `derivedsubscribedappsrecord`
+--
+
+CREATE TABLE `derivedsubscribedappsrecord` (
+  `UniqueID` int(11) NOT NULL,
+  `UserRegistry_UniqueID` int(11) NOT NULL,
+  `AppID` int(11) DEFAULT NULL,
+  `Field2` varchar(45) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -1244,9 +1386,532 @@ INSERT INTO `steamapplications` (`AppID`, `Name`) VALUES
 (10010, 'Enemy Territory: QUAKE Wars Demo [APP]'),
 (10011, 'enemy territory quake wars demo content');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `steamsubscriptions`
+--
+
+CREATE TABLE `steamsubscriptions` (
+  `SubscriptionID` int(11) NOT NULL,
+  `Name` varchar(256) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `steamsubscriptions`
+--
+
+INSERT INTO `steamsubscriptions` (`SubscriptionID`, `Name`) VALUES
+(0, 'Steam'),
+(1, 'Half-Life Platinum Pack'),
+(2, 'Day of Defeat'),
+(3, 'Condition Zero'),
+(4, 'Cyber Cafe'),
+(5, 'ATI Bundle'),
+(6, 'Condition Zero'),
+(7, 'Condition Zero'),
+(8, 'Valve Premier Pack'),
+(9, 'Half-Life 2 Bronze'),
+(10, 'Half-Life 2 Silver'),
+(11, 'Half-Life 2 Retail Standard'),
+(12, 'Half-Life 2 Retail Collectors'),
+(13, 'Half-Life 2 Gold'),
+(14, 'HL2 Complimentary Edition'),
+(15, 'AMD Bundle'),
+(16, 'DoD:S Beta Test'),
+(17, 'Valve Test App 120 Sub'),
+(18, 'Valve Test App 1000 Sub'),
+(19, 'Half-Life 2 Game of the Year'),
+(20, 'Counter-Strike 1 Anthology'),
+(21, 'Half Life 1 Anthology'),
+(22, 'Counter-Strike Source'),
+(23, 'Half-Life 2 Platinum'),
+(24, 'Half-Life 1 Classic'),
+(25, 'Day of Defeat: Source'),
+(26, 'Online Multiplayer'),
+(27, 'DoD_Review'),
+(29, 'Team Fortress Classic'),
+(30, 'Day of Defeat'),
+(31, 'Deathmatch Classic'),
+(32, 'Opposing Force'),
+(33, 'Ricochet'),
+(34, 'Half-Life 1'),
+(35, 'Half-Life: Blue Shift'),
+(36, 'Half-Life 2'),
+(37, 'Counter-Strike: Source'),
+(38, 'Half-Life 1: Source'),
+(39, 'Half-Life 2: Deathmatch'),
+(40, 'Half-Life 1 Anthology'),
+(41, 'Counter-Strike 1 Anthology'),
+(42, 'Source Multiplayer Pack'),
+(43, 'Source Premier Pack'),
+(44, 'Valve Complete Pack'),
+(45, 'Rag Doll Kung Fu'),
+(46, 'Rag Doll Kung Fu Complementary'),
+(47, 'Day of Defeat: Source Promo'),
+(48, 'Valve Test App 1309 Sub'),
+(49, 'School Lab'),
+(50, 'Gift Pack'),
+(51, 'Valve Test App 1100'),
+(52, 'Rag Doll Kung Fu Test'),
+(53, 'Red Orchestra Beta'),
+(54, 'Darwinia'),
+(55, 'Darwinia Complementary'),
+(56, 'Day of Defeat Source'),
+(57, 'Space Empires IV Deluxe'),
+(58, 'SCS - Dangerous Waters'),
+(59, 'Space Empires IV Deluxe Complementary'),
+(60, 'SCS - Dangerous Waters Complementary'),
+(61, 'Steam Master'),
+(62, 'Press Master'),
+(63, 'Red Orchestra'),
+(64, 'Red Orchestra Retail'),
+(65, 'Red Orchestra Complementary'),
+(66, 'GNA/WEG Tournament Promotion'),
+(67, 'VTT'),
+(68, 'Valve Complete Pack Complementary'),
+(69, 'SiN Episodes Emergence'),
+(70, 'Sin Episode 1'),
+(71, 'Rag Doll Kung Fu'),
+(72, 'Earth 2160'),
+(73, 'Earth 2160 Complementary'),
+(74, 'Valve Test Sub 74'),
+(75, 'Sin Episode 1 DE'),
+(76, 'Condition Zero and Counter-Strike'),
+(77, 'Half-Life 2: Episode One'),
+(78, 'SiN Episodes Emergence DE'),
+(79, 'Half-Life 2: Episode One'),
+(80, 'Source Premier Pack'),
+(81, 'Valve Complete Pack'),
+(82, 'Half-Life 2: Lost Coast and Deathmatch'),
+(83, 'SiN Episodes Emergence OEM'),
+(84, 'Half-Life 2: Episode One OEM'),
+(85, 'Shadowgrounds'),
+(86, 'Shadowgrounds Complimentary'),
+(87, 'The Ship Beta'),
+(88, 'Sci-Fi Strategy Pack'),
+(89, 'SiN Episodes Emergence Germany'),
+(90, 'The Ship'),
+(91, 'The Ship Complimentary'),
+(92, 'Day of Defeat Source'),
+(93, 'SiN Episodes Emergence'),
+(94, 'Jagged Alliance 2'),
+(95, 'Disciples II Gold'),
+(96, 'Jagged Alliance 2 / Disciples II Gold Combo'),
+(97, 'Jagged Alliance 2 Complimentary'),
+(98, 'Disciples II Gold Complimentary'),
+(99, 'X2/X3 Complimentary'),
+(100, 'X2: The Threat'),
+(101, 'X3: Reunion'),
+(102, 'X2: The Threat / X3: Reunion'),
+(103, 'Birth of America'),
+(104, 'Iron Warriors'),
+(105, 'Birth of America Complimentary'),
+(106, 'Iron Warriors Complimentary'),
+(107, 'Sci-Fi Game Pack'),
+(108, 'Half-Life 2 Classic'),
+(109, 'The Ship Retail'),
+(110, 'Uplink Beta'),
+(111, 'Sniper Elite Beta'),
+(112, 'Uplink'),
+(113, 'Darwinia / Uplink'),
+(114, 'GTI Racing'),
+(115, 'Xpand Rally'),
+(116, 'GTI/Xpand Pack'),
+(117, 'GTI/Xpand Pack with MOMO Racing Wheel'),
+(118, 'GTI Racing Retail'),
+(119, 'GTI/Xpand Pack Retail'),
+(120, 'PopCap Complimentary'),
+(121, 'Bejeweled 2 Deluxe'),
+(122, 'Bejeweled Deluxe'),
+(123, 'Zuma Deluxe'),
+(124, 'Feeding Frenzy 2 Deluxe'),
+(125, 'Bookworm Deluxe'),
+(126, 'Chuzzle Deluxe'),
+(127, 'Insaniquarium Deluxe'),
+(128, 'Dynomite Deluxe'),
+(129, 'Iggle Pop Deluxe'),
+(130, 'Pizza Frenzy'),
+(131, 'Typer Shark Deluxe'),
+(132, 'AstroPop Deluxe'),
+(133, 'Heavy Weapon Deluxe'),
+(134, 'Rocket Mania Deluxe'),
+(135, 'Hammer Heads Deluxe'),
+(136, 'Big Money Deluxe'),
+(137, 'Talismania Deluxe'),
+(138, 'Puzzle Pack'),
+(139, 'Action Pack'),
+(140, 'Thinking Pack'),
+(141, 'Puzzle + Action Pack'),
+(142, 'Thinking + Action Pack'),
+(143, 'Puzzle + Thinking Pack'),
+(144, 'The Complete PopCap Collection'),
+(145, 'Dark Messiah Steam Beta'),
+(146, 'Majesco Complimentary'),
+(147, 'Strategy First Complimentary'),
+(148, 'Counter-Strike: Source'),
+(149, 'Counter-Strike'),
+(150, 'Half-Life 2: Deathmatch / Half-Life 2: Lost Coast'),
+(151, 'Half-Life 2 Holiday Pack 2006'),
+(152, 'Half-Life 2 Holiday 2006'),
+(153, 'BloodRayne'),
+(154, 'BloodRayne 2'),
+(155, 'Advent Rising'),
+(156, 'Defcon'),
+(158, 'ValveTestSub 158 Complimentary'),
+(159, 'Defcon Demo Beta'),
+(160, 'Defcon Beta'),
+(161, 'Space Empires V Complimentary'),
+(162, 'Psychonauts Beta'),
+(163, 'ValveTestSub163 Complimentary'),
+(164, 'Dark Messiah'),
+(165, 'Sci-Fi Game Pack');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `steamsub_apps`
+--
+
+CREATE TABLE `steamsub_apps` (
+  `UniqueID` int(11) NOT NULL,
+  `SteamSubscriptions_SubscriptionID` int(11) NOT NULL,
+  `AppList` varchar(512) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `steamsub_apps`
+--
+
+INSERT INTO `steamsub_apps` (`UniqueID`, `SteamSubscriptions_SubscriptionID`, `AppList`) VALUES
+(1, 0, '1,2,3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,21,22,23,24,25,31,32,33,34,35,41,42,43,44,45,51,52,53,56,61,62,63,64,65,72,73,74,75,76,77,78,79,81,82,83,84,85,86,87,88,89,92,96,104,105,106,107,108,109,110,111,131,132,200,201,202,204,205,206,207,208,209,212,219,221,223,224,225,226,227,228,229,230,231,232,233,234,235,236,242,243,244,245,246,247,248,249,250,251,252,253,283,284,285,286,287,288,289,290,291,292,293,301,310,311,321,342,343,344,345,346,347,348,349,350,363,382,383,384,385,386,387,388,389,390,441,442,900,'),
+(2, 1, '10,20,30,40,50,60,70,130'),
+(3, 2, '2,3,10,20,30,40,50,60,70,130'),
+(4, 3, '10,80,95,100,101,102,103'),
+(5, 4, '1,2,3,4,5,10,11,20,21,30,31,40,41,50,51,60,61,70,80,81,95,100,101,102,103,130,211,213,215,220,240,241,280,281,300,320,340,341,360,380,381,1000,1002,1200,1201,1202,1220,1221,1222,1309,1311,1312,1313,1500,1501,1600,1601,1610,1611,1620,1621,1630,1631,1632,1633,1634,1635,1640,1641,1642,1643,1644,1645,1670,1671,1672,2400,2401,2402,2406,2430,2500,2501,2502,2503,2504,2505,2800,2801,2802,2803,2804,2805,2810,2811,2812,2813,2814,2815,2816,2817,2818,2930,2931,3000,3001,3002,3010,3011,3300,3310,3320,3330,3340,3350,3360'),
+(6, 5, '10,20,30,40,50,60,70,130,211,215,220,240,241,320,340,341'),
+(7, 6, '10,80,81,95,100,101,102,103'),
+(8, 7, '10,80,95,100,101,102,103'),
+(9, 8, '20,30,40,50,60,70,130'),
+(10, 9, '211,215,220,240,241,320,340,341'),
+(11, 10, '10,20,30,40,50,60,70,80,95,100,101,102,103,130,211,215,220,240,241,280,281,300,320,340,341,360'),
+(12, 11, '203,211,215,220,240,241,320,340,341'),
+(13, 12, '203,211,215,220,240,241,280,281,320,340,341,360'),
+(14, 13, '10,20,30,40,50,60,70,80,95,100,101,102,103,130,211,215,220,240,241,280,281,300,320,340,341,360'),
+(15, 14, '10,20,30,40,50,60,70,80,95,100,101,102,103,130,211,213,215,220,240,241,280,281,300,320,340,341,360,380,381,1000,1002,1500,1501'),
+(16, 15, '211,215,220,240,241,320,340,341'),
+(17, 16, ''),
+(18, 17, '120'),
+(19, 18, ''),
+(20, 19, '211,215,220,240,241,280,281,320,340,341,360'),
+(21, 20, '10,30,40,60,80,81,95,100,101,102,103'),
+(22, 21, '20,21,50,51,70,130'),
+(23, 22, '211,215,240,241,300,301,320,340,341'),
+(24, 23, '211,215,220,240,241,280,281,300,301,320,340,341,360'),
+(25, 24, '20,70'),
+(26, 25, '211,215,300'),
+(27, 26, '1,2,3,4,5,10,11,20,21,30,31,40,41,50,51,60,61,70,80,81,95,100,101,102,103,130,211,215,220,240,241,280,281,300,320,340,341,360'),
+(28, 27, ''),
+(29, 29, '20'),
+(30, 30, '30'),
+(31, 31, '40'),
+(32, 32, '50'),
+(33, 33, '60'),
+(34, 34, '70'),
+(35, 35, '130'),
+(36, 36, '211,215,220,340,341'),
+(37, 37, '211,215,240,241'),
+(38, 38, '215,280,281,360'),
+(39, 39, '211,215,320'),
+(40, 40, '20,50,70,130'),
+(41, 41, '10,30,40,60,80,81,95,100,101,102,103'),
+(42, 42, '211,215,240,241,300,320'),
+(43, 43, '211,215,220,221,240,241,280,281,300,320,340,341,360'),
+(44, 44, '10,20,30,40,50,60,70,80,81,95,100,101,102,103,130,211,215,220,221,240,241,280,281,300,320,340,341,360'),
+(45, 45, '1000,1002'),
+(46, 46, '1000,1002'),
+(47, 47, '211,215,300'),
+(48, 48, '1309,1311,1312,1313'),
+(49, 49, '1,2,3,4,5,10,11,20,21,30,31,40,41,60,61,80,81,95,215,240,241,300,320'),
+(50, 50, '220,221,240,241,340,341'),
+(51, 51, ''),
+(52, 52, ''),
+(53, 53, ''),
+(54, 54, '1500,1501'),
+(55, 55, '1500,1501,1510,1511,1520,1521'),
+(56, 56, '211,215,300'),
+(57, 57, '1610,1611'),
+(58, 58, '1600,1601'),
+(59, 59, '1610,1611'),
+(60, 60, '1600,1601'),
+(61, 61, '10,20,30,40,50,60,70,80,95,100,101,102,103,130,211,213,215,216,220,236,240,241,280,281,300,305,306,307,320,340,341,360,363,380,381,400,420,440,441,442,443,1000,1002,1200,1201,1202,1210,1211,1212,1220,1221,1222,1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318,1500,1501,1510,1511,1520,1521,1524,1525,1600,1601,1610,1611,1620,1621,1630,1631,1632,1633,1634,1635,1640,1641,1642,1643,1644,1645,1670,1671,1672,1690,1691,1700,1701,1702,1703,1705,1706,1707,1900,1901,1902,1903,1904,2100,2101,21'),
+(62, 62, '10,20,30,40,50,60,70,80,95,100,101,102,103,130,211,213,215,216,220,240,241,280,281,300,305,306,307,320,340,341,360,380,381,400,420,440,441,442,443,1000,1002,1200,1201,1202,1220,1221,1222,1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318,1500,1501,1510,1511,1520,1521,1600,1601,1610,1611,1670,1671,1672,1690,1691,1700,1701,1702,1703,1705,1706,1707,1900,1901,1902,1903,1904,2200,2201,2270,2271,2280,2281,2290,2291,2300,2301,2310,2311,2320,2321,2330,2331,2340,2341,2350,2351,2360,2361,2370,'),
+(63, 63, '1200,1201,1202,1220,1221,1222'),
+(64, 64, '1200,1201,1202,1220,1221,1222'),
+(65, 65, '1200,1201,1202,1220,1221,1222'),
+(66, 66, '211,215,240,241'),
+(67, 67, ''),
+(68, 68, '10,20,30,40,50,60,70,80,81,95,100,101,102,103,130,211,215,220,221,240,241,280,281,300,320,340,341,360'),
+(69, 69, '1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318'),
+(70, 70, '1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318'),
+(71, 71, '1000,1002'),
+(72, 72, '1900,1901,1902,1903,1904'),
+(73, 73, '1900,1901,1902,1903,1904'),
+(74, 74, '2110,2111,2112'),
+(75, 75, '1301,1302,1303,1304,1305,1308,1315,1317,1318,1320'),
+(76, 76, '10,80,81,95,100,101,102,103'),
+(77, 77, '211,213,215,281,320,340,341,360,380,381'),
+(78, 78, '1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318'),
+(79, 79, '211,213,215,281,320,340,341,360,380,381'),
+(80, 80, '211,213,215,220,221,240,241,280,281,300,320,340,341,360,380,381'),
+(81, 81, '10,20,30,40,50,60,70,80,81,95,100,101,102,103,130,211,213,215,220,221,240,241,280,281,300,320,340,341,360,380,381'),
+(82, 82, ''),
+(83, 83, '1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318'),
+(84, 84, '211,213,215,281,320,340,341,360,380,381'),
+(85, 85, '2500,2501,2502,2503,2504,2505'),
+(86, 86, '2500,2501,2502,2503,2504,2505'),
+(87, 87, ''),
+(88, 88, '1500,1501,1610,1611,1900,1901,1902,1903,1904'),
+(89, 89, '1301,1302,1303,1304,1305,1308,1315,1317,1318,1320'),
+(90, 90, '2400,2401,2402,2406,2430'),
+(91, 91, '2400,2401,2402,2405,2406,2420,2430'),
+(92, 92, '200,206,207,208,211,212,215,300,301'),
+(93, 93, '1300,1301,1302,1303,1304,1305,1308,1309,1311,1312,1313,1315,1316,1317,1318'),
+(94, 94, '1620,1621'),
+(95, 95, '1630,1631,1632,1633,1634,1635,1640,1641,1642,1643,1644,1645'),
+(96, 96, '1620,1621,1630,1631,1632,1633,1634,1635,1640,1641,1642,1643,1644,1645'),
+(97, 97, '1620,1621'),
+(98, 98, '1630,1631,1632,1633,1634,1635,1640,1641,1642,1643,1644,1645'),
+(99, 99, '2800,2801,2802,2803,2804,2805,2810,2811,2812,2813,2814,2815,2816,2817,2818'),
+(100, 100, '2800,2801,2802,2803,2804,2805'),
+(101, 101, '2810,2811,2812,2813,2814,2815,2816,2817,2818'),
+(102, 102, '2800,2801,2802,2803,2804,2805,2810,2811,2812,2813,2814,2815,2816,2817,2818'),
+(103, 103, '2930,2931'),
+(104, 104, '1670,1671,1672'),
+(105, 105, '2930,2931'),
+(106, 106, '1670,1671,1672'),
+(107, 107, '1500,1501,2500,2501,2502,2503,2504,2505,2800,2801,2802,2803,2804,2805'),
+(108, 108, '211,215,220,320,340,341'),
+(109, 109, '2400,2401,2402,2405,2406,2420,2430'),
+(110, 110, '1510,1511'),
+(111, 111, ''),
+(112, 112, '1510,1511'),
+(113, 113, '1500,1501,1510,1511'),
+(114, 114, '3000,3001,3002'),
+(115, 115, '3010,3011'),
+(116, 116, '3000,3001,3002,3010,3011'),
+(117, 117, '3000,3001,3002,3010,3011'),
+(118, 118, '3000,3001,3002'),
+(119, 119, '3000,3001,3002,3010,3011'),
+(120, 120, '3300,3310,3320,3330,3340,3350,3360,3370,3380,3390,3400,3410,3420,3430,3440,3450,3460'),
+(121, 121, '3300'),
+(122, 122, '3350'),
+(123, 123, '3330'),
+(124, 124, '3390'),
+(125, 125, '3370'),
+(126, 126, '3310'),
+(127, 127, '3320'),
+(128, 128, '3380'),
+(129, 129, '3420'),
+(130, 130, '3430'),
+(131, 131, '3450'),
+(132, 132, '3340'),
+(133, 133, '3410'),
+(134, 134, '3440'),
+(135, 135, '3400'),
+(136, 136, '3360'),
+(137, 137, '3460'),
+(138, 138, '3300,3310,3380'),
+(139, 139, '3330,3390,3410'),
+(140, 140, '3320,3370,3450'),
+(141, 141, '3300,3310,3330,3380,3390,3410'),
+(142, 142, '3320,3330,3370,3390,3410,3450'),
+(143, 143, '3300,3310,3320,3370,3380,3450'),
+(144, 144, '3300,3310,3320,3330,3340,3350,3360,3370,3380,3390,3400,3410,3420,3430,3440,3450,3460'),
+(145, 145, '2101,2102,2103,2104,2105,2106,2107,2108,2120'),
+(146, 146, '3800,3801,3802,3803,3804,3810,3811,3820,3821,3822,3823,3824,3830,3831,3832,3833,3834,3835,3836'),
+(147, 147, '1690,1691'),
+(148, 148, '211,215,240,241'),
+(149, 149, '10'),
+(150, 150, '211,215,320,340,341'),
+(151, 151, '211,213,215,220,240,241,280,281,320,340,341,360,380,381'),
+(152, 152, '211,213,215,220,280,281,320,340,341,360,380,381'),
+(153, 153, '3810,3811'),
+(154, 154, '3820,3821,3822,3823,3824'),
+(155, 155, '3800,3801,3802,3803,3804'),
+(156, 156, '1520'),
+(157, 158, '3900,3901,3910,3911,3912,3920,3921,3960,3961'),
+(158, 159, '1523,1524'),
+(159, 160, '1524,1525'),
+(160, 161, '1690,1691'),
+(161, 162, '3830,3831,3832,3833,3834,3835,3836'),
+(162, 163, '2610,2611,2612,2613,2620,2621,2625,2630,2631,2632,2633,2634,2635,2640,2641,2645'),
+(163, 164, '2110,2111,2112'),
+(164, 165, '1500,1501,2500,2501,2502,2503,2504,2505,2810,2811,2812,2813,2814,2815,2816,2817,2818');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscriptionstatus`
+--
+
+CREATE TABLE `subscriptionstatus` (
+  `uniqueid` int(11) NOT NULL,
+  `statustype` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `subscriptionstatus`
+--
+
+INSERT INTO `subscriptionstatus` (`uniqueid`, `statustype`) VALUES
+(0, 'OK'),
+(1, 'Pending'),
+(2, 'Preorder'),
+(3, 'PrepurchaseTransferred'),
+(4, 'PrepurchaseInvalid'),
+(5, 'PrepurchaseRejected'),
+(6, 'PrepurchaseRevoked'),
+(7, 'PaymentCardDeclined'),
+(8, 'CancelledByUser'),
+(9, 'CancelledByVendor'),
+(10, 'PaymentCardUseLimit'),
+(11, 'PaymentCardAlert'),
+(12, 'Failed'),
+(13, 'PaymentCardAVSFailure'),
+(14, 'PaymentCardInsufficientFunds'),
+(15, 'RestrictedCountry');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `userappaccessrightsrecord`
+--
+
+CREATE TABLE `userappaccessrightsrecord` (
+  `UniqueID` int(11) NOT NULL,
+  `UserRegistry_UniqueID` int(11) NOT NULL,
+  `AppID` int(11) NOT NULL,
+  `Rights` varchar(45) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `userregistry`
+--
+
+CREATE TABLE `userregistry` (
+  `UniqueID` int(11) NOT NULL,
+  `UniqueUserName` varchar(256) NOT NULL,
+  `AccountCreationTime` datetime NOT NULL,
+  `OptionalAccountCreationKey` varchar(45) NOT NULL DEFAULT 'Egq-pe-y',
+  `SteamLocalUserID` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `UserType` int(11) NOT NULL DEFAULT '1',
+  `SaltedAnswerToQuestionDigest` varchar(512) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `PassphraseSalt` varchar(512) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `AnswerToQuestionSalt` varchar(512) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `PersonalQuestion` varchar(256) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `SaltedPassphraseDigest` varchar(512) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `LastRecalcDerivedSubscribedAppsTime` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `Cellid` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `AccountEmailAddress` varchar(256) NOT NULL,
+  `Banned` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '00 00',
+  `AccountLastModifiedTime` varchar(45) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT 'e0 e0 e0 e0 e0 e0 e0 00'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+--
+-- Dumping data for table `userregistry`
+--
+
+INSERT INTO `userregistry` (`UniqueID`, `UniqueUserName`, `AccountCreationTime`, `OptionalAccountCreationKey`, `SteamLocalUserID`, `UserType`, `SaltedAnswerToQuestionDigest`, `PassphraseSalt`, `AnswerToQuestionSalt`, `PersonalQuestion`, `SaltedPassphraseDigest`, `LastRecalcDerivedSubscribedAppsTime`, `Cellid`, `AccountEmailAddress`, `Banned`, `AccountLastModifiedTime`) VALUES
+(1, 'test', '2023-07-01 00:00:00', 'Egq-pe-y', '0', 1, 'asd', 'asdgdfs', 'dsafda', 'what is your name?', 'efasef324', '0', '2', 'test@google.com', '00 00', 'e0 e0 e0 e0 e0 e0 e0 00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `vacrecord`
+--
+
+CREATE TABLE `vacrecord` (
+  `UniqueID` int(11) NOT NULL,
+  `CustSupportAccountRecord_UniqueID` int(11) NOT NULL,
+  `BannedAtTime` varchar(45) DEFAULT NULL,
+  `BannedFromTime` varchar(45) DEFAULT NULL,
+  `BannedUntilTime` varchar(45) DEFAULT NULL,
+  `Reason` varchar(45) DEFAULT NULL,
+  `Infractions` varchar(45) DEFAULT NULL,
+  `AccountCreationIP` varchar(45) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `accountexternalbillinginforecord`
+--
+ALTER TABLE `accountexternalbillinginforecord`
+  ADD PRIMARY KEY (`UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`);
+
+--
+-- Indexes for table `accountpaymentcardreceiptrecord`
+--
+ALTER TABLE `accountpaymentcardreceiptrecord`
+  ADD PRIMARY KEY (`recordID`),
+  ADD UNIQUE KEY `recordID_UNIQUE` (`recordID`);
+
+--
+-- Indexes for table `accountprepurchasedinforecord`
+--
+ALTER TABLE `accountprepurchasedinforecord`
+  ADD PRIMARY KEY (`UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`);
+
+--
+-- Indexes for table `accountsubscriptionsbillinginforecord`
+--
+ALTER TABLE `accountsubscriptionsbillinginforecord`
+  ADD PRIMARY KEY (`UniqueID`,`UserRegistry_UniqueID`,`AccountPrepurchasedInfoRecord_UniqueID1`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_AccountSubscriptionsBillingInfoRecord_UserRegistry1_idx` (`UserRegistry_UniqueID`),
+  ADD KEY `fk_AccountSubscriptionsBillingInfoRecord_AccountPrepurchase_idx` (`AccountPrepurchasedInfoRecord_UniqueID1`),
+  ADD KEY `fk_AccountSubscriptionsBillingInfoRecord_AccountExternalBil_idx` (`AccountExternalBillingInfoRecord_UniqueID`),
+  ADD KEY `fk_AccountSubscriptionsBillingInfoRecord_AccountPaymentCard_idx` (`AccountPaymentCardReceiptRecord_recordID`);
+
+--
+-- Indexes for table `accountsubscriptionsrecord`
+--
+ALTER TABLE `accountsubscriptionsrecord`
+  ADD PRIMARY KEY (`UniqueID`,`UserRegistry_UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_AccountSubscriptionsRecord_UserRegistry1_idx` (`UserRegistry_UniqueID`),
+  ADD KEY `fk_AccountSubscriptionsRecord_SteamSub_apps1_idx` (`SubscriptionID`);
+
+--
+-- Indexes for table `ccardtype`
+--
+ALTER TABLE `ccardtype`
+  ADD PRIMARY KEY (`uniqueid`),
+  ADD UNIQUE KEY `uniqueid_UNIQUE` (`uniqueid`);
+
+--
+-- Indexes for table `custsupportaccountrecord`
+--
+ALTER TABLE `custsupportaccountrecord`
+  ADD PRIMARY KEY (`UniqueID`,`AccountSubscriptionsRecord_UniqueID`,`UserRegistry_UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_CustSupportAccountRecord_AccountSubscriptionsRecord1_idx` (`AccountSubscriptionsRecord_UniqueID`),
+  ADD KEY `fk_CustSupportAccountRecord_UserRegistry1_idx` (`UserRegistry_UniqueID`);
+
+--
+-- Indexes for table `derivedsubscribedappsrecord`
+--
+ALTER TABLE `derivedsubscribedappsrecord`
+  ADD PRIMARY KEY (`UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_DerivedSubscribedAppsRecord_UserRegistry1_idx` (`UserRegistry_UniqueID`);
 
 --
 -- Indexes for table `steamapplications`
@@ -1255,6 +1920,125 @@ ALTER TABLE `steamapplications`
   ADD PRIMARY KEY (`AppID`),
   ADD UNIQUE KEY `AppID_UNIQUE` (`AppID`),
   ADD KEY `AppID` (`AppID`);
+
+--
+-- Indexes for table `steamsubscriptions`
+--
+ALTER TABLE `steamsubscriptions`
+  ADD PRIMARY KEY (`SubscriptionID`),
+  ADD UNIQUE KEY `SubscriptionID_UNIQUE` (`SubscriptionID`);
+
+--
+-- Indexes for table `steamsub_apps`
+--
+ALTER TABLE `steamsub_apps`
+  ADD PRIMARY KEY (`UniqueID`,`SteamSubscriptions_SubscriptionID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`);
+
+--
+-- Indexes for table `subscriptionstatus`
+--
+ALTER TABLE `subscriptionstatus`
+  ADD PRIMARY KEY (`uniqueid`);
+
+--
+-- Indexes for table `userappaccessrightsrecord`
+--
+ALTER TABLE `userappaccessrightsrecord`
+  ADD PRIMARY KEY (`UniqueID`,`UserRegistry_UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_UserAppAccessRightsRecord_UserRegistry1_idx` (`UserRegistry_UniqueID`);
+
+--
+-- Indexes for table `userregistry`
+--
+ALTER TABLE `userregistry`
+  ADD PRIMARY KEY (`UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`);
+
+--
+-- Indexes for table `vacrecord`
+--
+ALTER TABLE `vacrecord`
+  ADD PRIMARY KEY (`UniqueID`),
+  ADD UNIQUE KEY `UniqueID_UNIQUE` (`UniqueID`),
+  ADD KEY `fk_VACRecord_CustSupportAccountRecord1_idx` (`CustSupportAccountRecord_UniqueID`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `accountexternalbillinginforecord`
+--
+ALTER TABLE `accountexternalbillinginforecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `accountpaymentcardreceiptrecord`
+--
+ALTER TABLE `accountpaymentcardreceiptrecord`
+  MODIFY `recordID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `accountprepurchasedinforecord`
+--
+ALTER TABLE `accountprepurchasedinforecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `accountsubscriptionsbillinginforecord`
+--
+ALTER TABLE `accountsubscriptionsbillinginforecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `accountsubscriptionsrecord`
+--
+ALTER TABLE `accountsubscriptionsrecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `custsupportaccountrecord`
+--
+ALTER TABLE `custsupportaccountrecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `derivedsubscribedappsrecord`
+--
+ALTER TABLE `derivedsubscribedappsrecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `steamsub_apps`
+--
+ALTER TABLE `steamsub_apps`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=165;
+
+--
+-- AUTO_INCREMENT for table `subscriptionstatus`
+--
+ALTER TABLE `subscriptionstatus`
+  MODIFY `uniqueid` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `userappaccessrightsrecord`
+--
+ALTER TABLE `userappaccessrightsrecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `userregistry`
+--
+ALTER TABLE `userregistry`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `vacrecord`
+--
+ALTER TABLE `vacrecord`
+  MODIFY `UniqueID` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

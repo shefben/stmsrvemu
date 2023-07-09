@@ -45,8 +45,6 @@ Send to server:
 	0x0a +tgt +authenticator +payload
 Expected Response:
 u16
-
-
 u32
 u16 - contentticket version num
 u16 - u16SizeOfPlaintextClientReadableContentTicket

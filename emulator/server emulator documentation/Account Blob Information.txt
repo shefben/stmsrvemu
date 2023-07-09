@@ -1,6 +1,6 @@
 record name: CSubscriberAccountRecord 
-0 = versionnum(Always: 4)
- 1 = unique username
+ 0=versionnum(Always: 4)
+ 1=unique username
  2=account creation time
  3=OptionalAccountCreationKey (Always: Egq-pe-y)
  4=OptionalBillingInfoRecord
@@ -17,6 +17,7 @@ record name: CSubscriberAccountRecord
    		 1=SteamLocalUserID
   		 2=UserType (admin or regular user)
     		 3=UserAppAccessRightsRecord
+			appid's
  7=AccountSubscriptionsRecord
 	<subscription#>/AccountSubscriptionRecord
 		1=SubscribedDate
@@ -27,14 +28,14 @@ record name: CSubscriberAccountRecord
 		7=BillingStatus ---not used on server?
 		8=UserIP   ---not used on server?
  8=DerivedSubscribedAppsRecord
-	appid
+	subid
  9=LastRecalcDerivedSubscribedAppsTime
  10=Cellid
  11=AccountEmailAddress
  12=AccountStatus
  14=AccountLastModifiedTime
  15=AccountSubscriptionsBillingInfoRecord
-	<billing id>
+	<sub id>
 		1=AccountPaymentCardInfoRecord
 		2=AccountPrepurchasedInfoRecord
 			1=cdkeyname/product type name
