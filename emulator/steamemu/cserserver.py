@@ -38,7 +38,7 @@ class IceKey(object):
 class cserserver(UDPNetworkHandler):
     def __init__(self, config, port):
         server_type = "cserserver"
-        super(masterhl, self).__init__(config, port, server_type)  # Create an instance of NetworkHandler
+        super(cserserver, self).__init__(config, port, server_type)  # Create an instance of NetworkHandler
 
     def handle_client(self, *args):
         data, address = args
