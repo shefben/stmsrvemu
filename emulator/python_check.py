@@ -20,10 +20,10 @@ def check_python_version():
     #              "datetime", "mysql", "ast", "pycryptodome"]
     #    install_libraries(library_names)
     # Check if the version is lower than Python 2.7
-    else:
-        print("You must use a version of Python 2.7 in order to run this script")
-        print("Stopping Execution\n Press Escape to close...")
-        while True:
-            if msvcrt.kbhit() and ord(msvcrt.getch()) == 27:  # 27 is the ASCII code for Escape
-                os._exit(0)
+#else:
+    print("You must use a version of Python 2.7 in order to run this script")
+    print("Stopping Execution\n Press Escape to close...")
+    while True:
+        if msvcrt.kbhit() and ord(msvcrt.getch()) == 27:  # 27 is the ASCII code for Escape
+            os._exit(0)
     
