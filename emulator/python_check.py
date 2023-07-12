@@ -17,7 +17,7 @@ def check_python_version():
     # Check if the version is Python 2.7
     #if major_version == 2 and minor_version == 7:
     #    library_names = ["windows-curses", "configparser", "logging",
-                  "datetime", "mysql", "ast", "pycryptodome"]
+    #              "datetime", "mysql", "ast", "pycryptodome"]
     #    install_libraries(library_names)
     # Check if the version is lower than Python 2.7
     else:
