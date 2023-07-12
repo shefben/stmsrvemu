@@ -8,22 +8,24 @@ import steamemu.logger
 import socket as pysocket
 import serverlist_utilities
 from serverlist_utilities import unpack_server_info, DirServerManager
-
+from networkhandler import TCPNetworkHandler
 log = logging.getLogger("DirectorySRV")
 
 manager = DirServerManager()    
 dirConnectionCount = 0
 
-class directoryserver(threading.Thread):
+incoming_rate = 0
+outgoing_rate = 0
+
+class directoryserver(TCPNetworkHandler):
     global manager
     global log
     
     def __init__(self, port, config):
-        threading.Thread.__init__(self)
-        self.port = int(port)
-        self.config = config
-        self.socket = emu_socket.ImpSocket()
-        self.server_type = "masterdirserver" if globalvars.dir_ismaster == 0 else "dirserver"
+        server_type = "" if globalvars.dir_ismaster == 1 else "dirserver"
+        super(directoryserver, self).__init__(config, int(port), server_type)
+
+        self.server_type = "masterdirserver" if globalvars.dir_ismaster == 1 else "dirserver"
         self.server_info = {
             'ip_address': globalvars.serverip,
             'port': int(self.port),
@@ -37,30 +39,43 @@ class directoryserver(threading.Thread):
         #    log = logging.getLogger("master_dirserver")
         else:       
             log.info("Connecting to Master Directory Server")
-            thread2 = threading.Thread(target=self.heartbeat_thread)
-            thread2.daemon = True
-            thread2.start()
+
             
         thread = threading.Thread(target=self.expired_servers_thread) # Thread for removing servers older than 1 hour
         thread.daemon = True
         thread.start()
-        
-    def heartbeat_thread(self):       
-        while True:
-            send_heartbeat(self.server_info)
-            time.sleep(1800) # 30 minutes
-               
-    def run(self):        
-        self.socket.bind((globalvars.serverip, self.port))
-        self.socket.listen(5)
-        while True:
-            (clientsocket, address) = self.socket.accept()
-            threading.Thread(target=self.handle_client, args=(clientsocket, address)).start()
-            
+        # atexit.register(remove_from_dir(globalvars.serverip, int(self.port), self.server_type)) # add function for cleanup when program exits
 
+        manager.add_server_info(globalvars.serverip, self.config["dir_server_port"], self.server_type, 1)
+
+        if globalvars.dir_ismaster != 1 :  # add ourself to the serverlist as a directoryserver type, with a 0'd timestamp to indicate that it cannot be removed       
+            log.info("Connecting to Master Directory Server")
+            
+            recieved_list = send_listrequest() #since we are a slave, get the full current list from the master
+            index = 0
+            while index < len(recieved_list):
+                ip_address = recieved_list[index]
+                port = recieved_list[index + 1]
+                server_type = recieved_list[index + 2]
+                timestamp = recieved_list[index + 3]
+                manager.add_server_info([ip_address, int(port), server_type, timestamp])
+				
+		datarate_thread = threading.Thread(target=self.netstats)
+	        datarate_thread.daemon = True
+	        datarate_thread.start()    
+        else:
+            self.slavedir_list = []
+            
+    def netstats(self):
+        while True:
+            incoming_rate, outgoing_rate = self.calculate_data_rates()
+            time.sleep(0.5)
+            print(incoming_rate)
+    
     def handle_client(self, clientsocket, address):
         global server_list
         global dirConnectionCount
+        global log
         #threading.Thread.__init__(self)
 
         
@@ -73,7 +88,22 @@ class directoryserver(threading.Thread):
         msg = clientsocket.recv(4)
         log.debug(binascii.b2a_hex(msg))
 
-        if msg == "\x00\x3e\x7b\x11" :            
+        if msg == "\x05\xaa\x6c\x15": #slave to master serverlist request
+            list_size, masterlist = manager.pack_serverlist()
+            packed_length = struct.unpack('!I',  list_size[:4])[0]
+            clientsocket.send(packed_length) # handshake confirmed  
+            
+            size_response = clientsocket.recv(1)
+            
+            if size_response == '\x01':
+                clientsocket.send(masterlist)
+                
+                slave_response = clientsocket.recv(1)
+                
+                if slave_response == '\x01':
+                    clientsocket.close()
+
+        elif msg == "\x00\x3e\x7b\x11" :            
             clientsocket.send("\x01") # handshake confirmed
             msg = clientsocket.recv(1024)
             command = msg[0]           
@@ -100,8 +130,16 @@ class directoryserver(threading.Thread):
                 log.debug("Server Type: " + server_type)
                 log.debug("Timestamp: " + datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'))
                 
+                if server_type == "dirserver" and globalvars.dir_ismaster == 1: # only add to the slave list if you are master
+                    self.slavedir_list.append([ip_address, int(port)])
+                    
                 if globalvars.dir_ismaster != 1: # relay any requests to the master server aswell
                     clientsocket.sendto(msg, str(config["masterdir_ipport"]))
+                else: # relay anything from the master to all of the slaves..
+                    if len(self.slavedir_list) != 0:
+                        for entry in self.slavedir_list:
+                            if enctry[0] != ip_address and int(entry[1]) != int(port): #make sure we arent sending the slave server its own heartbeat...
+                                forward_heartbeat(ip_address, port, msg)
                 
             elif command == "\x1d": # Remove server entry from the list
                 ip_address, port, server_type = unpack_removal_info(msg)
@@ -122,7 +160,7 @@ class directoryserver(threading.Thread):
                 else: # couldnt remove server because: doesnt exists, problem with list
                     clientsocket.send("\x01")
                     log.info("[" + server_type + "] " + clientid + "There was an issue removing the server from Directory Server")  
-                                  
+                    
             # BEN TODO: Add packet for slave/peer dir servers to recieve master dir serverlist
                     
         elif msg == "\x00\x00\x00\x01" or msg == "\x00\x00\x00\x02":

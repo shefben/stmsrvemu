@@ -44,10 +44,12 @@ log.info("...Starting Steam Server...\n")
 globalvars.validation_ip   = config["validation_ip"]
 globalvars.validation_port = int(config["validation_server_port"])
 
-authserver(int(config["auth_server_port"]), config).start()
+
 log.info("Steam Master Authentication Server listening on port " + str(config["auth_server_port"]))
 time.sleep(0.5) #give us a little more time than usual to make sure we are initialized before servers start their heartbeat
-    
+
+authserver(int(config["auth_server_port"]), config).start()  
+
 log.info("Steam Authentication Server is ready.")
 
 if new_password == 1 :

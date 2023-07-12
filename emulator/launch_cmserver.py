@@ -4,7 +4,7 @@ import steamemu.logger
 import python_check
 
 from steamemu.config import save_config_value
-from steamemu.trackerserver import trackerserver
+from steamemu.messages import messagesserver
 from steamemu.config import read_config
 
 config = read_config()
@@ -27,13 +27,13 @@ thread2.start()
         
 print("Steam Client Messaging Server Emulator v" + globalvars.emuversion)
 print("=====================================")
-print
+print("")
 print("**************************")
 print("Server IP: " + config["server_ip"])
 if config["public_ip"] != "0.0.0.0" :
     print("Public IP: " + config["public_ip"])
 print("**************************")
-print
+print("")
 
 #check local ip and set globalvars.serverip
 utilities.checklocalipnet()

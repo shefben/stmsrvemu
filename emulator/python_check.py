@@ -2,7 +2,7 @@ import sys
 import msvcrt #for keyboard escape key watcher
 import os
 import globalvars
-
+from library_checker import install_libraries
 from steamemu.config import read_config
 
 config = read_config()
@@ -15,8 +15,10 @@ def check_python_version():
     minor_version = sys.version_info[1]
 
     # Check if the version is Python 2.7
-    if major_version == 2 and minor_version == 7:
-        pass
+    #if major_version == 2 and minor_version == 7:
+    #    library_names = ["windows-curses", "configparser", "logging",
+                  "datetime", "mysql", "ast", "pycryptodome"]
+    #    install_libraries(library_names)
     # Check if the version is lower than Python 2.7
     else:
         print("You must use a version of Python 2.7 in order to run this script")

@@ -4,6 +4,10 @@ import socket
 import time
 import emu_socket
 
+# Global variables to track incoming and outgoing data size
+incoming_data_size = 0
+outgoing_data_size = 0
+
 from serverlist_utilities import remove_from_dir, send_heartbeat
 
 log = logging.getLogger("MasterNetworkHandler")
@@ -33,7 +37,19 @@ class NetworkHandler(threading.Thread):
         while True:
             send_heartbeat(self.server_info)
             time.sleep(1800)  # 30 minutes
+            
+    def calculate_data_rates(self):
+        outgoing = self.socket.get_outgoing_data_rate()
+        incoming = self.socket.get_incoming_data_rate()
+        return incoming, outgoing        
+            #print(f"Outgoing data rate: {outgoing_kbps:.2f} KB/s")
+            #print(f"Incoming data rate: {incoming_kbps:.2f} KB/s")
 
+    def start_monitoring(self):
+        monitor_thread = threading.Thread(target=self._calculate_data_rates)
+        monitor_thread.daemon = True  # Thread will exit when main program ends
+        monitor_thread.start()
+        
     def handle_client(self, *args):
         raise NotImplementedError("handle_client method must be implemented in derived classes")
 
@@ -51,9 +67,8 @@ class TCPNetworkHandler(NetworkHandler):
 
 class UDPNetworkHandler(NetworkHandler):
     def __init__(self, config, port, server_type=""):
-        udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        NetworkHandler.__init__(self, udpsocket, config, port, server_type)
-
+        NetworkHandler.__init__(self, emu_socket.ImpSocket(socket.SOCK_DGRAM), config, port, server_type)
+        
     def run(self):
         self.socket.bind((self.config['server_ip'], self.port))
 

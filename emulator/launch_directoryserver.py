@@ -1,5 +1,7 @@
 import threading, logging, time, os, os.path, msvcrt, sys
 import utilities, globalvars, emu_socket
+
+import curses
 import steamemu.logger
 import python_check
 
@@ -82,11 +84,26 @@ if new_password == 1 :
     log.info("Make sure to give this password to any servers that may want to add themselves to your network!")
 input_buffer = ""
 print("Press Escape to exit...")
+
+#def run_curses():
+#    curses.wrapper(main_test)
+
+# Create a thread for running the curses application
+#curses_thread = threading.Thread(target=run_curses)
+#curses_thread.start()
+
 input_manager = DirInputManager()
 input_manager.start_input()
 #input_thread = threading.Thread(target=input_manager.start_input)
 #input_thread.daemon = True
 #input_thread.start()
-    
+
+
+
+
+
+
+
+
 
     

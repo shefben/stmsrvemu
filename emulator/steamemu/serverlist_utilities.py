@@ -73,6 +73,59 @@ def unpack_server_info(encrypted_data):
     ip_index += 1
     return ip_address, port, server_type, timestamp
 
+def forward_heartbeat(ip_address, port, encrypted_buffer):    
+    while True:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((str(ip_address), int(port))) # Connect the socket to master dir server
+            break
+        except socket.error as e:
+            print("Connection error:", str(e))
+            print("Retrying in 5 minutes...")
+            time.sleep(5 * 60)  # Wait for 5 minutes before retrying
+    
+    data = "\x00\x3e\x7b\x11"
+    sock.send(data) # Send the 'im a dir server packet' packet
+    
+    handshake = sock.recv(1) # wait for a reply
+    
+    if handshake == '\x01':
+        sock.send(encrypted_buffer)
+        confirmation = sock.recv(1) # wait for a reply
+    else :
+        log.warning("Failed to get handshake response to forward to slave Directory Server.")
+        
+    if confirmation != '\x01' :
+        log.warning("Failed to forward heartbeat to slave Directory Server.")
+    sock.close()
+    
+def send_listrequest():
+    masterdir_ipport = config["masterdir_ipport"]
+    mdir_ip, mdir_port = masterdir_ipport.split(":")
+    
+    while True:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((str(mdir_ip), int(mdir_port))) # Connect the socket to master dir server
+            break
+        except socket.error as e:
+            print("Connection error:", str(e))
+            print("Retrying in 5 minutes...")
+            time.sleep(5 * 60)  # Wait for 5 minutes before retrying
+    
+    data = "\x05\xaa\x6c\x15"
+    sock.send(data) # Send the 'im a dir server packet' packet
+    
+    serverlist_size = sock.recv(4) # wait for a reply
+    unpacked_length = struct.unpack('!I',  serverlist_size[:4])[0]
+    sock.send("\x01")
+    recieved_list = []
+    recieved_list = sock.recv(unpacked_length)
+    sock.send("\x01")
+    sock.close()
+    log.info("Recieved Server List From Master Directory Server.")
+    return recieved_list
+
 def send_removal(ip_address, port, server_type):
     ipaddr = ip_address.encode('utf-8')
     type = server_type.encode('utf-8')
@@ -111,7 +164,15 @@ def remove_from_dir(encrypted_buffer):
 class DirServerManager(object):
     dirserver_list = []
     lock = threading.Lock()
+    
+    def pack_serverlist(self):     
+        # Get the size of the list
+        size = len(self.dirserver_list)
 
+        # Pack the size into 4 bytes
+        packed_size = struct.pack('I', size)
+        return packed_size, self.dirserver_list  
+        
     def add_server_info(self, ip_address, port, server_type, permanent = 0) :
 
         current_time = datetime.datetime.now()
