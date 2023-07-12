@@ -5,7 +5,7 @@ import curses
 import steamemu.logger
 import python_check
 
-from command_input import InputManager
+from inputmanager import InputManager
 from steamemu.config import save_config_value
 from steamemu.directoryserver import directoryserver, manager as dirmanager, dirConnectionCount
 from steamemu.config import read_config
