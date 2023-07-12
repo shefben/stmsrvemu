@@ -96,28 +96,28 @@ else:
 directoryserver(int(config["dir_server_port"]), config).start()
 time.sleep(1.0) #give us a little more time than usual to make sure we are initialized before servers start their heartbeat
 
-threading.Thread(target=cserserver(globalvars.serverip, int(config["cser_server_port"])).start).start()
+cserserver(globalvars.serverip, int(config["cser_server_port"])).start()
 log.info("CSER Server listening on port " + str(config["cser_server_port"]))
 time.sleep(0.5)
 
-threading.Thread(target=harvestserver(globalvars.serverip, int(config["harvest_server_port"])).start).start()
+harvestserver(globalvars.serverip, int(config["harvest_server_port"])).start()
 log.info("MiniDump Harvest Server listening on port " + str(config["harvest_server_port"]))
 time.sleep(0.5)
 
-threading.Thread(target=masterhl(globalvars.serverip, int(config["masterhl1_server_port"])).start).start()
+masterhl(config, int(config["masterhl1_server_port"])).start()
 log.info("Master HL1 Server listening on port " + str(config["masterhl1_server_port"]))
 time.sleep(0.5)
 
-threading.Thread(target=masterhl2(globalvars.serverip, int(config["masterhl2_server_port"])).start).start()
+masterhl2(config, int(config["masterhl2_server_port"])).start()
 log.info("Master HL2 Server listening on port " + str(config["masterhl2_server_port"]))
 time.sleep(0.5)
 
-threading.Thread(target=trackerserver(globalvars.serverip, int(config["tracker_server_port"])).start).start()
+trackerserver(globalvars.serverip, int(config["tracker_server_port"])).start()
 log.info("[2004-2007] Tracker Server listening on port " + str(config["tracker_server_port"])) 
 globalvars.tracker = 1
 time.sleep(0.5)
 
-threading.Thread(target=messagesserver(globalvars.serverip, int(config["cm_server_port"])).start).start()
+messagesserver(globalvars.serverip, int(config["cm_server_port"])).start()
 log.info("Client Messaging Server listening on port " + str(config["cm_server_port"]))
 time.sleep(0.2)
 
