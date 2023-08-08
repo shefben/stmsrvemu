@@ -26,7 +26,9 @@ def read_config() :
                   "8009baf9162b66716059",
                   'net_key_d':"0x4ee3ec697bb34d5e999cb2d3a3f5766210e5ce961de7334b6f7c6361f18682825b2cfa95b8b7894c124ada7ea105ec1eaeb3c5f1d17dfaa"
                   "55d099a0f5fa366913b171af767fe67fb89f5393efdb69634f74cb41cb7b3501025c4e8fef1ff434307c7200f197b74044e93dbcf50dcc407cbf347b4b817"
-                  "383471cd1de7b5964a9d"}
+                  "383471cd1de7b5964a9d", 'v3storagedir2':"files/v3storages2/", 'v3manifestdir2':"files/v3manifests2/", 'validation_port':"27034",
+                  "database_type":"mysql", "database_username":"", "database_password":"", "database_database":"stmserver", "database_host":"localhost",
+                  "database_port":"3306", "cellid":"2", 'store_url_new':"/storefront", 'support_url_new':"/support", 'http_port':""}
     c = ConfigParser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")
 

@@ -10,10 +10,12 @@ class Storage :
         self.name = str(storagename)
         self.ver = str(version)
         
-        #if path.endswith("storages/") :
+        if path.endswith("storages/") :
             #manifestpath = path[:-9] + "manifests/"
-        manifestpathnew = config["manifestdir"]
-        manifestpathold = config["v2manifestdir"]
+            manifestpathnew = config["manifestdir"]
+            manifestpathold = config["v2manifestdir"]
+            manifestpathxtra = config["v3manifestdir2"]
+
         if os.path.isfile("files/cache/" + self.name + "_" + self.ver + "/" + self.name + "_" + self.ver + ".manifest") :
             self.indexfile  = "files/cache/" + self.name + "_" + self.ver + "/" + self.name + ".index"
             self.datafile   = "files/cache/" + self.name + "_" + self.ver + "/" + self.name + ".data"
@@ -26,6 +28,12 @@ class Storage :
 
             (self.indexes, self.filemodes) = readindexes_old(self.indexfile)
             self.new = False
+        elif os.path.isfile(manifestpathxtra + self.name + "_" + self.ver + ".manifest") :
+            self.indexfile  = config["v3storagedir2"] + self.name + ".index"
+            self.datafile   = config["v3storagedir2"] + self.name + ".data"
+
+            (self.indexes, self.filemodes) = readindexes(self.indexfile)
+            self.new = True
         else :
             self.indexfile  = config["storagedir"] + self.name + ".index"
             self.datafile   = config["storagedir"] + self.name + ".data"

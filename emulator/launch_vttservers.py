@@ -21,7 +21,7 @@ thread2 = threading.Thread(target=watchescape_thread)
 thread2.daemon = True
 thread2.start()
         
-print("Steam 2004-2011 Valve CyberCafe Server Emulator v" + globalvars.emuversion)
+print("Steam 2004-2011 Valve CyberCafe Time Tracker Server Emulator v" + globalvars.emuversion)
 print("=====================================")
 print
 print("**************************")
@@ -32,7 +32,7 @@ print("**************************")
 print
 
 log = logging.getLogger('VTTSRV')
-log.info("...Starting Steam Server...\n")
+log.info("...Starting Steam Time Tracker Server...\n")
 
 #check local ip and set globalvars.serverip
 utilities.checklocalipnet()

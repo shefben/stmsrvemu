@@ -2,7 +2,7 @@ import threading, logging, time, os, os.path, msvcrt, sys
 import utilities, globalvars, emu_socket
 import steamemu.logger
 import python_check
-from command_input import InputManager
+from inputmanager import InputManager
 from steamemu.config import save_config_value
 from steamemu.contentlistserver import contentlistserver, manager as csdsmanager, csdsConnectionCount
 from steamemu.config import read_config

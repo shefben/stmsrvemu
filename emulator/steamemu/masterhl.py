@@ -3,6 +3,7 @@ import os
 import config
 import utilities
 import steamemu.logger
+import socket as pysocket
 import globalvars
 
 from networkhandler import UDPNetworkHandler
@@ -44,9 +45,9 @@ class masterhl(UDPNetworkHandler):
             #trueport = struct.pack('>H', 27015)
             nullip = struct.pack('>BBBB', 0, 0, 0, 0)
             nullport = struct.pack('>H', 0)
-            #self.socket.sendto(nullip.encode(), address)
-            #self.socket.sendto(header + trueip + trueport + nullip + nullport, address)
-            self.socket.sendto(header + nullip + nullport, address)
+            #self.pysocket.sendto(nullip.encode(), address)
+            #self.pysocket.sendto(header + trueip + trueport + nullip + nullport, address)
+            self.pysocket.sendto(header + nullip + nullport, address)
             #serversocket.close()
         elif data.startswith("q") :
             header = b'\xFF\xFF\xFF\xFF\x73\x0A'
@@ -73,7 +74,7 @@ class masterhl(UDPNetworkHandler):
                 log.info(clientid + "Registering server, sending challenge number %s" % str(globalvars.hl1challengenum + 1))
                 challenge = struct.pack("I", globalvars.hl1challengenum + 1)
                 globalvars.hl1challengenum += 1
-            self.socket.sendto(header + challenge, address)
+            self.pysocket.sendto(header + challenge, address)
         elif data.startswith("M") :
             header = b'\xFF\xFF\xFF\xFF\x4E\x0A'
             ipstr = str(address)
@@ -99,7 +100,7 @@ class masterhl(UDPNetworkHandler):
                 log.info(clientid + "Registering server, sending challenge number %s" % str(globalvars.hl1challengenum + 1))
                 challenge = struct.pack("I", globalvars.hl1challengenum + 1)
                 globalvars.hl1challengenum += 1
-            self.socket.sendto(header + challenge, address)
+            self.pysocket.sendto(header + challenge, address)
         elif data.startswith("0") :
             serverdata1 = data.split('\n')
             serverdata2 = serverdata1[1]
@@ -108,8 +109,8 @@ class masterhl(UDPNetworkHandler):
             serverdata3 = ipstr1[1] + serverdata2
             tempserverlist = serverdata3.split('\\')
             globalvars.hl1serverlist[int(tempserverlist[4])] = tempserverlist
-            print("This Challenge: %s" % tempserverlist[4])
-            print("Current Challenge: %s" % (globalvars.hl1challengenum))
+            log.debug(clientid + "This Challenge: %s" % tempserverlist[4])
+            log.debug(clientid + "Current Challenge: %s" % (globalvars.hl1challengenum))
             #globalvars.hl1servernum += 1
         elif data.startswith("b") :
             ipstr = str(address)
@@ -142,6 +143,6 @@ class masterhl(UDPNetworkHandler):
         else :
             print("UNKNOWN MASTER SERVER COMMAND")
             
-        #self.socket.close()
+        #self.pysocket.close()
         log.info (clientid + "Disconnected from HL1 Master Server")
 

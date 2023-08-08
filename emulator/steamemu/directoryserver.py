@@ -194,7 +194,7 @@ class directoryserver(TCPNetworkHandler):
             elif command == "\x12" : #userid ticket validation server address, not supported yet
                 log.info(clientid + "Sending out list of Client / Account Authentication Servers")
                 reply = manager.get_and_prep_server_list("validationserver")
-            elif command == "\x0B" : #  master VCDS Validation (New valve cdkey Authentication) server
+            elif command == "\x0B" or command == "\x1c" : #  master VCDS Validation (New valve cdkey Authentication) server
                 log.info(clientid + "Sending out list of VCDS Validation (New valve CDKey Authentication) Master Servers")
                 reply = manager.get_and_prep_server_list("validationserver")
             elif command == "\x07" : # Ticket Validation master server

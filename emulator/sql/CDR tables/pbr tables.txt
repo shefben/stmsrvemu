@@ -1,0 +1,21 @@
+Table: ClientContentRecord
+UniqueID - number
+BlobDate - date
+Version
+ClientBootstrapVersion
+ClientAppPackageVersion
+LinuxClientAppVersion
+Win32HldsUpdateToolVersion
+LinuxHldsUpdateToolVersion
+BetaClientBootstrapVersion
+BetaClientBootstrapPassword
+BetaClientAppPackageVersion
+BetaClientAppPackagePassword
+BetaWin32HldsUpdateToolVersion
+BetaWin32HldsUpdateToolPassword
+BetaLinuxHldsUpdateToolVersion
+BetaLinuxHldsUpdateToolPassword
+SteamGameUpdaterVersion 
+CafeAdministrationClientVersion
+CafeAdministrationServerVersion
+CustomPackageVersion

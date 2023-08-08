@@ -1,8 +1,8 @@
-import threading, logging, time, os, os.path, msvcrt, sys
+import threading, logging, time, os, os.path, msvcrt, sys, msvcrt
 import utilities, globalvars, emu_socket
 import steamemu.logger
 import python_check
-from command_input import InputManager
+from inputmanager import InputManager
 from steamemu.config import read_config
 from steamemu.converter import convertgcf
 from steamemu.directoryserver import directoryserver, manager as dirmanager
@@ -26,6 +26,15 @@ global dirmanager, csdsmanager
 
 # Check the Python version
 python_check.check_python_version()
+
+def watchescape_thread():       
+    while True:
+        if msvcrt.kbhit() and ord(msvcrt.getch()) == 27:  # 27 is the ASCII code for Escape
+            os._exit(0)
+            
+thread2 = threading.Thread(target=watchescape_thread)
+thread2.daemon = True
+thread2.start()
 
 class EmuInputManager(InputManager):
     def process_input(self, c):
@@ -173,5 +182,5 @@ if new_password == 1 :
 
 input_buffer = ""
 print("Press Escape to exit...")
-input_manager = EmuInputManager()
-input_manager.start_input()
+#input_manager = EmuInputManager()
+#input_manager.start_input()

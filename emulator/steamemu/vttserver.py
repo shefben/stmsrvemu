@@ -8,7 +8,7 @@ import globalvars
 import steamemu.logger
 
 from Crypto.Hash import SHA
-from tcp_socket import TCPNetworkHandler
+from networkhandler import TCPNetworkHandler
 
 class vttserver(TCPNetworkHandler):
     def __init__(self, port, config):

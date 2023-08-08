@@ -28,8 +28,7 @@ Expected Response:
 	+ networkkey+\x02\x01\x11
 	
 Command:
-	update CDR
-	**from old steamserver emu from csmania**
+	GetCDDBAndFailSafeModes / update CDR
 Send to server:
 	0x09, the request is followed 
 	by 20 bytes of the SHA-1 hash for the existing file
@@ -38,21 +37,24 @@ Expected Response:
 	"\x00\x00\x00\x01\x31\x2d\x00\x00\x00\x01\x2c" + 4 byte size of cdr + cdr blob
 
 Command:
-	(Unknown)
+	GetCurrentAuthFailSafeMode
+	note: possible auth server ip:port as response
 Send to Server:
 	0x05
 Response:
 	u8		<- Unknown
 
 Command:
-	(Unknown)
+	GetCurrentBillingFailSafeMode
+	note: possible billing server ip:port as response
 Send to Server:
 	0x06
 Response:
 	u8		<- Unknown
 
 Command:
-	(Unknown)
+	GetCurrentContentFailSafeMode
+	note: possible cs server ip:port as response
 Send to Server:
 	0x07
 Response: *Recorded response: 	\x00\x01\x31\x2d\x00\x00\x00\x01\x2c*
@@ -60,41 +62,9 @@ Response: *Recorded response: 	\x00\x01\x31\x2d\x00\x00\x00\x01\x2c*
 	u32		<- Unknown
 	u32		<- Unknown
 
-
-Command:
-	(Unknown)
-Send to Server:
-	0x08
-Response:
-	unknown?
-
-Added 2005 Packets:
-
-
-Command:
-	get current auth failsafe mode
-Send to server:
-	(unknown)
-Expected Response:
-	(unknown)
-	
-Command:
-	get current billing failsafe mode
-Send to server:
-	(unknown)
-Expected Response:
-	(unknown)
-	
-Command:
-	get current content failsafe mode
-Send to server:
-	(unknown)
-Expected Response:
-	(unknown)
-	
 Command:
 	get current steam3 login percent
 Send to server:
-	(unknown)
+	0x08
 Expected Response:
 	(unknown)	

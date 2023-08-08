@@ -3,6 +3,10 @@ import logging
 import socket
 import time
 import emu_socket
+import socket as pysocket
+import globalvars
+
+from steamemu.config import read_config
 
 # Global variables to track incoming and outgoing data size
 incoming_data_size = 0
@@ -13,15 +17,20 @@ from serverlist_utilities import remove_from_dir, send_heartbeat
 log = logging.getLogger("MasterNetworkHandler")
 
 class NetworkHandler(threading.Thread):
+    config = read_config()
     def __init__(self, socket, config, port, server_type=""):
         threading.Thread.__init__(self)
-        self.socket = socket
+        if isinstance(self, UDPNetworkHandler):
+            self.pysocket = pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM)
+            self.socket = emu_socket.ImpSocket()
+        else:
+            self.socket = socket
         self.config = config
         self.port = int(port)
         if server_type != "":
             self.server_type = server_type
             self.server_info = {
-                'ip_address': self.config['server_ip'],
+                'ip_address': globalvars.serverip,
                 'port': self.port,
                 'server_type': self.server_type,
                 'timestamp': int(time.time())
@@ -56,9 +65,10 @@ class NetworkHandler(threading.Thread):
 class TCPNetworkHandler(NetworkHandler):
     def __init__(self, config, port, server_type=""):
         NetworkHandler.__init__(self, emu_socket.ImpSocket(), config, port, server_type)
-
+        self.port = port
+        self.config = read_config()
     def run(self):
-        self.socket.bind((self.config['server_ip'], self.port))
+        self.socket.bind((str(self.config['server_ip']), int(self.port)))
         self.socket.listen(5)
 
         while True:
@@ -67,13 +77,14 @@ class TCPNetworkHandler(NetworkHandler):
 
 class UDPNetworkHandler(NetworkHandler):
     def __init__(self, config, port, server_type=""):
-        NetworkHandler.__init__(self, emu_socket.ImpSocket(socket.SOCK_DGRAM), config, port, server_type)
-        
+        NetworkHandler.__init__(self, pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM), config, port, server_type)
+        self.port = port
+        self.config = read_config()
     def run(self):
-        self.socket.bind((self.config['server_ip'], self.port))
-
+        #self.socket.bind(str(globalvars.serverip), int(self.port))
+        self.pysocket.bind((str(self.config['server_ip']), int(self.port)))
         while True:
-            data, address = self.socket.recvfrom(2048)
+            data, address = self.pysocket.recvfrom(2048)
             server_thread = threading.Thread(target=self.handle_client, args=(data, address)).start()
             
 class TCPUDPNetworkHandler(TCPNetworkHandler, UDPNetworkHandler):

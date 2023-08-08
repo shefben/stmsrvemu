@@ -38,7 +38,7 @@ class IceKey(object):
 class cserserver(UDPNetworkHandler):
     def __init__(self, config, port):
         server_type = "cserserver"
-        super(cserserver, self).__init__(config, port, server_type)  # Create an instance of NetworkHandler
+        super(cserserver, self).__init__(config, int(port), server_type)  # Create an instance of NetworkHandler
 
     def handle_client(self, *args):
         data, address = args
@@ -214,7 +214,7 @@ class cserserver(UDPNetworkHandler):
             del aes
             del decrypted
             del debug
-            self.socket.sendto("\xFF\xFF\xFF\xFF\x72\x01", address) # 72 = r command and the next byte is a bool, ok = 1, bad = 0
+            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x72\x01", address) # 72 = r command and the next byte is a bool, ok = 1, bad = 0
         
         elif data.startswith("a"):  # 61
             log.info("Received app download stats - INOP")
@@ -228,7 +228,7 @@ class cserserver(UDPNetworkHandler):
 		//	  u16(harvester port #)
 		//	  u32(upload context id)
             """
-            self.socket.sendto("\xFF\xFF\xFF\xFF\x71\x01", address)
+            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x71\x01", address)
         elif data.startswith("i"):  # 69
             log.info("Received unknown stats - INOP")
         elif data.startswith("k"):  # 6b
@@ -257,7 +257,7 @@ class cserserver(UDPNetworkHandler):
                 //	u8(connection allowed (bool))
                 //  u32(sessionid)
             """
-            self.socket.sendto("\xFF\xFF\xFF\xFF\x6E\x01", address) #random session id, 321 
+            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x6E\x01", address) #random session id, 321 
         elif data.startswith("g"):  # survey response
             len = struct.unpack("<H", data[1:3])[0]
             sentData = data[3:]
@@ -289,7 +289,7 @@ class cserserver(UDPNetworkHandler):
            #remove the following 2 lines when decryption is figured out
             with open(filename, "w") as f:
                 f.write(sentData)
-            self.socket.sendto("\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00"+"thank you\n\0", address)
+            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00"+"thank you\n\0", address)
         else:
             log.info("Unknown CSER command: %s" % data)
 

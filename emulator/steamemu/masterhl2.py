@@ -42,7 +42,7 @@ class masterhl2(UDPNetworkHandler):
                 i += 1
             nullip = struct.pack('>BBBB', 0, 0, 0, 0)
             nullport = struct.pack('>H', 0)
-            self.socket.sendto(header + nullip + nullport, address)
+            self.pysocket.sendto(header + nullip + nullport, address)
         elif data.startswith("q") :
             header = b'\xFF\xFF\xFF\xFF\x73\x0A'
             ipstr = str(address)
@@ -68,7 +68,7 @@ class masterhl2(UDPNetworkHandler):
                 log.info(clientid + "Registering server, sending challenge number %s" % str(globalvars.hl2challengenum + 1))
                 challenge = struct.pack("I", globalvars.hl2challengenum + 1)
                 globalvars.hl2challengenum += 1
-            self.socket.sendto(header + challenge, address)
+            self.pysocket.sendto(header + challenge, address)
         elif data.startswith("0") :
             serverdata1 = data.split('\n')
             #print(serverdata1)
@@ -127,5 +127,5 @@ class masterhl2(UDPNetworkHandler):
         else :
             print("UNKNOWN MASTER SERVER COMMAND")
 
-        #self.socket.close()
+        #self.pysocket.close()
         log.info (clientid + "Disconnected from HL2 Master Server")

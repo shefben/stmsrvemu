@@ -67,7 +67,7 @@ def gcf2storage(filename) :
                 f.write(gcf.checksum_data)
                 f.close()
         else :
-            print( "Checksums in storage have same or more files than checksums in GCF")
+            print( "The checksums in storage have equal amount or more files than checksums in GCF")
             compare_checksums(gcf_checksums, stored_checksums)
     else :
         if do_updates :
