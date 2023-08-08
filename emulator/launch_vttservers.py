@@ -37,11 +37,11 @@ log.info("...Starting Steam Time Tracker Server...\n")
 #check local ip and set globalvars.serverip
 utilities.checklocalipnet()
 
-vttserver(config["vtt_server_port1"], config).start()
+vttserver(int(config["vtt_server_port1"]), config).start()
 log.info("Valve Time Tracking Server listening on port " + str(config["vtt_server_port1"]))
 time.sleep(0.5)
 
-vttserver(config["vtt_server_port2"], config).start()
+vttserver(int(config["vtt_server_port2"]), config).start()
 log.info("Valve CyberCafe server listening on port " + str(config["vtt_server_port2"]))
 time.sleep(0.5)
 

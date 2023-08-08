@@ -107,40 +107,36 @@ time.sleep(1.0) #give us a little more time than usual to make sure we are initi
 
 cserserver(globalvars.serverip, int(config["cser_server_port"])).start()
 log.info("CSER Server listening on port " + str(config["cser_server_port"]))
-time.sleep(0.5)
+time.sleep(3)
 
-harvestserver(globalvars.serverip, int(config["harvest_server_port"])).start()
-log.info("MiniDump Harvest Server listening on port " + str(config["harvest_server_port"]))
-time.sleep(0.5)
+#harvestserver(globalvars.serverip, int(config["harvest_server_port"])).start()
+#log.info("MiniDump Harvest Server listening on port " + str(config["harvest_server_port"]))
+#time.sleep(3)
 
 masterhl(config, int(config["masterhl1_server_port"])).start()
 log.info("Master HL1 Server listening on port " + str(config["masterhl1_server_port"]))
-time.sleep(0.5)
+time.sleep(3)
 
-masterhl2(config, int(config["masterhl2_server_port"])).start()
-log.info("Master HL2 Server listening on port " + str(config["masterhl2_server_port"]))
-time.sleep(0.5)
+#masterhl2(config, int(config["masterhl2_server_port"])).start()
+#log.info("Master HL2 Server listening on port " + str(config["masterhl2_server_port"]))
+#time.sleep(3)
 
-trackerserver(globalvars.serverip, int(config["tracker_server_port"])).start()
-log.info("[2004-2007] Tracker Server listening on port " + str(config["tracker_server_port"])) 
-globalvars.tracker = 1
-time.sleep(0.5)
+#trackerserver(globalvars.serverip, int(config["tracker_server_port"])).start()
+#log.info("[2004-2007] Tracker Server listening on port " + str(config["tracker_server_port"])) 
+#globalvars.tracker = 1
+#time.sleep(1)
 
-messagesserver(globalvars.serverip, int(config["cm_server_port"])).start()
-log.info("Client Messaging Server listening on port " + str(config["cm_server_port"]))
-time.sleep(0.2)
+#messagesserver(globalvars.serverip, int(config["cm_server_port"])).start()
+#log.info("Client Messaging Server listening on port " + str(config["cm_server_port"]))
+#time.sleep(3)
 
 configserver(int(config["config_server_port"]), config).start()
 log.info("Steam Config Server listening on port " + str(config["config_server_port"]))
-time.sleep(0.5)
+time.sleep(3)
 
 contentlistserver(int(config["csd_server_port"]), config).start()
 log.info("Steam Content Server Directory Server listening on port " + str(config["csd_server_port"]))
-time.sleep(0.5)
-
-contentserver(int(config["content_server_port"]), config).start()
-log.info("Steam Content Server listening on port " + str(config["content_server_port"]))
-time.sleep(0.5)
+time.sleep(1)
 
 authserver(int(config["auth_server_port"]), config).start()
 log.info("Steam Master Authentication Server listening on port " + str(config["auth_server_port"]))
@@ -150,25 +146,29 @@ validationserver(int(config["validation_server_port"]), config).start()
 log.info("Steam User ID Validation Server listening on port " + str(config["validation_server_port"]))
 time.sleep(0.5)
 
-vttserver(config["vtt_server_port1"], config).start()
-log.info("Valve Time Tracking Server listening on port " + str(config["vtt_server_port1"]))
-time.sleep(0.2)
+#vttserver(config["vtt_server_port1"], config).start()
+#log.info("Valve Time Tracking Server listening on port " + str(config["vtt_server_port1"]))
+#time.sleep(0.2)
 
-vttserver(config["vtt_server_port2"], config).start()
-log.info("Valve CyberCafe server listening on port " + str(config["vtt_server_port2"]))
-time.sleep(0.2)
+#vttserver(config["vtt_server_port2"], config).start()
+#log.info("Valve CyberCafe server listening on port " + str(config["vtt_server_port2"]))
+#time.sleep(0.2)
 
-logstatusservers(int(config["status_server_port"]), config).start()
-log.info("Valve Log & Status servers listening on port " + str(config["status_server_port"]) + " TCP & UDP")
-time.sleep(0.2)
+#logstatusservers(int(config["status_server_port"]), config).start()
+#log.info("Valve Log & Status servers listening on port " + str(config["status_server_port"]) + " TCP & UDP")
+#time.sleep(0.2)
 
-miscservers(int(config["misc_server_port"]), config).start()
-log.info("Valve MISC servers listening on port " + str(config["misc_server_port"]) + " TCP & UDP")
-time.sleep(0.2)
+#miscservers(int(config["misc_server_port"]), config).start()
+#log.info("Valve MISC servers listening on port " + str(config["misc_server_port"]) + " TCP & UDP")
+#time.sleep(0.2)
 
-administrationservers(int(config["admin_server_port"]), config).start()
-log.info("Valve Administration servers listening on port " + str(config["admin_server_port"]) + " TCP & UDP")
-time.sleep(0.2)
+#administrationservers(int(config["admin_server_port"]), config).start()
+#log.info("Valve Administration servers listening on port " + str(config["admin_server_port"]) + " TCP & UDP")
+#time.sleep(0.2)
+
+contentserver(int(config["content_server_port"]), config).start()
+log.info("Steam Content Server listening on port " + str(config["content_server_port"]))
+time.sleep(0.5)
 
 if config["sdk_ip"] != "0.0.0.0" :
     log.info("Steamworks SDK Content Server configured on port " + str(config["sdk_port"]))

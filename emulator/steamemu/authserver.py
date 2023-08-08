@@ -544,7 +544,7 @@ class authserver(TCPNetworkHandler):
                         blob_signature = encryption.sign_message(innerkey, blob_encrypted)
                         blob_encrypted_len = 10 + len(blob_encrypted) + 20
                         blob_encrypted = struct.pack(">L", blob_encrypted_len) + "\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
-                        self.socket.send("\x00" + blob_encrypted)
+                        clientsocket.send("\x00" + blob_encrypted)
 
                         execdict = {}
                         with open("files/users/" + username + ".py", 'r') as f:

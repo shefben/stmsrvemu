@@ -26,13 +26,13 @@ class NetworkHandler(threading.Thread):
         else:
             self.socket = socket
         self.config = config
-        self.port = int(port)
+        self.port = port
         if server_type != "":
             self.server_type = server_type
             self.server_info = {
                 'ip_address': globalvars.serverip,
-                'port': self.port,
-                'server_type': self.server_type,
+                'port': int(self.port),
+                'server_type': str(self.server_type),
                 'timestamp': int(time.time())
             }
             self.start_heartbeat_thread()

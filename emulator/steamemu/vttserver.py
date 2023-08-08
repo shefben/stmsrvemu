@@ -12,7 +12,7 @@ from networkhandler import TCPNetworkHandler
 
 class vttserver(TCPNetworkHandler):
     def __init__(self, port, config):
-        super(vttserver, self).__init__(emu_socket.ImpSocket(), config, port) 
+        super(vttserver, self).__init__(config, port, "") 
         
     def handle_client(self, clientsocket, address):
         log = logging.getLogger("vttsrv")
