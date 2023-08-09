@@ -1081,7 +1081,7 @@ class authserver(TCPNetworkHandler):
                     # print(len(username_str))
                     log.info( clientid + "Get Number of Accounts Associated with email: " + email_str)
                     
-                    clientsocket.send("\x00"+auth_utilities.decimal_to_4byte_hex(int(auth_utilities.count_email_in_files(email_str))))
+                    clientsocket.send("\x00") #+auth_utilities.decimal_to_4byte_hex(int(auth_utilities.count_email_in_files(email_str))))
                 elif commandcode == "\x23" : # Acknowledge Subscription Receipt. Does not expect response.
                     log.info(
                         clientid + "Client Acknowledged Subscription Receipt")
