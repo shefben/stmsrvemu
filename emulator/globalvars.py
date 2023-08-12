@@ -16,6 +16,7 @@ hl2serverlist = list(xrange(10000))
 hl2challengenum = 0
 tracker = 0
 tgt_version = "2"
+steam1_blob_sent = 0
 validation_ip = 0
 validation_port = 0
 emuversion = "0"

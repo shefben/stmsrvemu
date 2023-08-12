@@ -53,6 +53,7 @@ class configserver(TCPNetworkHandler):
                         execdict = {}
                         execfile("files/firstblob.py", execdict)
                         blob = blob_utilities.blob_serialize(execdict["blob"])
+                        firstblob_unser = blob_utilities.blob_unserialize(blob)
                     else :
                         f = open("files/firstblob.bin", "rb")
                         blob = f.read()
@@ -62,9 +63,19 @@ class configserver(TCPNetworkHandler):
                             firstblob_bin = zlib.decompress(firstblob_bin[20:])
                         firstblob_unser = blob_utilities.blob_unserialize(firstblob_bin)
                         firstblob = blob_utilities.blob_dump(firstblob_unser)
-
-                    clientsocket.send_withlen(blob)
-
+                        
+                    #steam_ver = struct.unpack("<L", firstblob_unser["\x01\x00\x00\x00"])[0]
+                    #if steam_ver < 3 :
+                    if globalvars.steam1_blob_sent == 0 :
+                            #self.socket.send(struct.pack(">L", len(blob)))
+                        clientsocket.send_withlen(blob)
+                        globalvars.steam1_blob_sent = 1
+                    elif globalvars.steam1_blob_sent == 1 :
+                        clientsocket.send(blob)
+                        globalvars.steam1_blob_sent = 0
+                  #  else :
+                  #      clientsocket.send_withlen(blob)
+                        
                 elif command == "\x04" :
                     log.info(clientid + "sending network key")
 
