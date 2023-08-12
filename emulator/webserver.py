@@ -254,7 +254,7 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             index_html_path = os.path.join(dir_path, 'index.html')
 
             if os.path.exists(index_php_path):
-                self.handle_php_cgi(method='GET', accept_encoding=self.headers.get('Accept-Encoding'))
+                self.handle_php_cgi(method='POST', post_data=post_data, accept_encoding=self.headers.get('Accept-Encoding'))
                 return
             elif os.path.exists(index_html_path):
                 self.send_gzip_file(index_html_path)
@@ -262,7 +262,7 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
             self.send_auto_index(dir_path)
         elif self.path.endswith('.php'):
-            self.handle_php_cgi(method='POST', accept_encoding=self.headers.get('Accept-Encoding'))
+            self.handle_php_cgi(method='POST', post_data=post_data, accept_encoding=self.headers.get('Accept-Encoding'))
         else:
             self.send_gzip_file(os.path.join(WEB_ROOT, '.' + self.path))
 
@@ -279,11 +279,11 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         env = {
             # Other environment variables...
             'REQUEST_METHOD': method,
-            'SCRIPT_FILENAME': os.path.join(WEB_ROOT, '.' + self.path),
-            'SCRIPT_NAME': self.path,
+      #      'SCRIPT_FILENAME': os.path.join(WEB_ROOT, '.' + self.path),
+      #      'SCRIPT_NAME': self.path,
             'QUERY_STRING':  self.query_string,
-            'REQUEST_URI': self.path + ('?' + self.query_string if self.query_string else ''),
-            'DOCUMENT_ROOT': WEB_ROOT,
+            'REQUEST_URI': "/" + relative_path + ('?' + self.query_string if self.query_string else ''),
+            'DOCUMENT_ROOT':  os.path.abspath(os.path.join(WEB_ROOT, '.' + self.path)),
             'GATEWAY_INTERFACE': 'CGI/1.1',
             'SERVER_SOFTWARE': 'SimpleHTTP/0.6 Python/2.7',
             'REDIRECT_STATUS': '200',
@@ -329,11 +329,14 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         
         content_type = mimetypes.guess_type(self.path)[0] or 'application/octet-stream'
 
-        # Set the CONTENT_TYPE based on the determined content type
         if method == 'POST':
-            env['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
+            env['REQUEST_METHOD'] = 'POST'  # Make sure it's set to POST for a POST request
+            env['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'  # Set the content type
+            if post_data:
+                env['CONTENT_LENGTH'] = str(len(post_data))  # Set the content length
         else:
             env['CONTENT_TYPE'] = content_type
+            
         print "abspath: "+ os.path.abspath(os.path.join(WEB_ROOT, self.path))
         for header_name, header_value in self.headers.items():
             env['HTTP_' + header_name.replace('-', '_').upper()] = header_value
