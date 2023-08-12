@@ -274,8 +274,9 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             return
         script_filename = os.path.abspath(os.path.join(WEB_ROOT, '.' + self.path))
         relative_path = os.path.relpath(script_filename, WEB_ROOT)
-        
+        env = os.environ.copy()
         # Build the CGI environment variables
+        doc_root = os.path.abspath(os.path.join(WEB_ROOT, '.' ))
         env = {
             # Other environment variables...
             'REQUEST_METHOD': method,
@@ -283,16 +284,33 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
       #      'SCRIPT_NAME': self.path,
             'QUERY_STRING':  self.query_string,
             'REQUEST_URI': "/" + relative_path + ('?' + self.query_string if self.query_string else ''),
-            'DOCUMENT_ROOT':  os.path.abspath(os.path.join(WEB_ROOT, '.' + self.path)),
+            'DOCUMENT_ROOT':  doc_root,
             'GATEWAY_INTERFACE': 'CGI/1.1',
             'SERVER_SOFTWARE': 'SimpleHTTP/0.6 Python/2.7',
             'REDIRECT_STATUS': '200',
             'SERVER_NAME': self.server.server_address[0],
             'SERVER_PORT': str(self.server.server_address[1]),
             'SERVER_PROTOCOL': self.request_version,
+            'REMOTE_ADDR': self.client_address[0],
+            'REQUEST_SCHEME': 'https' if ENABLE_SSL else 'http',
+            'CONTEXT_PREFIX': '/prefix',  # Modify as needed
+            'COMSPEC': os.environ.get('COMSPEC', ''),
+            'WINDIR': os.environ.get('WINDIR', ''),
+            'CONTEXT_DOCUMENT_ROOT': doc_root,  # Modify as needed
+            'SYSTEMROOT': os.environ.get('SYSTEMROOT', ''),
+            'HTTP_ORIGIN': self.headers.get('Origin', ''),
+            'REMOTE_PORT': str(self.client_address[1]),
+            'PHP_PEAR_SYSCONF_DIR': config['http_php_path'] +'\pear\sysconf',  # Modify as needed
+            'PHPRC': '/path/to/phprc',  # Modify as needed
+            'SERVER_ADMIN': 'webmaster@example.com',  # Modify as needed
+            'SERVER_ADDR': '127.0.0.1',  # Modify as needed
+            'SERVER_SIGNATURE': 'Apache/2.4.38 (Win64) OpenSSL/1.0.2q PHP/5.6.40 Server at {} Port {}'.format(
+            self.server.server_address[0], self.server.server_address[1]),
         }
         env['CONTENT_TYPE'] = 'application/x-www-form-urlencoded'
-        
+        env['PATH'] = os.environ['PATH']
+        env['REMOTE_ADDR'] = self.client_address[0]
+        env['REQUEST_SCHEME'] = 'https' if ENABLE_SSL else 'http'
         if accept_encoding:
             env['HTTP_ACCEPT_ENCODING'] = accept_encoding
             
@@ -340,9 +358,9 @@ class MyHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         print "abspath: "+ os.path.abspath(os.path.join(WEB_ROOT, self.path))
         for header_name, header_value in self.headers.items():
             env['HTTP_' + header_name.replace('-', '_').upper()] = header_value
-            
+            document_root = '-d doc_root="'+ doc_root +'"'
         php_cmd = [
-            PHP_EXECUTABLE, '-q', os.path.join(WEB_ROOT, "." + self.path)
+            PHP_EXECUTABLE,'-d expose_php=off',document_root, '-q', os.path.join(WEB_ROOT, "." + self.path)
         ]
         
         process = subprocess.Popen(php_cmd, stdin=subprocess.PIPE,
