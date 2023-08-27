@@ -1,4 +1,9 @@
 # Stm Server Emulator
+
+Stm Server Emulator: PLEASE NOTE: $${\color{green}THIS \ \ \ REPO \ \ \  IS \ \ \ UP \ \ \ TO \ \ \ DATE \ \ \ WITH  \ \ \ PMEIN'S  \ \ \  LATEST  \ \ \  COMIT:  \ \ \}$$ $${\color{red}V.72}$$  $${\color{green}\ \ \ DUE \ \ \  TO \ \ \  THE  \ \ \ CODE \ \ \  DIFFERENCES, \ \ \ 
+THERE  \ \ \ IS  \ \ \ NO \ \ \  MERGING; \ \ \ THIS \ \ \ MEANS \ \ \  THAT \ \ \  THIS \ \ \  REPO \ \ \  WILL \ \ \  ALWAYS \ \ \  SHOW \ \ \  AS \ \ \  BEING \ \ \  <number>  \ \ \ COMITS  \ \ \ BEHIND.}$$
+
+
 Source code for the server emulator for clients 2004-2011
 
 Compile on Python 2.7 x86-32 if you want to run/build from source using:
