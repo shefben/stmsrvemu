@@ -1,4 +1,8 @@
 # Stm Server Emulator
+
+Stm Server Emulator: $${\color{red}PLEASE NOTE: THIS REPO IS UP TO DATE WITH PMEIN'S LATEST COMIT V.72. DUE TO THE CODE DIFFERENCE, THERE IS NO MERGING; THIS MEANS THAT THIS REPO WILL ALWAYS SHOW AS BEING # COMITS BEHIND.}$$
+
+
 Source code for the server emulator for clients 2004-2011
 
 Compile on Python 2.7 x86-32 if you want to run/build from source using:
