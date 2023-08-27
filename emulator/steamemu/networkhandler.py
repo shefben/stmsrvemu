@@ -4,7 +4,7 @@ import socket
 import time
 import emu_socket
 import socket as pysocket
-import globalvars
+import config, globalvars
 
 from steamemu.config import read_config
 

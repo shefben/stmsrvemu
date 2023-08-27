@@ -1,4 +1,4 @@
-#this file is for holding all the definitions of the different record fields
+# this file is for holding all the definitions of the different record fields
 
 
 
@@ -232,12 +232,12 @@ subscriptionaccount_record = {
         }     
     }
     
-    'AccountSubscriptionsRecord': { # \x07 = AccountSubscriptionsRecord
+    'AccountSubscriptionsRecord': {  # \x07 = AccountSubscriptionsRecord
         'key': r'\x07\x00\x00\x00',
-        'value': [] # list of AccountSubscriptions_Record
+        'value': []  # list of AccountSubscriptions_Record
     }
     
-    'DerivedSubscribedAppsRecord': { # \x08 = DerivedSubscribedAppsRecord
+    'DerivedSubscribedAppsRecord': {  # \x08 = DerivedSubscribedAppsRecord
         'key:' r'\x08\x00\x00\x00', 
             'value': {}
     } 
@@ -249,14 +249,14 @@ subscriptionaccount_record = {
     # \x0d = nothing??
     'AccountLastModifiedTime': {'key': r'\x0e\x00\x00\x00', 'value': ''},
     
-    'AccountSubscriptionsBillingInfoRecord': { # \x0f = AccountSubscriptionsBillingInfoRecord 
+    'AccountSubscriptionsBillingInfoRecord': {  # \x0f = AccountSubscriptionsBillingInfoRecord 
         'key': r'\x0f\x00\x00\x00',
         'value': [] # list of AccountSubscriptionsBillingInfoRecord_record
     }
 }
 
 AccountSubscriptionsBillingInfoRecord_record = {
-    'key': r'', # <---------Subscription id here
+    'key': r'',  # <---------Subscription id here
     'value': {  
         'AccountPaymentCardInfoRecord': {'key': r'\x01\x00\x00\x00', 'value': ''},
         'AccountPrepurchasedInfoRecord': {

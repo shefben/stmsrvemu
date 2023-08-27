@@ -486,9 +486,11 @@ class authserver(TCPNetworkHandler):
                         blob_encrypted_len = 10 + len(blob_encrypted) + 20
                         blob_encrypted = struct.pack(">L", blob_encrypted_len) + "\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
                         clientsocket.send("\x00" + blob_encrypted)
+
                 elif commandcode == "\x06" : # Unsubscribe   BEN NOTE: Not Operational
                     log.info(clientid + "Unsubscribe [Not Functional]")
                     clientsocket.send("\x02")                       
+
                 elif commandcode == "\x09" : # Ticket Login
                     ticket_full = binascii.b2a_hex(command)
                     command = ticket_full[0:2]

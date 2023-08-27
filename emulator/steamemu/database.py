@@ -6,6 +6,7 @@ import binascii
 import logging
 import config
 import steamemu.logger
+from userregistry import UserRegistryBuilder
 from datetime import datetime
 from subscriberaccount_record import SubscriberAccount_Record
 from steamemu.config import read_config
@@ -149,18 +150,29 @@ class GenericDatabase(object):
         self.SteamID = next_steam_id
 
         accountcreationtime = utilities.get_current_datetime()
-        DerivedSubscribedAppsRecord_list = ['1', '2', '3', '4', '5', '11', '12', '13', '14', '15', '16', '21', '22', '23', '24', '25',
-        '31', '61', '62', '63', '64', '65', '66', '67', '68', '69', '104', '105', '106', '107', '108',
-        '109', '110', '111', '112', '104', '105', '106', '107', '108', '109', '110', '111', '112',
-        '104', '105', '106', '107', '108', '109', '110', '111', '112', '104', '105', '106', '107',
-        '108', '109', '110', '111', '112']
-        DerivedSubscribedAppsRecord_value = ','.join(DerivedSubscribedAppsRecord_list)
+        #DerivedSubscribedAppsRecord_list = ['1', '2', '3', '4', '5', '11', '12', '13', '14', '15', '16', '21', '22', '23', '24', '25',
+        #'31', '61', '62', '63', '64', '65', '66', '67', '68', '69', '104', '105', '106', '107', '108',
+        #'109', '110', '111', '112', '104', '105', '106', '107', '108', '109', '110', '111', '112',
+        #'104', '105', '106', '107', '108', '109', '110', '111', '112', '104', '105', '106', '107',
+        #'108', '109', '110', '111', '112']
+        
+        expanded_numbers = []
+        ranges = ["1-5", "11-25", "30-35", "40-45", "50-51", "56", "60-65", "70", "72-79", "81-89", "92", "104-111", "204", "205", "242-253", "0", "260", "80", "95", "100", "101-103", "200", "210", "241"]
+        for r in ranges:
+            if "-" in r:
+                start, end = map(int, r.split("-"))
+                expanded_numbers.extend(range(start, end + 1))
+            else:
+                expanded_numbers.append(int(r))
+
+        DerivedSubscribedAppsRecord_value = ",".join(map(str, expanded_numbers))
+
         if self.check_username(username) is not 0:
             return -1
         data = {
             'UniqueID': next_unique_user_id,
             'UniqueUserName': username,
-            'subscriptionrecord_version': '4'
+            'subscriptionrecord_version': '4',
             'AccountCreationTime': accountcreationtime,
             'OptionalAccountCreationKey': 'Egq-pe-y',
             'SteamLocalUserID': next_steam_id,
@@ -218,15 +230,15 @@ class GenericDatabase(object):
         self.insert_data('accountsubscriptionsrecord', data)
 
         
-        next_unique_prepurchase_id = self.get_next_id('accountprepurchasedinforecord', 'UniqueID')
+        #next_unique_prepurchase_id = self.get_next_id('accountprepurchasedinforecord', 'UniqueID')
         
-        data = {
-            'UniqueID': next_unique_prepurchase_id,
+       #data = {
+        #    'UniqueID': next_unique_prepurchase_id,
             # 'TypeOfProofOfPurchase': None,
             # 'BinaryProofOfPurchaseToken': None, #subbillinginfo.SubscriptionID,
             # 'AcctName':  username + '\x00'#subbillinginfo.AccountPaymentCardInfoRecord["value"]
-        }
-        self.insert_data('accountprepurchasedinforecord', data)
+        #}
+        #self.insert_data('accountprepurchasedinforecord', data)
 
 
         next_unique_billing_id = self.get_next_id('accountsubscriptionsbillinginforecord', 'UniqueID')
@@ -238,7 +250,7 @@ class GenericDatabase(object):
             # subbillinginfo.AccountPaymentCardInfoRecord["value"]
             'AccountPaymentCardInfoRecord': '7',
             # subbillinginfo.AccountPaymentCardInfoRecord["value"]
-            'AccountPrepurchasedInfoRecord_UniqueID':  next_unique_prepurchase_id
+            # 'AccountPrepurchasedInfoRecord_UniqueID':  next_unique_prepurchase_id
             # 'AccountExternalBillingInfoRecord_UniqueID':  None, #subbillinginfo.AccountPaymentCardInfoRecord["value"]
             # 'AccountPaymentCardReceiptRecord_recordID':  None #subbillinginfo.AccountPaymentCardInfoRecord["value"]
         }
@@ -274,23 +286,23 @@ class GenericDatabase(object):
         }
         self.insert_data('accountsubscriptionsrecord', data)
 
+        if paymenttype is not '7':
+            next_unique_prepurchase_id = self.get_next_id('accountprepurchasedinforecord', 'UniqueID')
 
-        next_unique_prepurchase_id = self.get_next_id('accountprepurchasedinforecord', 'UniqueID')
-
-        data = {
-            'UniqueID': next_unique_prepurchase_id,
-            # subbillinginfo.AccountPaymentCardInfoRecord["value"]
-            'UserRegistry_UniqueID': unique_userid, 
-            # 'TokenRejectionReason': rejectreasion + '\x00'
-        }
-        if paymenttype is not '\x07':
-            data['TypeOfProofOfPurchase'] = typeofproof
-            data['BinaryProofOfPurchaseToken'] = proof_binary 
-        self.insert_data('accountprepurchasedinforecord', data)
+            data = {
+                'UniqueID': next_unique_prepurchase_id,
+                # subbillinginfo.AccountPaymentCardInfoRecord["value"]
+                'UserRegistry_UniqueID': unique_userid, 
+                # 'TokenRejectionReason': rejectreasion + '\x00'
+            }
+            if paymenttype is not '\x07':
+                data['TypeOfProofOfPurchase'] = typeofproof
+                data['BinaryProofOfPurchaseToken'] = proof_binary 
+            self.insert_data('accountprepurchasedinforecord', data)
 
 
         next_unique_recordID = 0
-        if paymenttype is not '\x07' or paymenttype is not '\x06':
+        if paymenttype is not '7' or paymenttype is not '6':
             next_unique_recordID = self.get_next_id(
                 'accountpaymentcardreceiptrecord', 'recordID')
 
@@ -322,16 +334,18 @@ class GenericDatabase(object):
             }
             self.insert_data('accountpaymentcardreceiptrecord', data)
 
-
-        next_unique_billing_id = self.get_next_id(
-            'accountsubscriptionsbillinginforecord', 'UniqueID')
+        if paymenttype is not '7':
+            next_unique_billing_id = None
+        else:
+            next_unique_billing_id = self.get_next_id(
+                'accountsubscriptionsbillinginforecord', 'UniqueID')
         data = {
             'UniqueID': next_unique_billing_id,
             'UserRegistry_UniqueID': unique_userid,
             'Subscriptionid': subscriptionid,  # subbillinginfo.SubscriptionID,
             # subbillinginfo.AccountPaymentCardInfoRecord["value"]
             'AccountPaymentCardInfoRecord': paymenttype,
-            # subbillinginfo.AccountPaymentCardInfoRecord["value"]
+            # subbillinginfo.AccountPaymentCardInfoRecord["value"]           
             'AccountPrepurchasedInfoRecord_UniqueID':  next_unique_prepurchase_id,
             # subbillinginfo.AccountPaymentCardInfoRecord["value"]
             'AccountExternalBillingInfoRecord_UniqueID':  None,
@@ -345,15 +359,74 @@ class GenericDatabase(object):
     # It then converts the comma seperated integers to 8 byte little endian hex bytes.
     # Then it outputs a nicely formated (hopefully correct) dictionary for use when we send the blob to the user
     def retrieve_data_from_sql(self, username):
-
         user_registry_data = self.select_data('userregistry', condition="UniqueUserName = '{}'".format(username))
-        # Split the comma-separated values into a list of integers
-        values_list = [int(val) for val in user_registry_data[0]['DerivedSubscribedAppsRecord'].split(',')]
-
-        # Convert each value to little-endian 4-byte hex and create the dictionary
-        result_dict = {utilities.decimal_to_32hex(value): '' for value in values_list}
         
-        return result_dict
+        try:
+            # Split the comma-separated values into a list of integers
+            values_list = [int(val) for val in user_registry_data[0]['DerivedSubscribedAppsRecord'].split(',')]
+
+            # Convert each value to little-endian 4-byte hex and create the dictionary
+            result_dict = {utilities.decimal_to_32hex(value): '' for value in values_list}
+            
+            return result_dict
+        except (IndexError, ValueError):  # Handle both IndexError and ValueError
+            return 0
+
+
+    def get_user_dictionary(self, username):
+        
+        user_registry_builder = UserRegistryBuilder()
+        
+        userrecord_dbdata = self.select_data('userregistry', condition="UniqueUserName = '{}'".format(username))
+
+        # Access individual variables from the retrieved data
+        # Assuming only one row is retrieved
+        userrecord_dbdata_variables = userrecord_dbdata[0]
+        # apprights_data = self.select_data('UserAppAccessRightsRecord', condition="UniqueID = '{}'".format(user_registry_variables['UniqueID']))
+        # if len(apprights_data) > 0:
+        subscription_record_variables = None
+        billing_info_variables = None
+        if len(user_registry_data) < 1:
+            log.error("More than 1 row returned when loading user from database! user: " + username)
+            return 2
+        elif len(user_registry_data) > 0:
+            user_registry_builder.add_entry("\x00\x00\x00\x00", utilities.decimal_to_16hex(user_registry_variables['subscriptionrecord_version'])
+            user_registry_builder.add_entry("\x01\x00\x00\x00", user_registry_variables['UniqueUserName'] + "\x00")
+            user_registry_builder.add_entry("\x02\x00\x00\x00", utilities.datetime_to_steamtime(user_registry_variables['AccountCreationTime']))
+            user_registry_builder.add_entry("\x03\x00\x00\x00", user_registry_variables['OptionalAccountCreationKey'])
+            # AccountUserPasswordsRecord
+            # AccountUsersRecord
+            user_registry_builder.AccountUsersRecord({
+                user_registry_variables['UniqueUserName']: {
+                    "\x01\x00\x00\x00": utilities.decimal_to_64hex(user_registry_variables['SteamLocalUserID']),
+                    "\x02\x00\x00\x00": utilities.decimal_to_16hex(user_registry_variables['UserType']),
+                    "\x03\x00\x00\x00": {},
+                },
+            })
+
+            user_registry_builder.add_account_subscription("\x07\x00\x00\x00", subscribed_date, unsubscribed_date, subscription_status, status_change_flag, previous_subscription_state, price_before_tax)
+
+            Numbers = str(user_registry_variables['DerivedSubscribedAppsRecord'])
+            numbers_list = Numbers.split(',')
+            sub_dict = {utilities.decimal_to_32hex(number): '' for number in numbers_list}
+            user_registry_builder.add_entry("\x08\x00\x00\x00", sub_dict)
+
+            user_registry_builder.add_entry("\x09\x00\x00\x00", utilities.datetime_to_steamtime(user_registry_variables['LastRecalcDerivedSubscribedAppsTime']))
+            user_registry_builder.add_entry("\x0a\x00\x00\x00", utilities.decimal_to_32hex(user_registry_variables['Cellid']))
+            user_registry_builder.add_entry("\x0b\x00\x00\x00", user_registry_variables['AccountEmailAddress'] + "\x00")
+            user_registry_builder.add_entry("\x0e\x00\x00\x00", utilities.datetime_to_steamtime(user_registry_variables['AccountLastModifiedTime']))
+            
+            user_registry_builder.add_account_subscriptions_billing_info("\x01\x00\x00\x00", "\x06", card_number="WONCDKey\x00", card_holder_name="2199807727546")
+            user_registry_builder.add_account_subscriptions_billing_info("\x07\x00\x00\x00", "\x05", card_number="5044658124903867\x00", card_holder_name="dsf sdfas\x00", card_exp_year="2015\x00", card_exp_month="07\x00", card_cvv2="476\x00", billing_address1="w154 marvel dr.\x00", billing_city="menomonee falls\x00", billing_zip="53051\x00", billing_state="WI\x00", billing_country="United States\x00", billing_phone="2622523747\x00", billing_email_address="test@test.com\x00", price_before_tax="\xb3\x0b\x00\x00")
+
+            # Build the user_registry dictionary
+            built_user_registry = user_registry_builder.build()
+
+            # Convert bytes to escape sequences
+            encoded_registry = {key.encode("string-escape"): value.encode("string-escape") if isinstance(value, str) else value for key, value in built_user_registry.items()}
+        
+        else :
+            return 1  # User does not exist
 
     def get_fulluserblob(self, username):
 
@@ -365,6 +438,8 @@ class GenericDatabase(object):
         # Access individual variables from the retrieved data
         # Assuming only one row is retrieved
         user_registry_variables = user_registry_data[0]
+        # apprights_data = self.select_data('UserAppAccessRightsRecord', condition="UniqueID = '{}'".format(user_registry_variables['UniqueID']))
+        # if len(apprights_data) > 0:
         subscription_record_variables = None
         billing_info_variables = None
 
@@ -381,11 +456,17 @@ class GenericDatabase(object):
             UserAccount_Record.AccountEmailAddress['value'] = user_registry_variables['AccountEmailAddress'] + "\x00"
             UserAccount_Record.Banned['value'] = utilities.decimal_to_16hex(user_registry_variables['Banned'])
             UserAccount_Record.AccountLastModifiedTime['value'] = utilities.datetime_to_steamtime(user_registry_variables['AccountLastModifiedTime'])
-            UserAccount_Record.DerivedSubscribedAppsRecord['value'] = retrieve_data_from_sql(str(user_registry_variables['DerivedSubscribedAppsRecord']))
+            
+            
+            Numbers = str(user_registry_variables['DerivedSubscribedAppsRecord'])
+            numbers_list = Numbers.split(',')
+            sub_dict = {utilities.decimal_to_32hex(number): '' for number in numbers_list}
+            UserAccount_Record.DerivedSubscribedAppsRecord['value'] = sub_dict
             
             UserAccount_Record.set_accountuser(
                 utilities.decimal_to_64hex(user_registry_variables['SteamLocalUserID']), utilities.decimal_to_16hex(
-                    user_registry_variables['UserType']), user_registry_variables['UserAppAccessRightsRecord'])
+                    user_registry_variables['UserType']), None)  # user_registry_variables['UserAppAccessRightsRecord'])
+            
         elif len(user_registry_data) < 1:
             log.error("More than 1 row returned when loading user from database! user: " + username)
             return 2
@@ -393,39 +474,39 @@ class GenericDatabase(object):
             return 1  # User does not exist
 
         i = 0
-        subscriptionsbilling_record_data = self.select_data('accountsubscriptionsbillinginforecord', condition="UserRegistry_UniqueID = '{}'".format(UniqueID))
+        subscriptionsbilling_record_data = self.select_data('accountsubscriptionsbillinginforecord', condition="UserRegistry_UniqueID = '{}'".format(UserAccount_Record.UniqueID))
         num_subscriptionsbilling_record_rows = len(subscriptionsbilling_record_data)
         subscription_billing_record_tuple = {}
 
         if len(subscriptionsbilling_record_data) > 0:
-            while (i <= num_subscriptionsbilling_record_rows):
+            while (i < num_subscriptionsbilling_record_rows):
 
-               SubscriptionBillingInfoTypeid = subscriptionsbilling_record_data[i]['Subscriptionid']
-               AccountPaymentCardInfoRecord = subscriptionsbilling_record_data[i]['AccountPaymentCardInfoRecord']
+                SubscriptionBillingInfoTypeid = subscriptionsbilling_record_data[i]['SubscriptionID']
+                AccountPaymentCardInfoRecord = subscriptionsbilling_record_data[i]['AccountPaymentCardInfoRecord']
 
-               subprepurchase_record_data = self.select_data('accountprepurchasedinforecord', condition="UniqueID = '{}'".format(subscriptionsbilling_record_data[i]['AccountPrepurchasedInfoRecord_UniqueID']))
-
-               if len(subprepurchase_record_data) == 1:
-                   UserAccount_Record.accountsubscriptionbilling_record.add_subscriptions_billing_info(utilities.decimal_to_32hex(SubscriptionBillingInfoTypeid), utilities.decimal_to_8hex(AccountPaymentCardInfoRecord), subprepurchase_record_data[0]['TypeOfProofOfPurchase'] + "\x00",
-                                                                                                       subprepurchase_record_data[0]['BinaryProofOfPurchaseToken'] + "\x00")
-               else:
-                   UserAccount_Record.accountsubscriptionbilling_record.add_subscriptions_billing_info(
-                       utilities.decimal_to_32hex(SubscriptionBillingInfoTypeid), utilities.decimal_to_8hex(AccountPaymentCardInfoRecord))
-            i = i + 1
-                
+                subprepurchase_record_data = self.select_data('accountprepurchasedinforecord', condition="UniqueID = '{}'".format(subscriptionsbilling_record_data[i]['AccountPrepurchasedInfoRecord_UniqueID']))
+                if AccountPaymentCardInfoRecord == '7':
+                    UserAccount_Record.set_subscriptions_billing_info(
+                        utilities.decimal_to_32hex(SubscriptionBillingInfoTypeid), utilities.decimal_to_8hex(AccountPaymentCardInfoRecord))
+                else:
+                    #if len(subprepurchase_record_data) == 1:
+                    UserAccount_Record.set_subscriptions_billing_info(utilities.decimal_to_32hex(SubscriptionBillingInfoTypeid), utilities.decimal_to_8hex(AccountPaymentCardInfoRecord), subprepurchase_record_data[0]['TypeOfProofOfPurchase'] + "\x00",
+                                                                                                        subprepurchase_record_data[0]['BinaryProofOfPurchaseToken'] + "\x00")
+                i = i + 1
+                 
         # Retrieve the inserted variables from the 'accountsubscriptionsrecord' table
-        subscription_record_variables = self.select_data('accountsubscriptionsrecord', condition="UserRegistry_UniqueID = '{}'".format(UniqueID))
+        subscription_record_variables = self.select_data('accountsubscriptionsrecord', condition="UserRegistry_UniqueID = '{}'".format(UserAccount_Record.UniqueID))
         num_subscription_record_rows = len(subscription_record_variables)
+        
         i = 0
+        
         if num_subscription_record_rows > 0:
-            while (i <= num_subscription_record_rows) :
+            while (i < num_subscription_record_rows) :
                 UserAccount_Record.set_subscription(utilities.decimal_to_32hex(subscription_record_variables[i]['SubscriptionID']), utilities.datetime_to_steamtime(subscription_record_variables[i]['SubscribedDate']), utilities.datetime_to_steamtime(subscription_record_variables[i]['UnsubscribedDate']),
                                                     utilities.decimal_to_16hex(subscription_record_variables[i]['SubscriptionStatus']), utilities.decimal_to_8hex(subscription_record_variables[i]['StatusChangeFlag']), utilities.decimal_to_16hex(subscription_record_variables[i]['PreviousSubscriptionState']))
                 i = i + 1
-
+                
         return UserAccount_Record
-
-
 
     def check_username(self, username, namecheck=0):
         rows = self.select_data('userregistry', '*',
@@ -461,7 +542,7 @@ class GenericDatabase(object):
         user_registry_data = self.select_data(
             'userregistry', condition="UniqueUserName = '{}'".format(username))
         if len(user_registry_data) > 0:
-            return utilities.format_hex_column(user_registry_data[0]['SaltedPassphraseDigest']), utilities.format_hex_column(user_registry_data[0]['PassphraseSalt'])
+            return user_registry_data[0]['SaltedPassphraseDigest'], user_registry_data[0]['PassphraseSalt']
         else:
             return 0
 

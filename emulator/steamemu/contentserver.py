@@ -645,7 +645,7 @@ class contentserver(TCPNetworkHandler):
 
                 elif command[0] == "\x07" :
 
-                    (storageid, messageid, fileid, filepart, numparts, dummy2) = struct.unpack(">xLLLLLB", command)
+                    (storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
 
                     (chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
 

@@ -76,7 +76,11 @@ def convert_ip_port(ip_address, port):
 def format_hex_column(column_value):
     # Replace spaces with '\x' to make it human-readable
     formatted_value = column_value.replace(" ", r"\x")
-    return formatted_value
+    return column_value
+
+def format_to_hex_string(input_string):
+    # formatted_string = '\\x' + '\\x'.join(input_string[i:i+2] for i in range(0, len(input_string), 2))
+    return input_string
 
 def decimal_to_8hex(decimal_number):
     return struct.pack("<B", int(decimal_number)).encode("hex")
@@ -161,7 +165,7 @@ def steamtime_to_datetime(raw_bytes):
     return formatted_datetime
 
 def datetime_to_steamtime(formatted_datetime):
-    dt_object = datetime.strptime(formatted_datetime, '%d/%m/%Y %H:%M:%S')
+    dt_object = datetime.strptime(formatted_datetime, '%m/%d/%Y %H:%M:%S')
     unix_time = int((dt_object - datetime(1970, 1, 1)).total_seconds())
     steam_time = (unix_time + 62135596800) * 1000000
     raw_bytes = struct.pack("<Q", steam_time)
