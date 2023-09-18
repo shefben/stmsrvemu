@@ -95,3 +95,37 @@ def blob_serialize(blobdict) :
     blobtext = chr(0x01) + chr(0x50) + sizetext + blobtext + slack
 
     return blobtext
+
+
+def blob_serialize_auth(blobdict):
+    blobtext = b""  # Initialize as a byte string
+
+    for name, data in blobdict.iteritems():
+        if name == "__slack__":
+            continue
+
+        if isinstance(data, dict):
+            data = blob_serialize(data)
+
+        namesize = len(name.encode('utf-8'))  # Encode name as UTF-8 bytes
+        datasize = len(data)
+
+        subtext = struct.pack("<HL", namesize, datasize)
+
+        # Encode name as UTF-8 bytes and use byte strings here
+        subtext = subtext + name.encode('utf-8') + data
+
+        blobtext = blobtext + subtext
+
+    if "__slack__" in blobdict:
+        slack = blobdict["__slack__"]
+    else:
+        slack = b""  # Initialize as a byte string
+
+    totalsize = len(blobtext) + 10
+
+    sizetext = struct.pack("<LL", totalsize, len(slack))
+
+    blobtext = chr(0x01) + chr(0x50) + sizetext + blobtext + slack
+
+    return blobtext

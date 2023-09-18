@@ -1,0 +1,11 @@
+Just run this script like any other python script and make sure the tga you wish to convert is in the same folder as the script.
+
+then to convert:
+python tga2ico.py exampleimage.tga
+
+and it will output
+exampleimage.ico
+
+
+
+cystface_man

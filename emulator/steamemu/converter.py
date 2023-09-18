@@ -1,4 +1,4 @@
-import os, ConfigParser, threading, logging, socket, time
+import os, ConfigParser, threading, logging, socket, time, binascii
 import globalvars
 from gcf_to_storage import gcf2storage
 from Steam.manifest import Manifest

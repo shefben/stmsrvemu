@@ -6,7 +6,7 @@ def read_config() :
 
     #log.info("Reloading config")
 
-    myDefaults = {'public_ip':"0.0.0.0", 'log_to_file':"true", 'http_port':"", 'hldsupkg':"", 'steamver':"v2", 'default_password':"password",
+    myDefaults = {'public_ip':"0.0.0.0", 'log_to_file':"true", 'hldsupkg':"", 'steamver':"v2", 'default_password':"password",
                   'v2storagedir':"files/v2storages/", 'v2manifestdir':"files/v2manifests/", 'tinserver':"0", 'tracker_ip':"0.0.0.0",
                   'cafeuser':"noaccountconfigured", 'cafepass':"bar", 'cafemacs':"00-00-00-00-00-00;", 'cafetime':"60", 'cafe_use_mac_auth':"0",
                   'sdk_ip':"0.0.0.0", 'sdk_port':"27030", 'use_sdk':"0", 'tgt_version':"2", 'dir_ismaster':"1", 'peer_password':"",
@@ -28,7 +28,8 @@ def read_config() :
                   "55d099a0f5fa366913b171af767fe67fb89f5393efdb69634f74cb41cb7b3501025c4e8fef1ff434307c7200f197b74044e93dbcf50dcc407cbf347b4b817"
                   "383471cd1de7b5964a9d", 'v3storagedir2':"files/v3storages2/", 'v3manifestdir2':"files/v3manifests2/", 'validation_port':"27034",
                   "database_type":"mysql", "database_username":"", "database_password":"", "database_database":"stmserver", "database_host":"localhost",
-                  "database_port":"3306", "cellid":"2", 'store_url_new':"/storefront", 'support_url_new':"/support", 'http_port':""}
+                  "database_port":"3306", "cellid":"2", 'store_url_new':"/storefront", 'support_url_new':"/support", 'http_port':"", 'universe':"1", 
+				  'apache_bin':"files/apache24/bin/httpd.exe", 'web_root':os.getcwd() + "/files/webroot", 'use_webserver':"true"}
     c = ConfigParser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")
 

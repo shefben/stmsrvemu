@@ -36,7 +36,7 @@ class configserver(TCPNetworkHandler):
 
         command = clientsocket.recv(4)
 
-        if command == "\x00\x00\x00\x03" or command == "\x00\x00\x00\x02" :
+        if command == "\x00\x00\x00\x03" or command == "\x00\x00\x00\x02" or command == "\x00\x00\x00\x00" :
             clientsocket.send("\x01" + pysocket.inet_aton(address[0]))
 
             command = clientsocket.recv_withlen()
@@ -84,8 +84,7 @@ class configserver(TCPNetworkHandler):
 
                     # This is cheating. I've just cut'n'pasted the hex from the network_key. FIXME
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
-                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
 
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
 
@@ -189,9 +188,7 @@ class configserver(TCPNetworkHandler):
                         # TINserver's Net Key
                         #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("9525173d72e87cbbcbdc86146587aebaa883ad448a6f814dd259bff97507c5e000cdc41eed27d81f476d56bd6b83a4dc186fa18002ab29717aba2441ef483af3970345618d4060392f63ae15d6838b2931c7951fc7e1a48d261301a88b0260336b8b54ab28554fb91b699cc1299ffe414bc9c1e86240aa9e16cae18b950f900f") + "\x02\x01\x11"
                         #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
-                        BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
-
+                        BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                         foundstring = blob[found:found + 160]
                         blob = blob.replace(foundstring, BERstring)
                         start_search = found + 160
@@ -280,9 +277,7 @@ class configserver(TCPNetworkHandler):
                         # TINserver's Net Key
                         #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("9525173d72e87cbbcbdc86146587aebaa883ad448a6f814dd259bff97507c5e000cdc41eed27d81f476d56bd6b83a4dc186fa18002ab29717aba2441ef483af3970345618d4060392f63ae15d6838b2931c7951fc7e1a48d261301a88b0260336b8b54ab28554fb91b699cc1299ffe414bc9c1e86240aa9e16cae18b950f900f") + "\x02\x01\x11"
                         #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
-                        BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
-
+                        BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                         foundstring = blob[found:found + 160]
                         blob = blob.replace(foundstring, BERstring)
                         start_search = found + 160

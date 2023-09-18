@@ -83,20 +83,27 @@ def format_to_hex_string(input_string):
     return input_string
 
 def decimal_to_8hex(decimal_number):
-    return struct.pack("<B", int(decimal_number)).encode("hex")
+    return struct.pack("<B", int(decimal_number))
 
 def decimal_to_16hex(decimal_number):
-    return struct.pack("<H", int(decimal_numbe)).encode("hex")
+    return struct.pack("<H", int(decimal_number))
 
 def decimal_to_32hex(decimal_number):
-    return struct.pack("<I", int(decimal_number)).encode("hex")
+    return struct.pack("<I", int(decimal_number))
+
+
+def clean_non_ascii(input_string):
+    # Remove non-ASCII characters from the input string
+    cleaned_string = ''.join(char for char in input_string if ord(char) < 128)
+    return cleaned_string.encode('utf-8')
+
 
 def decimal_to_64hex(decimal_number):
-    # Pack the decimal_number as a 64-bit (8-byte) little-endian binary string
-    binary_data = struct.pack("<Q", int(decimal_number))
-    # Convert the binary string to a hexadecimal representation
-    hex_representation = binary_data.encode("hex")
-    return hex_representation
+    # Clean the decimal_number by removing non-ASCII characters
+    cleaned_number = clean_non_ascii(decimal_number)
+
+    # Pack the cleaned_number as a 64-bit (8-byte) little-endian binary string
+    return struct.pack("<Q", int(cleaned_number))
 
 
 def hex8_to_decimal(hex_string):
@@ -161,7 +168,7 @@ def steamtime_to_datetime(raw_bytes):
     steam_time = struct.unpack("<Q", raw_bytes)[0]
     unix_time = steam_time / 1000000 - 62135596800
     dt_object = datetime.utcfromtimestamp(unix_time)
-    formatted_datetime = dt_object.strftime('%d/%m/%Y %H:%M:%S')
+    formatted_datetime = dt_object.strftime('%m/%d/%Y %H:%M:%S')
     return formatted_datetime
 
 def datetime_to_steamtime(formatted_datetime):
@@ -169,7 +176,11 @@ def datetime_to_steamtime(formatted_datetime):
     unix_time = int((dt_object - datetime(1970, 1, 1)).total_seconds())
     steam_time = (unix_time + 62135596800) * 1000000
     raw_bytes = struct.pack("<Q", steam_time)
-    return raw_bytes
+
+    # Convert the hexadecimal string to a byte array
+    byte_array = bytearray(binascii.unhexlify(raw_bytes.encode('hex')))
+
+    return byte_array # str(b'\x00\x00\x00\x00\x00\x00\x00\x00')
 
 def steamtime_to_unixtime(steamtime_bin) :
     steamtime = struct.unpack("<Q", steamtime_bin)[0]
@@ -188,6 +199,13 @@ def formatstring(text) :
         return repr(text)
 
 def generate_password():
+    """
+    Generate a random password consisting of letters (uppercase and lowercase),
+    digits, and punctuation characters.
+
+    Returns:
+        str: The generated password.
+    """
     characters = string.ascii_letters + string.digits + string.punctuation
     password = ''.join(random.choice(characters) for _ in range(16))
     return password
@@ -443,7 +461,3 @@ def checklocalipnet():
         globalvars.serverip = config["server_ip"]
     else:
         globalvars.serverip = config["public_ip"]
-      
-        
-       
-

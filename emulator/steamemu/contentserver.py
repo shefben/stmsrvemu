@@ -644,7 +644,12 @@ class contentserver(TCPNetworkHandler):
                     clientsocket.send(reply + file, False)
 
                 elif command[0] == "\x07" :
-
+                    #      ExtractNext_u32(v43 + 332);
+    #  ExtractNext_u32(v43 + 340);
+     # ExtractNext_u32(v43 + 262052);
+      #ExtractNext_u32(v43 + 262056);
+      #ExtractNext_u32(v43 + 262072);
+      #ExtractNext_u8(a2 + 20, &v19);
                     (storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
 
                     (chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
@@ -664,11 +669,6 @@ class contentserver(TCPNetworkHandler):
                         clientsocket.send(reply)
 
                         clientsocket.send(chunk, False)
-
-                elif command[0] == "\x08" :
-
-                    log.warning("08 - Invalid Command!")
-                    clientsocket.send("\x01")
 
                 else :
 

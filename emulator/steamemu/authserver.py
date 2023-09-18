@@ -16,36 +16,38 @@ import emu_socket
 import steamemu.logger
 import globalvars
 import auth_utilities
-#from database import MySQLDatabase, SQLiteDatabase
-#from mysql_class import MySQLConnector
+import json
+import pprint
+
+from database import initialize_database_connection, get_database_connection
 from Crypto.Hash import SHA
 from networkhandler import TCPNetworkHandler
+from subscriberaccount_record import SubscriberAccount_Record
 
 log = logging.getLogger("AuthenticationSRV")
 
 
 class authserver(TCPNetworkHandler):
- #   mysqlconn = 0
 
     def __init__(self, port, config):
         server_type = "authserver"
         # Create an instance of NetworkHandler
         super(authserver, self).__init__(config, port, server_type)
-        #self.mysqlconn = MySQLDatabase('localhost', 'root', '', 'stmserver')
-        #self.mysqlconn.connect()
-        # mysqlconn = MySQLConnector() # Initialize mysql connection
-        # mysqlconn.connect() # Connect Persistently
+        # Assuming you have this configuration key to determine the database type
+        db_type = config['database_type']
+        #if db_type != 'mysql' or db_type != 'sqlite' :
+        #   log.info("Error:  Database Types can only be mysql or sqlite. \n\n Please Fix database_type in emulator.ini")
+        #   return
+        initialize_database_connection(config, db_type) #BEN NOTE: change to db_type variable
+        self.db_conn = get_database_connection()
 
     def handle_client(self, clientsocket, address):
         server_string = utilities.convert_ip_port(str(self.config['validation_ip']), int(self.config['validation_port']))
         final_srvstring = server_string + server_string
-        servers = binascii.b2a_hex("7F0000019A697F0000019A69")
         # region
-        # need to figure out a way to assign steamid's.  hopefully with mysql
-        #steamid = binascii.a2b_hex("0000" + "80808000" + "00000000")
-
         clientid = str(address) + ": "
-		# BEN NOTE: Change to SQL!
+
+        # BEN NOTE: Change to SQL!
         if os.path.isfile("files/firstblob.py") :
             f = open("files/firstblob.py", "r")
             firstblob = f.read()
@@ -64,7 +66,7 @@ class authserver(TCPNetworkHandler):
                 firstblob_bin = zlib.decompress(firstblob_bin[20:])
             firstblob_unser = blob_utilities.blob_unserialize(firstblob_bin)
             firstblob = blob_utilities.blob_dump(firstblob_unser)
-            
+
         steam_ver = struct.unpack("<L", firstblob_unser["\x01\x00\x00\x00"])[0]
         firstblob_list = firstblob.split("\n")
         steamui_hex = firstblob_list[3][25:41]
@@ -83,7 +85,7 @@ class authserver(TCPNetworkHandler):
 
         log.debug(":" + binascii.b2a_hex(command[1:5]) + ":")
         log.debug(":" + binascii.b2a_hex(command) + ":")
-# region
+        # region
         if command[1:5] == "\x00\x00\x00\x04" or command[1:5] == "\x00\x00\x00\x01" or command[1:5] == "\x00\x00\x00\x02" or command[1:5] == "\x00\x00\x00\x03" :
 
             clientsocket.send( "\x00" + pysocket.inet_aton(clientsocket.address[0]))
@@ -96,8 +98,6 @@ class authserver(TCPNetworkHandler):
 
                 usernamelen = struct.unpack(">H", command[1:3])[0]
 
-                userblob = {}
-
                 username = command[3:3 + usernamelen]
 
                 if username == "" :
@@ -105,15 +105,12 @@ class authserver(TCPNetworkHandler):
                 log.info(clientid + "Processing logon for user: " + username)  # 7465737431
                 log.debug(clientid + "Username length: " + str(usernamelen))  # 0005
                 # username length and username is then received again
-
-                
                 # First check if the user exists, then check if the user is banned
-                if (os.path.isfile("files/users/" + username + ".py")) :#and legacyuser == 0 :
-                    with open("files/users/" + username + ".py", 'r') as f:
-                        userblobstr = f.read()
-                        userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
-                    blocked = binascii.b2a_hex(userblob['\x0c\x00\x00\x00'])
-                    if blocked == "0001" :
+                checkuser = self.db_conn.check_username(username, 1)
+                log.debug(clientid + "Check Username: " + str(checkuser))  # 0005
+                if (checkuser is not 0) :
+
+                    if checkuser == -1 :
                         log.info(clientid + "Blocked user: " + username)
                         clientsocket.send("\x00\x00\x00\x00\x00\x00\x00\x00")
                         command = clientsocket.recv_withlen()
@@ -122,19 +119,23 @@ class authserver(TCPNetworkHandler):
                         padding = "\x00" * 1222
                         ticket_full = tgt_command + steamtime + padding
                         clientsocket.send(ticket_full)
+                        clientsocket.close()
+                        return
                     else :
                         # password hash generated by client on user creation, passwordCypherRijndaelKey/authenticationRijndaelKey in TINserver
-                        #key, personalsalt = mysqlconn.get_userpass_stuff(username)
-                        personalsalt = userblob['\x05\x00\x00\x00'][username]['\x02\x00\x00\x00']
-                        # print(personalsalt)
+                        key, personalsalt = self.db_conn.get_userpass_stuff(username)
+                        print(repr(binascii.unhexlify(personalsalt)))
+                        print(repr(binascii.unhexlify(key)))
+                        personalsalt = binascii.unhexlify(personalsalt)
+                        key = binascii.unhexlify(key)
                         clientsocket.send(personalsalt)  # NEW SALT PER USER
                         command = clientsocket.recv_withlen()
-                        key = userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00'][0:16] #password hash generated by client on user creation, passwordCypherRijndaelKey/authenticationRijndaelKey in TINserver
 
                         # print(binascii.b2a_hex(key))
                         IV = command[0:16]
                         # print(binascii.b2a_hex(IV))
                         encrypted = command[20:36]
+                        print(repr(encrypted))
                         # print(binascii.b2a_hex(encrypted))
                         decodedmessage = binascii.b2a_hex(encryption.aes_decrypt(key, IV, encrypted))
                         log.debug(clientid + "Authentication package: " + decodedmessage)
@@ -142,34 +143,30 @@ class authserver(TCPNetworkHandler):
                         if not decodedmessage.endswith("04040404") :
                             wrongpass = "1"
                             log.info(clientid + "Incorrect password entered for: " + username)
+                            tgt_command = "\x02"  # Incorrect password
+                            steamtime = utilities.unixtime_to_steamtime(time.time())
+                            clock_skew_tolerance = "\x00\xd2\x49\x6b\x00\x00\x00\x00"
+                            authenticate = tgt_command + steamtime + clock_skew_tolerance
+                            clientsocket.send(authenticate)
+                            return
                         else :
                             wrongpass = "0"
 
                         # create login ticket
-                        execdict = {}
-                        execdict_new = {}
-						
-						# BEN NOTE: Change to SQL!
-                        with open("files/users/" + username + ".py", 'r') as f :
-                            userblobstr = f.read()
-                            execdict = ast.literal_eval(userblobstr[16:len(userblobstr)])
-							
-                        secretkey = {'\x05\x00\x00\x00'}
+                        userdb_record = self.db_conn.get_user_dictionary(username)
+                        #print(repr(userdb_record))
 
-                        def without_keys(d, keys) :
-                            return {x: d[x] for x in d if x not in keys}
-                        execdict_new = without_keys(execdict, secretkey)
-                        # print(execdict)
-                        # print(execdict_new)
-                        blob = blob_utilities.blob_serialize(execdict_new)
-                        # print(blob)
+                        blob = {}
+                        blob = blob_utilities.blob_serialize_auth(userdb_record)
+                        #print(blob)
+                        pprint.pprint(userdb_record)
                         bloblen = len(blob)
                         log.debug("Blob length: " + str(bloblen))
                         # ONLY FOR BLOB ENCRYPTION USING AES-CBC
                         innerkey = binascii.a2b_hex("10231230211281239191238542314233")
                         # ONLY FOR BLOB ENCRYPTION USING AES-CBC
                         innerIV = binascii.a2b_hex("12899c8312213a123321321321543344")
-                        blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
+                        blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, str(blob))
                         blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
                         blob_signature = encryption.sign_message(innerkey, blob_encrypted)
                         blob_encrypted_len = 10 + len(blob_encrypted) + 20
@@ -178,23 +175,30 @@ class authserver(TCPNetworkHandler):
                         outerIV = binascii.a2b_hex("92183129534234231231312123123353")
                         #steamid = binascii.a2b_hex("0000" + "80808000" + "00000000")
                         steamUniverse = "0000"
-                        steamid = binascii.a2b_hex(steamUniverse + binascii.b2a_hex(userblob['\x06\x00\x00\x00'][username]['\x01\x00\x00\x00'][0:16]))
+                        hex_bytes = struct.pack("<H", int(self.config["universe"]))
+
+                        # Convert the bytes to a hexadecimal string (optional)
+                        hex_string = hex_bytes.encode('hex')
+                        steamid = binascii.a2b_hex(
+                            hex_string +
+                            binascii.b2a_hex(userdb_record[b'\x06\x00\x00\x00']
+                                             [username][b'\x01\x00\x00\x00']))
                         #servers = binascii.a2b_hex("451ca0939a69451ca0949a69")
                         #authport = struct.pack("<L", int(port))
-						
+
+
                         if self.config["public_ip"] != "0.0.0.0" :
                             bin_ip = utilities.encodeIP((self.config["public_ip"], self.config["validation_port"]))
                         else :
                             bin_ip = utilities.encodeIP((self.config["server_ip"], self.config["validation_port"]))
-							
-                        #bin_ip = steam.encodeIP(("172.21.0.20", "27039"))
+
                         servers = bin_ip + bin_ip
                         times = utilities.unixtime_to_steamtime(currtime) + utilities.unixtime_to_steamtime(currtime + (60*60*24*28))
                         subheader = innerkey + steamid + servers + times
                         subheader_encrypted = encryption.aes_encrypt(key, outerIV, subheader)
                         subhead_decr_len = "\x00\x36"
                         subhead_encr_len = "\x00\x40"
-						
+
                         if globalvars.tgt_version == "1" :  # nullData1
                             subheader_encrypted = "\x00\x01" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted  # TTicket_SubHeader (EncrData)
                             log.debug(clientid + "TGT Version: 1")  # v2 Steam
@@ -205,7 +209,7 @@ class authserver(TCPNetworkHandler):
                             subheader_encrypted = "\x00\x02" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted
                             # Assume v3 Steam
                             log.debug(clientid + "TGT Version: 2")
-							
+
                         # unknown_part = "\x01\x68" + ("\xff" * 0x168) #THE ACTUAL TICKET!!!
                         # 0 = eVersionNum
                         # 1=eUniqueAccountName
@@ -235,9 +239,10 @@ class authserver(TCPNetworkHandler):
                         username_len = len(username)
                         #username_len_packed = struct.pack(">H", 50 + username_len)
                         # SteamID
-                        accountId = userblob['\x06\x00\x00\x00'][username]['\x01\x00\x00\x00'][0:16]
+                        accountId = userdb_record[b'\x06\x00\x00\x00'][
+                            username][b'\x01\x00\x00\x00']
                         data2 = struct.pack(">L", len(username))
-						
+
                         if globalvars.tgt_version == "1":
                             subcommand1 = "\x00\x01"  # for TGT v1
                             subcommand2 = ""  # missing for TGT v1
@@ -299,8 +304,7 @@ class authserver(TCPNetworkHandler):
                 if commandcode == "\x01" :  # Create User
                     log.info(clientid + "command: Create user")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
-                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("9525173d72e87cbbcbdc86146587aebaa883ad448a6f814dd259bff97507c5e000cdc41eed27d81f476d56bd6b83a4dc186fa18002ab29717aba2441ef483af3970345618d4060392f63ae15d6838b2931c7951fc7e1a48d261301a88b0260336b8b54ab28554fb91b699cc1299ffe414bc9c1e86240aa9e16cae18b950f900f") + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
@@ -329,62 +333,45 @@ class authserver(TCPNetworkHandler):
                     username = plainblob['\x01\x00\x00\x00']
                     username_str = username.rstrip('\x00')
 
+                    email = plainblob['\x0b\x00\x00\x00']
+                    email_str = email.rstrip('\x00')
+                    #useraccount = SubscriberAccount_Record()
+                    # useraccount.add_username
+                    #useraccount.add_password(realm, uri, user, passwd)
+
                     if auth_utilities.check_username(username_str, clientsocket) == 2 :
                         log.info(clientid + "Client Username Had Illegal Characters")
                         clientsocket.send('\x02')
                         clientsocket.close()
-                    elif auth_utilities.check_username_exists(username_str) == 1 :
-                        log.info(clientid + "Client's choosen username already exists'")
-                        clientsocket.send('\x01')
-                        clientsocket.close()
-                    elif auth_utilities.check_email(email_str, clientsocket) == 3 :
+                    if auth_utilities.check_email(email_str, clientsocket) == 3 :
                         log.info(clientid + "Client Email Had Illegal Characters")
                         clientsocket.send('\x03')
                         clientsocket.close()
 
-                    #invalid6 = {'\x06\x00\x00\x00'}
-                    #def without_keys(d, keys) :
-                    #    return {x: d[x] for x in d if x not in keys}
-                    
-                    #plainblob_fixed = without_keys(plainblob, invalid6)
-                    
-                    #dict6 = {}
-                    #dict6 = {'\x06\x00\x00\x00': {username_str: {'\x01\x00\x00\x00': '\x10\x20\x30\x40\x00\x00\x00\x00', '\x02\x00\x00\x00': '\x00\x01', '\x03\x00\x00\x00': {}}}}
-                    
-                    #plainblob_fixed.update(dict6)
+                    # password hash generated by client on user creation, passwordCypherRijndaelKey/authenticationRijndaelKey in TINserver
+                    SaltedPassphraseDigest = plainblob['\x05\x00\x00\x00'][username_str]['\x01\x00\x00\x00'][0:16]
+                    PassphraseSalt = plainblob['\x05\x00\x00\x00'][username_str]['\x02\x00\x00\x00']
+                    PersonalQuestion = plainblob['\x05\x00\x00\x00'][username_str]['\x03\x00\x00\x00']
+                    SaltedAnswerToQuestionDigest = plainblob['\x05\x00\x00\x00'][username_str]['\x04\x00\x00\x00']
+                    AnswerToQuestionSalt = plainblob['\x05\x00\x00\x00'][username_str]['\x04\x00\x00\x00']
 
+                    create_user =  self.db_conn.create_user(username_str, SaltedAnswerToQuestionDigest, PassphraseSalt,
+                                               AnswerToQuestionSalt, PersonalQuestion,
+                                               SaltedPassphraseDigest, email_str)
 
-                    newsteamid = os.urandom(4) + "\x00\x00\x00\x00" #generate random steamId
-                    plainblob['\x06\x00\x00\x00'][username_str]['\x01\x00\x00\x00'] = newsteamid
-                    
-                    invalid7 = {'\x07\x00\x00\x00'}
-                    def without_keys(d, keys) :
-                        return {x: d[x] for x in d if x not in keys}
-                    
-                    plainblob_fixed = without_keys(plainblob, invalid7)
-                    
-                    dict7 = {}
-                    dict7 = {'\x07\x00\x00\x00': {'\x00\x00\x00\x00': {'\x01\x00\x00\x00': '\xe0\xe0\xe0\xe0\xe0\xe0\xe0\x00', '\x02\x00\x00\x00': '\x00\x00\x00\x00\x00\x00\x00\x00', '\x03\x00\x00\x00': '\x01\x00', '\x05\x00\x00\x00': '\x00', '\x06\x00\x00\x00': '\x1f\x00'}}}
-                    
-                    plainblob_fixed.update(dict7)
-                    
-                    dictf = {}
-                    dictf = {'\x0f\x00\x00\x00': {'\x00\x00\x00\x00': {'\x01\x00\x00\x00': '\x07', '\x02\x00\x00\x00': {}}}}
-                    
-                    plainblob_fixed.update(dictf)
-                        
-                    with open("files/users/" + username_str + ".py", 'w') as userblobfile :
-                        userblobfile.write("user_registry = ")
-                        userblobfile.write(str(plainblob_fixed))
-                    
+                    if create_user == -1 :
+                        clientsocket.send("\x01")
+                    else :
+                        clientsocket.send("\x00")
 
-                    clientsocket.send("\x00")
-                elif commandcode == "\x03" : # Delete Account  BEN NOTE: Not Operational; Nothing gets sent back, just delete user py or user from db and close connection.
+                elif commandcode == "\x03" :  # Delete Account  BEN NOTE: Not Operational; Nothing gets sent back, just delete user py or user from db and close connection.
                     log.info(clientid + "User Sent Delete Account Command [Not Functional]")
                     clientsocket.close()
-                elif commandcode == "\x04" : # User Logged off,  Does not expect response.
+
+                elif commandcode == "\x04" :  # User Logged off,  Does not expect response.
                     log.info(clientid + "User Logged Off")
-                    clientsocket.close()         
+                    clientsocket.close()
+
                 elif commandcode == "\x05" : # Subscribe
                     log.info(clientid + "Subscribe to package")
                     ticket_full = binascii.b2a_hex(command)
@@ -414,14 +401,11 @@ class authserver(TCPNetworkHandler):
                     padding_byte = blob[-1:]
                     padding_int = struct.unpack(">B", padding_byte)
                     blobnew = blob_utilities.blob_unserialize(decodedmessage[header:header + blob_len])
+                    dbconnection = self.db_conn
                     # ------------------------------------------------------------------
-                    if (os.path.isfile("files/users/" + username + ".py")) :
-                        execdict = {}
-                        execdict_new = {}
-                        with open("files/users/" + username + ".py", 'r') as f:
-                            userblobstr = f.read()
-                            execdict = ast.literal_eval(userblobstr[16:len(userblobstr)])
-                            
+                    if dbconnection.check_username(username) : # Check if user exists
+
+
                         steamtime = steam.unixtime_to_steamtime(time.time())
                         new_sub = {blobnew["\x01\x00\x00\x00"]: {'\x01\x00\x00\x00': steamtime, '\x02\x00\x00\x00': '\x00\x00\x00\x00\x00\x00\x00\x00', '\x03\x00\x00\x00': '\x00\x00', '\x05\x00\x00\x00': '\x00', '\x06\x00\x00\x00': '\x1f\x00'}}
                         new_buy = {blobnew["\x01\x00\x00\x00"] : blobnew["\x02\x00\x00\x00"]}
@@ -429,8 +413,7 @@ class authserver(TCPNetworkHandler):
                         receipt_dict_01 = {}
                         receipt_sub_dict = {}
                         subid = new_buy.keys()[0]
-                        execdict["\x07\x00\x00\x00"].update(new_sub)
-                        execdict["\x0f\x00\x00\x00"].update(new_buy)
+
                         #pprint.pprint(new_sub)
                         #pprint.pprint(new_buy)
                         #pprint.pprint(subid)
@@ -441,6 +424,8 @@ class authserver(TCPNetworkHandler):
                             receipt_dict_01["\x01\x00\x00\x00"] = "\x06"
                             receipt_dict_01["\x02\x00\x00\x00"] = receipt_sub_dict
                             receipt_dict[subid] = receipt_dict_01
+                            paymentrecord_tuple = receipt_sub_dict["\x01\x00\x00\x00"], receipt_sub_dict["\x02\x00\x00\x00"]
+                            dbconnection.insert_subscription(username, utilities.hex32_to_decimal(subid), 6, paymentrecord_tuple)
                         else:
                             receipt_sub_dict["\x01\x00\x00\x00"] = new_buy[subid]["\x02\x00\x00\x00"]["\x01\x00\x00\x00"]
                             receipt_sub_dict["\x02\x00\x00\x00"] = new_buy[subid]["\x02\x00\x00\x00"]["\x02\x00\x00\x00"][12:]
@@ -461,6 +446,13 @@ class authserver(TCPNetworkHandler):
                             receipt_dict_01["\x01\x00\x00\x00"] = "\x05"
                             receipt_dict_01["\x02\x00\x00\x00"] = receipt_sub_dict
                             receipt_dict[subid] = receipt_dict_01
+                            paymentrecord_tuple = new_buy[subid]["\x02\x00\x00\x00"]["\x01\x00\x00\x00"], new_buy[subid]["\x02\x00\x00\x00"]["\x02\x00\x00\x00"][12:], new_buy[subid]["\x02\x00\x00\x00"]["\x03\x00\x00\x00"],
+                            new_buy[subid]["\x02\x00\x00\x00"]["\x04\x00\x00\x00"], new_buy[subid]["\x02\x00\x00\x00"]["\x05\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x06\x00\x00\x00"], new_buy[subid]["\x02\x00\x00\x00"]["\x07\x00\x00\x00"],
+                            new_buy[subid]["\x02\x00\x00\x00"]["\x08\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x09\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x0a\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x0b\x00\x00\x00"],
+                            new_buy[subid]["\x02\x00\x00\x00"]["\x0c\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x0d\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x0e\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x0f\x00\x00\x00"],
+                            new_buy[subid]["\x02\x00\x00\x00"]["\x14\x00\x00\x00"],  new_buy[subid]["\x02\x00\x00\x00"]["\x15\x00\x00\x00"]
+                            dbconnection.insert_subscription(username, utilities.hex32_to_decimal(subid), 5, paymentrecord_tuple)
+
                         new_buy.clear()
                         execdict["\x0f\x00\x00\x00"].update(receipt_dict)                        #BEN NOTE: Change to SQL!
 
@@ -489,7 +481,7 @@ class authserver(TCPNetworkHandler):
 
                 elif commandcode == "\x06" : # Unsubscribe   BEN NOTE: Not Operational
                     log.info(clientid + "Unsubscribe [Not Functional]")
-                    clientsocket.send("\x02")                       
+                    clientsocket.send("\x02")
 
                 elif commandcode == "\x09" : # Ticket Login
                     ticket_full = binascii.b2a_hex(command)
@@ -510,7 +502,7 @@ class authserver(TCPNetworkHandler):
                     encdata = postticketdata[40:40 + encdata_len]
                     decodedmessage = binascii.b2a_hex(encryption.aes_decrypt(key, iv, binascii.a2b_hex(encdata)))
                     #------------------------------------------------------------------
-					# BEN NOTE: Change to SQL
+                    # BEN NOTE: Change to SQL
                     if (os.path.isfile("files/users/" + username + ".py")) :
                         #self.socket.send("\x00")
                         # create login ticket
@@ -528,9 +520,9 @@ class authserver(TCPNetworkHandler):
                                         execdict[sub_dict][sub_sub_dict]["\x06\x00\x00\x00"] = "\x00\x00"
                         with open("files/users/" + username + ".py", 'w') as g:
                             g.write("user_registry = " + str(execdict))
-                            
+
                         secretkey = {'\x05\x00\x00\x00'}
-						
+
                         def without_keys(d, keys) :
                             return {x: d[x] for x in d if x not in keys}
                         execdict_new = without_keys(execdict, secretkey)
@@ -564,15 +556,17 @@ class authserver(TCPNetworkHandler):
                             g.write("user_registry = " + str(execdict))
 
                         clientsocket.send("\x00" + blob_encrypted + blob_signature)
+
                 elif commandcode == "\x0c" : # Get Encrypted Ticket for AppServer BEN NOTE: Not Operational
                     log.info(clientid + "Get Encrypted UserID Ticket To Send To AppServer")
                     print(binascii.b2a_hex(command))
                     clientsocket.send("\x01")
+
                 elif commandcode == "\x0e" : # Lost Pass: Request Forgotten Password Verification Email BEN NOTE: Not Operational
                     log.info(clientid + "Lost password - Find by Username")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+      binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
                     clientsocket.send(reply)
@@ -584,7 +578,7 @@ class authserver(TCPNetworkHandler):
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
@@ -597,16 +591,17 @@ class authserver(TCPNetworkHandler):
                     print(blobdict)
                     usernamechk = blobdict['\x01\x00\x00\x00']
                     username_str = usernamechk.rstrip('\x00')
-					# BEN NOTE: Change to SQL!
+                    # BEN NOTE: Change to SQL!
                     if os.path.isfile("files/users/" + username_str + ".py") :
                         clientsocket.send("\x00")
                     else :
                         clientsocket.send("\x01")
+
                 elif commandcode == "\x0f" : # Change Forgotten Password
                     log.info(clientid + "command: Change Forgotten Password")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+      binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
                     clientsocket.send(reply)
@@ -618,7 +613,7 @@ class authserver(TCPNetworkHandler):
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     if repr(steam.verify_message(key, cryptedblob)) :
@@ -659,7 +654,7 @@ class authserver(TCPNetworkHandler):
                             if (os.path.isfile("files/users/" + username_str + ".py")) :
                                 with open("files/users/" + username_str + ".py", 'w') as userblobfile :
                                     userblobfile.write("user_registry = ")
-                                    userblobfile.write(str(userblob))                              
+                                    userblobfile.write(str(userblob))
                                 log.info(clientid + "Password changed for: " + username_str)
                                 clientsocket.send("\x00")
                             else :
@@ -684,11 +679,11 @@ class authserver(TCPNetworkHandler):
                     data1_len = ticket_full[10:14]
                     username_len = ticket_full[314:318]
                     username = binascii.a2b_hex(ticket_full[14:14 + (int(username_len, 16) * 2)])
-                    
+
                     log.info(clientid + "Password change requested for: " + username)
-                    
+
                     userblob = {}
-					# BEN NOTE: Change to SQL!
+                    # BEN NOTE: Change to SQL!
                     if (os.path.isfile("files/users/" + username + ".py")) :
                         with open("files/users/" + username + ".py", 'r') as f:
                             userblobstr = f.read()
@@ -705,17 +700,17 @@ class authserver(TCPNetworkHandler):
                         blob_len = int(binascii.b2a_hex(plaintext[18:19]), 16)
                         blob_len = len(plaintext) - 16 - blob_len
                         blob = blob_utilities.blob_unserialize(plaintext[16:-blob_len])
-                        # print(blob)
+                        pprint.pprint(blob)
                         # print(binascii.b2a_hex(blob["\x01\x00\x00\x00"]))
                         # print(binascii.b2a_hex(userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00']))
                         if blob["\x01\x00\x00\x00"] == userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00']:
                             userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00'] = blob["\x03\x00\x00\x00"]
                             userblob['\x05\x00\x00\x00'][username]['\x02\x00\x00\x00'] = blob["\x02\x00\x00\x00"]
-							# BEN NOTE: Change to SQL!
+                            # BEN NOTE: Change to SQL!
                             if (os.path.isfile("files/users/" + username + ".py")) :
                                 with open("files/users/" + username + ".py", 'w') as userblobfile :
                                     userblobfile.write("user_registry = ")
-                                    userblobfile.write(str(userblob))                              
+                                    userblobfile.write(str(userblob))
                                 log.info(clientid + "Password changed for: " + username)
                                 clientsocket.send("\x00")
                             else :
@@ -727,6 +722,7 @@ class authserver(TCPNetworkHandler):
                     else :
                         log.warn(clientid + "Password change failed for: " + username)
                         clientsocket.send("\x01")
+
                 elif commandcode == "\x11" : # Change question
                     ticket_full = binascii.b2a_hex(command)
                     command = ticket_full[0:2]
@@ -735,11 +731,11 @@ class authserver(TCPNetworkHandler):
                     data1_len = ticket_full[10:14]
                     username_len = ticket_full[314:318]
                     username = binascii.a2b_hex(ticket_full[14:14 + (int(username_len, 16) * 2)])
-                    
+
                     log.info(clientid + "Secret question change requested for: " + username)
-                    
+
                     userblob = {}
-					# BEN NOTE: Change to SQL!
+                    # BEN NOTE: Change to SQL!
                     if (os.path.isfile("files/users/" + username + ".py")) :
                         with open("files/users/" + username + ".py", 'r') as f:
                             userblobstr = f.read()
@@ -756,18 +752,18 @@ class authserver(TCPNetworkHandler):
                         blob_len = int(binascii.b2a_hex(plaintext[18:19]), 16)
                         blob_len = len(plaintext) - 16 - blob_len
                         blob = blob_utilities.blob_unserialize(plaintext[16:-blob_len])
-                        # print(blob)
+                        pprint.pprint(blob)
                         # print(binascii.b2a_hex(blob["\x01\x00\x00\x00"]))
                         # print(binascii.b2a_hex(userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00']))
                         if blob["\x01\x00\x00\x00"] == userblob['\x05\x00\x00\x00'][username]['\x01\x00\x00\x00'] :
                             userblob['\x05\x00\x00\x00'][username]['\x03\x00\x00\x00'] = blob["\x02\x00\x00\x00"]
                             userblob['\x05\x00\x00\x00'][username]['\x04\x00\x00\x00'] = blob["\x04\x00\x00\x00"]
                             userblob['\x05\x00\x00\x00'][username]['\x05\x00\x00\x00'] = blob["\x03\x00\x00\x00"]
-							# BEN NOTE: Change to SQL!
+                            # BEN NOTE: Change to SQL!
                             if (os.path.isfile("files/users/" + username + ".py")) :
                                 with open("files/users/" + username + ".py", 'w') as userblobfile :
                                     userblobfile.write("user_registry = ")
-                                    userblobfile.write(str(userblob))                              
+                                    userblobfile.write(str(userblob))
                                 log.info(clientid + "Secret question changed for: " + username)
                                 clientsocket.send("\x00")
                             else :
@@ -779,6 +775,7 @@ class authserver(TCPNetworkHandler):
                     else :
                         log.warn(clientid + "Secret question change failed for: " + username)
                         clientsocket.send("\x01")
+
                 elif commandcode == "\x12" : # Change Email
                     log.info(clientid + "Change Email")
                     ticket_full = binascii.b2a_hex(command)
@@ -812,7 +809,7 @@ class authserver(TCPNetworkHandler):
 
                     userblob = {}
                     execdict_new = {}
-					# BEN NOTE: change to sql!
+                    # BEN NOTE: change to sql!
                     if (os.path.isfile("files/users/" + username + ".py")):
                         with open("files/users/" + username + ".py", 'r') as f:
                             userblobstr = f.read()
@@ -845,19 +842,22 @@ class authserver(TCPNetworkHandler):
                     ticket = ticket + blob_encrypted
                     ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
                     clientsocket.send("\x00" + blob_encrypted + blob_signature)
-                elif commandcode == "\x13" : # Verify Email   BEN NOTE: Not Operational
+
+                elif commandcode == "\x13" :  # Verify Email   BEN NOTE: Not Operational
                     print("verify Email")
                     clientsocket.send("\x01")
+
                 elif commandcode == "\x14" : # Request verification Email    BEN NOTE: Not Operational,  Does not expect response.
                     print("Requested Verification Email")
                     clientsocket.send("\x01")
+
                 elif commandcode == "\x15" : # Update Account Billing Info   BEN NOTE: Not Operational,  Does not expect response.
                     print("Update Account Billing Information")
                     clientsocket.send("\x01")
+
                 elif commandcode == "\x16" : # Update Subscription Billing Info   BEN NOTE: Not Operational,  Does not expect response.
                     print("Update Subscription Billing Information")
-                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-					binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
                     clientsocket.send(reply)
@@ -869,7 +869,7 @@ class authserver(TCPNetworkHandler):
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
@@ -882,11 +882,11 @@ class authserver(TCPNetworkHandler):
                     # print(blobdict)
                     usernamechk = blobdict['\x01\x00\x00\x00']
                     username_str = usernamechk.rstrip('\x00')
-					
+
                     with open("files/users/" + username_str + ".py", 'r') as userblobfile:
                         userblobstr = userblobfile.read()
                         userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
-						
+
                     # print(str(userblob))
                     personalsalt = userblob['\x05\x00\x00\x00'][username_str]['\x02\x00\x00\x00']
                     # print(personalsalt)
@@ -900,7 +900,7 @@ class authserver(TCPNetworkHandler):
                     cryptedblob_length = reply2[136:140]
                     cryptedblob_slack = reply2[140:144]
                     cryptedblob = reply2[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
@@ -909,32 +909,35 @@ class authserver(TCPNetworkHandler):
                     plaintext = encryption.aes_decrypt(key, IV, ciphertext)
                     plaintext = plaintext[0:plaintext_length]
                     #print blob_utilities.blob_unserialize(plaintext)
+
                 elif commandcode == "\x1b" : # Unknown Packet   BEN NOTE: Not Operational
                     log.info(clientid + "Unknown Packet (0x1B) [Not Functional]")
-                    clientsocket.send("\x00")       
+                    clientsocket.send("\x00")
+
                 elif commandcode == "\x1c" : # Change Account Name
                     log.info(clientid + "Change Account Name")
                     print(binascii.b2a_hex(command))
-                    clientsocket.send("\x01")   
+                    clientsocket.send("\x01")
+
                 elif commandcode == "\x1d" : # Create Account: Is Name in use
                     log.info(clientid + "command: query account name already in use")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-					binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+     binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("9525173d72e87cbbcbdc86146587aebaa883ad448a6f814dd259bff97507c5e000cdc41eed27d81f476d56bd6b83a4dc186fa18002ab29717aba2441ef483af3970345618d4060392f63ae15d6838b2931c7951fc7e1a48d261301a88b0260336b8b54ab28554fb91b699cc1299ffe414bc9c1e86240aa9e16cae18b950f900f") + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
                     clientsocket.send(reply)
 
                     reply = clientsocket.recv_withlen()
-                
+
                     RSAdata = reply[2:130]
                     datalength = struct.unpack(">L", reply[130:134])[0]
                     cryptedblob_signature = reply[134:136]
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
@@ -949,28 +952,31 @@ class authserver(TCPNetworkHandler):
                     username_str = username.rstrip('\x00')
                     # print(len(username_str))
                     log.info(clientid + "New user: check username exists: " + username_str)
-					
-                    if auth_utilities.check_username_exists(username_str): #set second arg to 1 to indicate we are just checking for name
+
+                    if self.db_conn.check_username(username_str, 1): #set second arg to 1 to indicate we are just checking for name
                         log.warn(clientid + "New user: username already exists")
                         clientsocket.send("\x01")  # Username in use!
                     else:
                         log.info(clientid + "New user: username not in use")
                         clientsocket.send("\x00")  # Username is not in use
-                elif commandcode == "\x1e" : # Generate Suggested Name   BEN NOTE: Not Operational     
+
+                elif commandcode == "\x1e" : # Generate Suggested Name   BEN NOTE: Not Operational
                     log.info(clientid + "command: Generate Suggested Name [Not Implemented]")
-                elif commandcode == "\x1f" : # ProtocolSubroutine_ReceiveEncryptedAccountNames   BEN NOTE: Not Operational          
+
+                elif commandcode == "\x1f" : # ProtocolSubroutine_ReceiveEncryptedAccountNames   BEN NOTE: Not Operational
                     log.info(clientid + "ProtocolSubroutine_ReceiveEncryptedAccountNames [Not Functional]")
                     clientsocket.send("\x02")
-                elif commandcode == "\x20" : # Check email - password reset
+
+                elif commandcode == "\x20" : # Lost Pass: request account info by email   BEN NOTE: Not Operational
                     log.info(clientid + "Password reset by email")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     signature = steam.rsa_sign_message_1024(steam.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
-                    
+
                     clientsocket.send(reply)
                     reply = clientsocket.recv_withlen()
-                    
+
                     RSAdata = reply[2:130]
                     datalength = struct.unpack(">L", reply[130:134])[0]
                     cryptedblob_signature = reply[134:136]
@@ -1005,7 +1011,7 @@ class authserver(TCPNetworkHandler):
                             clientsocket.send("\x00")
                         else :
                             clientsocket.send("\x01")
-                elif commandcode == "\x21" : # Check key - password reset
+                elif commandcode == "\x21" : # Lost Pass: request account info by cdkey   BEN NOTE: Not Operational
                     log.info(clientid + "Password reset by CD key")
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(steam.main_key_sign, BERstring)
@@ -1030,7 +1036,7 @@ class authserver(TCPNetworkHandler):
                         plaintext = plaintext[0:plaintext_length]
                         #print(plaintext)
                         blobdict = blob_utilities.blob_unserialize(plaintext)
-                        #print(blobdict)
+                        pprint.pprint(blobdict)
                         keychk = blobdict['\x01\x00\x00\x00']
                         key_str = keychk.rstrip('\x00')
                         key_found = False
@@ -1050,25 +1056,24 @@ class authserver(TCPNetworkHandler):
                             clientsocket.send("\x00")
                         else :
                             clientsocket.send("\x01")
-                elif commandcode == "\x22" : # Get Number of Accounts Associated With Email 
+                elif commandcode == "\x22" :  # Get Number of Accounts Associated With Email
                     log.info( clientid + "command: Get Number Of Accounts Associated With Email")
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
-                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
-						binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
+                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + "\x02\x01\x11"
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("9525173d72e87cbbcbdc86146587aebaa883ad448a6f814dd259bff97507c5e000cdc41eed27d81f476d56bd6b83a4dc186fa18002ab29717aba2441ef483af3970345618d4060392f63ae15d6838b2931c7951fc7e1a48d261301a88b0260336b8b54ab28554fb91b699cc1299ffe414bc9c1e86240aa9e16cae18b950f900f") + "\x02\x01\x11"
                     signature = encryption.rsa_sign_message_1024(encryption.main_key_sign, BERstring)
                     reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
                     clientsocket.send(reply)
 
                     reply = clientsocket.recv_withlen()
-                
+
                     RSAdata = reply[2:130]
                     datalength = struct.unpack(">L", reply[130:134])[0]
                     cryptedblob_signature = reply[134:136]
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
@@ -1083,14 +1088,15 @@ class authserver(TCPNetworkHandler):
                     email_str = email.rstrip('\x00')
                     # print(len(username_str))
                     log.info( clientid + "Get Number of Accounts Associated with email: " + email_str)
-                    
-                    clientsocket.send("\x00") #+auth_utilities.decimal_to_4byte_hex(int(auth_utilities.count_email_in_files(email_str))))
-                elif commandcode == "\x23" : # Acknowledge Subscription Receipt. Does not expect response.
+
+                    clientsocket.send("\x00"+auth_utilities.decimal_to_4byte_hex(self.db_conn.get_numaccts_with_email(email_str)))
+
+                elif commandcode == "\x23": # Acknowledge Subscription Receipt. Does not expect response.
                     log.info(
                         clientid + "Client Acknowledged Subscription Receipt")
                     clientsocket.close()
-                else:
-                    # This is cheating. I've just cut'n'pasted the hex from the network_key. FIXME
+
+                else : # This is cheating. I've just cut'n'pasted the hex from the network_key. FIXME
                     #BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex("bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059") + "\x02\x01\x11"
                     BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + \
                         binascii.a2b_hex(
@@ -1102,23 +1108,22 @@ class authserver(TCPNetworkHandler):
                     clientsocket.send(reply)
 
                     reply = clientsocket.recv_withlen()
-                
+
                     RSAdata = reply[2:130]
                     datalength = struct.unpack(">L", reply[130:134])[0]
                     cryptedblob_signature = reply[134:136]
                     cryptedblob_length = reply[136:140]
                     cryptedblob_slack = reply[140:144]
                     cryptedblob = reply[144:]
-                
+
                     key = encryption.get_aes_key(RSAdata, encryption.network_key)
                     log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
                     plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
                     IV = cryptedblob[4:20]
                     ciphertext = cryptedblob[20:-20]
                     plaintext = encryption.aes_decrypt(key, IV, ciphertext)
-                    plaintext = plaintext[0:plaintext_length]
                     #print blob_utilities.blob_unserialize(plaintext)
-                
+
                     clientsocket.send("\x00")
                 #log.warning(clientid + "Invalid command length: " + str(len(command)))
         else :

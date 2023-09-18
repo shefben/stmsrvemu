@@ -20,11 +20,7 @@ class NetworkHandler(threading.Thread):
     config = read_config()
     def __init__(self, socket, config, port, server_type=""):
         threading.Thread.__init__(self)
-        if isinstance(self, UDPNetworkHandler):
-            self.pysocket = pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM)
-            self.socket = emu_socket.ImpSocket()
-        else:
-            self.socket = socket
+        self.socket = socket
         self.config = config
         self.port = port
         if server_type != "":
@@ -64,7 +60,8 @@ class NetworkHandler(threading.Thread):
 
 class TCPNetworkHandler(NetworkHandler):
     def __init__(self, config, port, server_type=""):
-        NetworkHandler.__init__(self, emu_socket.ImpSocket(), config, port, server_type)
+        self.socket = emu_socket.ImpSocket()
+        NetworkHandler.__init__(self, self.socket, config, port, server_type)
         self.port = port
         self.config = read_config()
     def run(self):
@@ -77,14 +74,14 @@ class TCPNetworkHandler(NetworkHandler):
 
 class UDPNetworkHandler(NetworkHandler):
     def __init__(self, config, port, server_type=""):
-        NetworkHandler.__init__(self, pysocket.socket(pysocket.AF_INET, pysocket.SOCK_DGRAM), config, port, server_type)
+        NetworkHandler.__init__(self, emu_socket.ImpSocket("udp"), config, port, server_type)
         self.port = port
         self.config = read_config()
     def run(self):
         #self.socket.bind(str(globalvars.serverip), int(self.port))
-        self.pysocket.bind((str(self.config['server_ip']), int(self.port)))
+        self.socket.bind((str(self.config['server_ip']), int(self.port)))
         while True:
-            data, address = self.pysocket.recvfrom(2048)
+            data, address = self.socket.recvfrom(2048)
             server_thread = threading.Thread(target=self.handle_client, args=(data, address)).start()
             
 class TCPUDPNetworkHandler(TCPNetworkHandler, UDPNetworkHandler):

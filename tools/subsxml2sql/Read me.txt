@@ -1,0 +1,6 @@
+This program was used for converting the cdr / second blob's xml into mysql database format.
+
+it takes 1 input, the file you want to use to create the sql script.
+
+How to use:
+python subs2sql.py cdr.xml

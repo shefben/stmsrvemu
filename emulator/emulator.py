@@ -78,13 +78,13 @@ new_password = utilities.check_peerpassword()
 
 print("Steam 2004-2011 Server Emulator v" + globalvars.emuversion)
 print("=====================================")
-print
+print("")
 print("**************************")
 print("Server IP: " + config["server_ip"])
 if config["public_ip"] != "0.0.0.0" :
     print("Public IP: " + config["public_ip"])
 print("**************************")
-print
+print("")
 
 log = logging.getLogger('emulator')
 log.info("...Starting Steam Server...\n")
@@ -177,7 +177,31 @@ time.sleep(0.5)
 if config["sdk_ip"] != "0.0.0.0" :
     log.info("Steamworks SDK Content Server configured on port " + str(config["sdk_port"]))
     time.sleep(0.2)
-    
+"""    
+if config["http_port"].startswith(":"):
+     linenum = 0
+     with open("emulator.ini", "r") as f:
+         data = f.readlines()
+     for line in data:
+         if line.startswith("http_port"):
+             break
+         linenum += 1
+     data[linenum] = "http_port=" + config["http_port"][1:] + "\n"
+     with open("emulator.ini", "w") as g:
+         g.writelines(data)
+if config["use_webserver"] == "true" :
+     steamweb(config["http_port"], config["http_ip"], config["apache_bin"], config["web_root"], config["server_ip"])
+     if globalvars.steamui_ver < 36 :
+         http_port = "80"
+     elif len(str(config["http_port"])) > 0: 
+         http_port = str(config["http_port"])[1:]
+     else:
+         http_port = "80"
+     log.info("Steam Web Server listening on port " + http_port)
+     find_child_pid_timer = threading.Timer(10.0, check_child_pid())  
+     find_child_pid_timer.start() 
+     time.sleep(0.2)    
+"""     
 log.info("Steam Servers are ready.")
 
 if new_password == 1 :

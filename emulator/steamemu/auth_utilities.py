@@ -1,5 +1,6 @@
 import os, re
 
+
 def search_email_in_files(directory, email):
     email_exists = False
     directory = "files\users"
@@ -17,6 +18,7 @@ def search_email_in_files(directory, email):
 
     return email_exists
 
+
 def count_email_in_files(email):
     email_count = 0
     directory = "files\users"
@@ -31,18 +33,20 @@ def count_email_in_files(email):
 
     return email_count
 
+
 def check_email(email_str, clientsocket):
     if re.match(r'^[\w\.-]+@[\w\.-]+$', email_str):
         return 0
     else:
         return 3
 
+
 def check_username(username_str, clientsocket):
     if re.match(r'^[a-zA-Z0-9_]+$', username_str):
         return 0
     else:
         return 2
-    
+
 
 def check_username_exists(string):
     directory = "files\users"
@@ -51,6 +55,7 @@ def check_username_exists(string):
             if file.startswith(string) and file.endswith('.py'):
                 return 1
     return 0
+
 
 def decimal_to_4byte_hex(decimal_number):
     # Convert decimal to a 4-byte hex string
@@ -65,6 +70,8 @@ def decimal_to_4byte_hex(decimal_number):
         hex_string = '0' * padding_length + hex_string
 
     return hex_string
+
+
 '''0=versionnum(Always: 4)
  1=unique username
  2=account creation time
@@ -106,4 +113,3 @@ def decimal_to_4byte_hex(decimal_number):
 	5=AccountPaymentCardReceiptRecord
 	6=AccountPrepurchaseReceiptRecord
 	7=EmptyReceiptRecord'''
-

@@ -15,15 +15,15 @@ python_check.check_python_version()
 #check for a peer_password, otherwise generate one
 new_password = utilities.check_peerpassword()
 
-def watchescape_thread():       
+def watchescape_thread():
     while True:
         if msvcrt.kbhit() and ord(msvcrt.getch()) == 27:  # 27 is the ASCII code for Escape
             os._exit(0)
-            
+
 thread2 = threading.Thread(target=watchescape_thread)
 thread2.daemon = True
 thread2.start()
-        
+
 print("Steam 2004-2011 Configuration Server Emulator v" + globalvars.emuversion)
 print("=====================================")
 print
@@ -39,6 +39,9 @@ log.info("...Starting Steam Server...\n")
 
 #check local ip and set globalvars.serverip
 utilities.checklocalipnet()
+#call this function to call the neuter stuff.
+utilities.initialise()
+time.sleep(0.2)
 
 configserver(int(config["config_server_port"]), config).start()
 log.info("Steam Configuration Server listening on port " + str(config["config_server_port"]))
@@ -51,5 +54,3 @@ if new_password == 1 :
     log.info("Make sure to give this password to any servers that may want to add themselves to your network!")
 
 print("Press Escape to exit...")
-
-

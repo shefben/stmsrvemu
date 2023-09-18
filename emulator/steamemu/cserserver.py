@@ -4,6 +4,8 @@ import utilities
 import config
 import steamemu.logger
 import globalvars
+import ICE_cipher
+import ctypes
 
 from networkhandler import UDPNetworkHandler
 
@@ -13,29 +15,12 @@ def int_wrapper(value):
         return val1
     except (ValueError, TypeError):
         return 0
-    
-class IceKey(object):
-    def __init__(self, key):
-        self.key = key
 
-    def decrypt(self, block):
-        key = self.key
-
-        x = struct.unpack('>LL', block.ljust(8, '\x00'))
-        delta = 0x9e3779b9
-        sum = (delta * 16) & 0xffffffff
-
-        for i in range(16):
-            x = list(x)
-            x[1] -= ((x[0] << 4) + key[2]) ^ (x[0] + sum) ^ ((x[0] >> 5) + key[3])
-            x[1] &= 0xffffffff
-            x[0] -= ((x[1] << 4) + key[0]) ^ (x[1] + sum) ^ ((x[1] >> 5) + key[1])
-            x[0] &= 0xffffffff
-            sum -= delta
-
-        return struct.pack('>LL', x[0], x[1])
-        
 class cserserver(UDPNetworkHandler):
+    q_key = '\x36\xAF\xA5\x05\x4C\xFB\x1D\x71'
+
+    o_key = '\xC8\x91\xFF\x95\xC3\xBE\x6C\xF3'
+
     def __init__(self, config, port):
         server_type = "cserserver"
         super(cserserver, self).__init__(config, int(port), server_type)  # Create an instance of NetworkHandler
@@ -120,7 +105,7 @@ class cserserver(UDPNetworkHandler):
             vallist[12] = str(templist2[23])
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             filename = "crashlogs\\" + str(ipactual) + "_" + timestamp + ".csv"
-            
+
             f = open(filename, "w")
             f.write("SteamExceptionsData")
             f.write("\n")
@@ -130,44 +115,36 @@ class cserserver(UDPNetworkHandler):
             f.close()
             log.info(clientid + "Received client crash report")
             #except :
-                #log.debug(clientid + "Failed to receive client crash report")
+            #log.debug(clientid + "Failed to receive client crash report")
 
-                #d =  message type
-                #then 1 = request denied, invalid message protocol
-                #2 = server accepts minidump, so client will send it now
-                
+            #d =  message type
+            #then 1 = request denied, invalid message protocol
+            #2 = server accepts minidump, so client will send it now
+
         elif data.startswith("q"):  # 71
             CSER_ICE_KEY_q = bytearray([0x36, 0xAF, 0xA5, 0x05, 0x4C, 0xFB, 0x1D, 0x71])
             CSER_ICE_KEY_q = CSER_ICE_KEY_q.ljust(16, b'\x00')  # Pad with zeros to make it 16 bytes
             aes_q = AES.new(str(CSER_ICE_KEY_q), AES.MODE_ECB)
             log.info("Received encrypted ICE client stats")
-                # C2M_BUGREPORT details
-                #     u8(C2M_UPLOADDATA_PROTOCOL_VERSION)
-                #     u16(encryptedlength)
-                #     remainder=encrypteddata
+            # C2M_BUGREPORT details
+            #     u8(C2M_UPLOADDATA_PROTOCOL_VERSION)
+            #     u16(encryptedlength)
+            #     remainder=encrypteddata
 
-                # encrypted payload:
-                #     byte(corruptionid)
-                #     byte(protocolid) // C2M_UPLOADDATA_DATA_VERSION
-                #     string(tablename 40)
-                #     u8(numvalues)
-                #     for each value:
-                #         string(fieldname 32)
-                #         string(value 128)
+            # encrypted payload:
+            #     byte(corruptionid)
+            #     byte(protocolid) // C2M_UPLOADDATA_DATA_VERSION
+            #     string(tablename 40)
+            #     u8(numvalues)
+            #     for each value:
+            #         string(fieldname 32)
+            #         string(value 128)
             len = struct.unpack('H', data[1:3])[0]
             sentData = data[3:]
 
             log.debug("Received crypted Steam client stats packet, from %s: %s" % (from_address, sentData))
 
-            decrypted = ''
 
-            # Create the AES decryption object
-            aes = AES.new(CSER_ICE_KEY_q, AES.MODE_ECB)
-
-            for ind in range(len / 8):
-                encrypted_block = sentData[ind * 8:(ind + 1) * 8]
-                decrypted_block = aes.decrypt(encrypted_block)
-                decrypted += decrypted_block
 
             log.debug("Received Steam client stats packet, from %s: %s" % (from_address, decrypted))
 
@@ -177,8 +154,6 @@ class cserserver(UDPNetworkHandler):
             if header != 0x0101:
                 log.debug("Invalid stats header, from %s: %s" % (from_address, decrypted))
                 return 0
-
-            subject = decrypted[2:]
 
             keys = []
             values = []
@@ -214,8 +189,8 @@ class cserserver(UDPNetworkHandler):
             del aes
             del decrypted
             del debug
-            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x72\x01", address) # 72 = r command and the next byte is a bool, ok = 1, bad = 0
-        
+            self.socket.sendto("\xFF\xFF\xFF\xFF\x72\x01", address) # 72 = r command and the next byte is a bool, ok = 1, bad = 0
+
         elif data.startswith("a"):  # 61
             log.info("Received app download stats - INOP")
         elif data.startswith("o"):
@@ -228,7 +203,7 @@ class cserserver(UDPNetworkHandler):
 		//	  u16(harvester port #)
 		//	  u32(upload context id)
             """
-            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x71\x01", address)
+            self.socket.sendto("\xFF\xFF\xFF\xFF\x71\x01", address)
         elif data.startswith("i"):  # 69
             log.info("Received unknown stats - INOP")
         elif data.startswith("k"):  # 6b
@@ -257,41 +232,34 @@ class cserserver(UDPNetworkHandler):
                 //	u8(connection allowed (bool))
                 //  u32(sessionid)
             """
-            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x6E\x01", address) #random session id, 321 
+            self.socket.sendto("\xFF\xFF\xFF\xFF\x6E\x01", address) #random session id, 321
         elif data.startswith("g"):  # survey response
-            len = struct.unpack("<H", data[1:3])[0]
-            sentData = data[3:]
+            # Load the shared library or DLL
+            cser_decrypt_lib = ctypes.CDLL('ice_key.dll')  # Replace 'your_library_name.dll' with the actual library name
 
-            """decrypted = bytearray(len)
+            # Specify argument types and return type for the C function
+            cser_decrypt_lib.cser_decrypt.argtypes = [ctypes.c_char_p]  # Argument is a pointer to char
+            cser_decrypt_lib.cser_decrypt.restype = ctypes.POINTER(ctypes.c_ubyte)  # Return type is a pointer to unsigned char
 
-            ice = IceKey([0x1B, 0xC8, 0x0D, 0x0E, 0x53, 0x2D, 0xB8, 0x36])
+            # Define a Python wrapper function
+            def cser_decrypt(data):
+                # Call the C function and return the result as a Python bytes object
+                result = cser_decrypt_lib.cser_decrypt(data)
+                return result
 
-            num_blocks = len // 8
-            remaining_bytes = len % 8
 
-            for ind in range(num_blocks):
-                block_in = sentData[8 * ind:8 * ind + 8]
-                block_out = ice.decrypt(block_in)
-                decrypted[8 * ind:8 * ind + 8] = block_out
+            decrypted_data = cser_decrypt(data)
 
-            if remaining_bytes > 0:
-                block_in = sentData[num_blocks * 8:].ljust(8, '\x00')
-                block_out = ice.decrypt(block_in)[:remaining_bytes]
-                decrypted[num_blocks * 8:] = block_out
+            print(decrypted_data)
 
-            print decrypted
-            # Save decrypted data to a file"""
             ip_address = address[0]
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             filename = "clientstats/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
 
 
-           #remove the following 2 lines when decryption is figured out
-            with open(filename, "w") as f:
-                f.write(sentData)
-            self.pysocket.sendto("\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00"+"thank you\n\0", address)
+            #remove the following 2 lines when decryption is figured out
+            #with open(filename, "w") as f:
+            #    f.write(decrypted_data)
+        # self.socket.sendto("\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00"+"thank you\n\0", address)
         else:
             log.info("Unknown CSER command: %s" % data)
-
-
-

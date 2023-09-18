@@ -1,0 +1,10 @@
+2001 = LOGIN = uid, email, status, FirewallWindow 
+2002 = RESPONSE = challenge, sessionID, status, build, hrate
+2004 = FRIENDSEARCH = uid, email, username, firstname, lastname
+2006 = VALIDATEUSER = targetID, auth
+2007 = REQAUTH = uid, ReqReason
+2008 = FRIENDINFO = uid
+2009 = SETINFO = uid, Username, FirstName, LastName
+2010 = ROUTETOFRIEND = rID, rUserID, rSessionID, rServerID, rData
+
+1001 = challange = challenge, sessionID, key

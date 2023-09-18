@@ -7,6 +7,7 @@ import globalvars
 import serverlist_utilities
 from serverlist_utilities import send_heartbeat, remove_from_dir
 
+
 class messagesserver(threading.Thread):
 
     def __init__(self, host, port):
@@ -16,23 +17,23 @@ class messagesserver(threading.Thread):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server_type = "messagesserver"
         self.server_info = {
-                    'ip_address': globalvars.serverip,
-                    'port': int(self.port),
-                    'server_type': self.server_type,
-                    'timestamp': int(time.time())
-                }
+            'ip_address': globalvars.serverip,
+            'port': int(self.port),
+            'server_type': self.server_type,
+            'timestamp': int(time.time())
+        }
         # Register the cleanup function using atexit
-        # atexit.register(remove_from_dir(globalvars.serverip, int(self.port), self.server_type))             
+        # atexit.register(remove_from_dir(globalvars.serverip, int(self.port), self.server_type))
         thread2 = threading.Thread(target=self.heartbeat_thread)
         thread2.daemon = True
         thread2.start()
-        
-    def heartbeat_thread(self):       
+
+    def heartbeat_thread(self):
         while True:
             send_heartbeat(self.server_info)
             time.sleep(1800) # 30 minutes
-            
-    def start(self):        
+
+    def start(self):
         self.socket.bind((self.host, self.port))
         while True: # recieve a packet
             data, address = self.socket.recvfrom(1280) # Start a new thread to process each packet
@@ -42,7 +43,8 @@ class messagesserver(threading.Thread):
         log = logging.getLogger("CMSRV")
         clientid = str(config["server_ip"]) + ": "
         log.info(clientid + "Connected to Message Server")
-        log.debug(clientid + ("Received message: %s, from %s" % (data, address)))
+        log.debug(clientid + ("Received message: %s, from %s" %
+                              (data, address)))
 
         message = binascii.b2a_hex(data)
         if message.startswith("56533031") : # VS01
@@ -51,14 +53,14 @@ class messagesserver(threading.Thread):
             friendsrecfamily = message[12:14]
             friendsrecversion = message[14:16]
             friendsrecto = message[16:24]
-            friendsrecfrom = message[24:32]                    
+            friendsrecfrom = message[24:32]
             friendsrecsent = message[32:40]
             friendsrecreceived = message[40:48]
             friendsrecflag = message[48:56]
             friendsrecsent2 = message[56:64]
             friendsrecsize2 = message[64:72]
             friendsrecdata = message[72:]
-            
+
         if friendsrecfamily == "01": #SendMask
             friendsrepheader = friendsrecheader
             friendsrepsize = 4
@@ -71,23 +73,31 @@ class messagesserver(threading.Thread):
             friendsrepflag = 0
             friendsrepsent2 = 0
             friendsrepsize2 = 0
-            friendsrepdata = 0 # data empty on this packet, size is from friendsrepsize (0004)
-            friendsmaskreply1 = friendsrepheader + format(friendsrepsize, '04x') + format(friendsrepfamily, '02x') + friendsrepversion + friendsrepto + friendsrepfrom + format(friendsrepsent, '08x') + friendsrepreceived + format(friendsrepflag, '08x') + format(friendsrepsent2, '08x') + format(friendsrepsize2, '08x') + format(friendsrepdata, '08x')
+            friendsrepdata = 0  # data empty on this packet, size is from friendsrepsize (0004)
+            friendsmaskreply1 = friendsrepheader + format(
+                friendsrepsize, '04x') + format(
+                    friendsrepfamily, '02x'
+                ) + friendsrepversion + friendsrepto + friendsrepfrom + format(
+                    friendsrepsent, '08x') + friendsrepreceived + format(
+                        friendsrepflag, '08x') + format(
+                            friendsrepsent2, '08x') + format(
+                                friendsrepsize2, '08x') + format(
+                                    friendsrepdata, '08x')
             #print(friendsmaskreply1)
             friendsmaskreply2 = binascii.a2b_hex(friendsmaskreply1)
             #print(friendsmaskreply2)
             serversocket.sendto(friendsmaskreply2, address)
-        elif friendsrecfamily == "03": #SendID
+        elif friendsrecfamily == "03":  #SendID
             friendsrepheader = friendsrecheader
             friendsrepsize = 0
             friendsrepfamily = 4
             friendsrepversion = friendsrecversion
-            
+
             friendsrepid1 = int(round(time.time()))
             friendsrepid2 = struct.pack('>I', friendsrepid1)
             friendsrepto = binascii.b2a_hex(friendsrepid2)
             #friendsrepto = friendsrecfrom
-            
+
             friendsrepfrom = friendsrecto
             friendsrepsent = 2
             friendsrepreceived = friendsrecsent
@@ -95,13 +105,13 @@ class messagesserver(threading.Thread):
             friendsrepsent2 = 2
             friendsrepsize2 = 0
             friendsrepdata = 0
-            
+
             friendsidreply1 = friendsrepheader + format(friendsrepsize, '04x') + format(friendsrepfamily, '02x') + friendsrepversion + friendsrepto + friendsrepfrom + format(friendsrepsent, '08x') + friendsrepreceived + format(friendsrepflag, '08x') + format(friendsrepsent2, '08x') + format(friendsrepsize2, '08x') + format(friendsrepdata, '08x')
             print(friendsidreply1)
             friendsidreply2 = binascii.a2b_hex(friendsidreply1)
             print(friendsidreply2)
             serversocket.sendto(friendsidreply2, address)
-        elif friendsrecfamily == "07": #ProcessHeartbeat
+        elif friendsrecfamily == "07":  #ProcessHeartbeat
             if not friendsrecsize == "0000":
                 friendsreqreq = friendsrecdata[0:4]
                 friendsreqid = friendsrecdata[4:8]
@@ -110,5 +120,4 @@ class messagesserver(threading.Thread):
                 friendsreqdata = friendsrecdata[16:]
                 friendsreqheader = friendsrecheader
         #self.socket.close()
-        log.info (clientid + "Disconnected from Message Server")         
-
+        log.info (clientid + "Disconnected from Message Server")
