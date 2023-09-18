@@ -3,6 +3,9 @@
 Stm Server Emulator: PLEASE NOTE: $${\color{green}THIS \ \ \ REPO \ \ \  IS \ \ \ UP \ \ \ TO \ \ \ DATE \ \ \ WITH  \ \ \ PMEIN'S  \ \ \  LATEST  \ \ \  COMIT:  \ \ \}$$ $${\color{red}V.72}$$  $${\color{green}\ \ \ DUE \ \ \  TO \ \ \  THE  \ \ \ CODE \ \ \  DIFFERENCES, \ \ \ 
 THERE  \ \ \ IS  \ \ \ NO \ \ \  MERGING; \ \ \ THIS \ \ \ MEANS \ \ \  THAT \ \ \  THIS \ \ \  REPO \ \ \  WILL \ \ \  ALWAYS \ \ \  SHOW \ \ \  AS \ \ \  BEING \ \ \  <number>  \ \ \ COMITS  \ \ \ BEHIND.}$$
 
+You will be required to install sqlalchemy in python usin the following command:
+python -m pip install sqlalchemy
+
 
 Source code for the server emulator for clients 2004-2011
 
