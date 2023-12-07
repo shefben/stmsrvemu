@@ -1,0 +1,7 @@
+pycryptodome
+sqlalchemy
+numpy
+tqdm
+requests
+psutil
+future
