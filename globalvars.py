@@ -3,6 +3,7 @@ import ipaddress
 
 from config import get_config
 
+
 config = get_config()
 
 
@@ -30,6 +31,12 @@ public_ip = ""
 public_ip_b = b""
 hide_convert_prints = False
 
+def startcser_sessionidtracker():
+    from utilities import sessionid_manager
+    return sessionid_manager.SessionIDManager()
+
+session_id_manager = startcser_sessionidtracker()  #used by cser and harvest server to prevent fake report uploads
+
 hl1serverlist = list(range(10000))
 hl1challengenum = 0
 hl2serverlist = list(range(10000))
@@ -46,6 +53,7 @@ compiling_cdr = False
 server_net = ipaddress.IPv4Network(config["server_ip"] + '/' + config["server_sm"], strict=False)
 
 #firstblob_eval = database.ccdb.load_ccdb()
+
 
 
 if steamui_ver < 87 :

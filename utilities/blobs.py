@@ -120,7 +120,6 @@ def blob_serialize(blobdict) :
 def blob_dump(blob, spacer=""):
     text = spacer + "{"
     spacer2 = spacer + "    "
-    print(spacer)
     blobkeys = list(blob.keys())
     blobkeys.sort(key=utils.sortkey)
     first = True
@@ -152,12 +151,10 @@ def blob_replace(blob_dict, replacement_dict) :
         newlength = len(replace)
         missinglength = fulllength - newlength
         if missinglength < 0 :
-            print(
-                    "WARNING: Replacement text " + replace.decode( ) + " is too long! Not replaced!")
+            print("WARNING: Replacement text " + replace.decode( ) + " is too long! Not replaced!")
         else :
             blob_dict = blob_dict.replace(search, replace)
-            print(
-                    "Replaced " + info.decode( ) + " " + search.decode( ) + " with " + replace.decode( ))
+            print("Replaced " + info.decode( ) + " " + search.decode( ) + " with " + replace.decode( ))
     return blob_dict
 
 

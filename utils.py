@@ -26,7 +26,9 @@ from tqdm import tqdm
 import globalvars
 import utilities
 from config import get_config as read_config
+#from globalvars import update_exception1, update_exception2
 from utilities import blobs, cafe_neutering, packages
+from utilities.converter import convertgcf
 from utilities.database import ccdb
 from utilities.neuter import neuter_file
 from utilities.packages import Package
@@ -103,21 +105,21 @@ def readfile_beta(fileid, offset, length, index_data, dat_file_handle, net_type)
     oldstringlist4 = (b'207.173.177.10:27010', b'207.173.177.10:27010')
 
     if net_type == "external":
-        newstring1 = b'"' + config["public_ip"] + b':27010"'
+        newstring1 = b'"' + config["public_ip"].encode('latin-1') + b':27010"'
     else:
-        newstring1 = b'"' + config["server_ip"] + b':27010"'
+        newstring1 = b'"' + config["server_ip"].encode('latin-1') + b':27010"'
     if net_type == "external":
-        newstring2 = b'"' + config["public_ip"] + b':1200"'
+        newstring2 = b'"' + config["public_ip"].encode('latin-1') + b':1200"'
     else:
-        newstring2 = b'"' + config["tracker_ip"] + b':1200"'
+        newstring2 = b'"' + config["tracker_ip"].encode('latin-1') + b':1200"'
     if net_type == "external":
-        newstring3 = config["public_ip"] + b':' + config["validation_port"]
+        newstring3 = config["public_ip"].encode('latin-1') + b':' + config["validation_port"].encode('latin-1')
     else:
-        newstring3 = config["server_ip"] + b':' + config["validation_port"]
+        newstring3 = config["server_ip"].encode('latin-1') + b':' + config["validation_port"].encode('latin-1')
     if net_type == "external":
-        newstring4 = config["public_ip"] + b':27010'
+        newstring4 = config["public_ip"].encode('latin-1') + b':27010'
     else:
-        newstring4 = config["server_ip"] + b':27010'
+        newstring4 = config["server_ip"].encode('latin-1') + b':27010'
 
     # Extract and decompress the file from the .dat file
     # with open(dat_file, 'rb') as f:
@@ -650,3 +652,56 @@ def check_peerpassword():
     except Exception as e:
         print(f"An error occurred while checking/setting peer password: {e}")
         return -1
+
+
+def flush_cache():
+    mod_date_emu = os.path.getmtime("emulator.exe")
+    try:
+        mod_date_cach = os.path.getmtime("files/cache/emulator.ini.cache")
+    except:
+        mod_date_cach = 0
+
+    if (mod_date_cach < mod_date_emu) and globalvars.clear_config is True:
+        print("Config change detected, flushing cache...")
+        try:
+            shutil.rmtree("files/cache")
+        except:
+            pass
+
+
+def parent_initializer():
+    log.info("---Starting Initialization---")
+
+    globalvars.aio_server = True
+    globalvars.cs_region = config["cs_region"]
+    globalvars.dir_ismaster = config["dir_ismaster"]
+    globalvars.server_ip = config["server_ip"]
+    globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
+    globalvars.public_ip = config["public_ip"]
+
+    initialize(log)
+
+    if not globalvars.update_exception1 == "":
+        log.debug("Update1 error: " + str(globalvars.update_exception1))
+    if not globalvars.update_exception2 == "":
+        log.debug("Update2 error: " + str(globalvars.update_exception2))
+
+    finalinitialize(log)
+
+    log.info("Checking for gcf files to convert...")
+    if config["show_convert_bar"].lower() == "true":
+        globalvars.hide_convert_prints = True
+
+    convertgcf()
+
+    globalvars.hide_convert_prints = False
+
+    # TODO BEN, FINISH BETA 1 NEUTERING
+    # neuter.replace_bytes_in_file("steam_v0.exe")
+    # neuter.replace_bytes_in_file("steam_v1.exe")
+
+    log.info("---Initialization Complete---")
+    print()
+
+    # check for a peer_password, otherwise generate one
+    return check_peerpassword()

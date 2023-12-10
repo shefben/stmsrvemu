@@ -1,6 +1,4 @@
-from builtins import bytes
-from builtins import range
-from builtins import object
+
 import struct
 
 """# Original string buffer
@@ -40,6 +38,15 @@ class NetworkBuffer(object):
         self.buffer.append((value >> 24) & 0xFF)
         self.cursor += 4
 
+    def append_u64(self, value):
+        for i in range(8):
+            self.buffer.append((value >> (i * 8)) & 0xFF)
+        self.cursor += 8
+
+    def append_string(self, string):
+        self.buffer.extend(string.encode('latin-1') + b'\x00')  # Append the string with a null terminator
+        self.cursor += len(string) + 1
+
     def append_gap(self, size):
         for _ in range(size):
             self.buffer.append(0)
@@ -71,6 +78,18 @@ class NetworkBuffer(object):
         self.cursor += 4
         return value
 
+    def extract_u64(self):
+        value = (self.buffer[self.cursor] |
+                 (self.buffer[self.cursor + 1] << 8) |
+                 (self.buffer[self.cursor + 2] << 16) |
+                 (self.buffer[self.cursor + 3] << 24) |
+                 (self.buffer[self.cursor + 4] << 32) |
+                 (self.buffer[self.cursor + 5] << 40) |
+                 (self.buffer[self.cursor + 6] << 48) |
+                 (self.buffer[self.cursor + 7] << 56))
+        self.cursor += 8
+        return value
+
     def extract_gap(self, size):
         self.cursor += size
 
@@ -78,6 +97,15 @@ class NetworkBuffer(object):
         data = self.buffer[self.cursor:self.cursor + size]
         self.cursor += size
         return data
+
+    def extract_string(self):
+        end = self.buffer.find(b'\x00', self.cursor)
+        if end == -1:
+            raise ValueError("Null terminator not found in buffer.")
+
+        string = self.buffer[self.cursor:end + 1]  # Include the null terminator
+        self.cursor = end + 1  # Move cursor to the byte after the null terminator
+        return string
 
     def extract_remaining(self):
         remaining_data = self.buffer[self.cursor:]
@@ -102,6 +130,8 @@ class NetworkBuffer(object):
     def get_buffer(self):
         return bytes(self.buffer)
 
+    def get_buffer_from_cursor(self):
+        return self.buffer[self.cursor:]
     def finish_extracting(self):
         remaining_bytes = len(self.buffer) - self.cursor
         if remaining_bytes != 0:

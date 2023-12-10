@@ -15,7 +15,11 @@ import time
 import zlib
 import ipcalc
 from Crypto.Hash import SHA
-
+from Crypto.Signature import pkcs1_15
+from Crypto.Cipher import AES
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Hash import SHA1
+from Crypto.PublicKey import RSA
 import globalvars
 import utilities.encryption as encryption
 import utils
@@ -32,6 +36,10 @@ class authserver(TCPNetworkHandler):
 		self.innerkey = binascii.a2b_hex("10231230211281239191238542314233")
 		# Create an instance of NetworkHandler
 		super(authserver, self).__init__(config, port, self.server_type)
+		
+	def send_mainkey(self, client_socket):
+		mainkey = encryption.signed_mainkey_reply
+		client_socket.send(mainkey)
 
 	def handle_client(self, client_socket, client_address):
 
@@ -47,7 +55,9 @@ class authserver(TCPNetworkHandler):
 		log.debug(f":{binascii.b2a_hex(command[1:5])}:")
 		log.debug(f":{binascii.b2a_hex(command)}:")
 
-		if command[1:5] == b"\x00\x00\x00\x01":  # \x01 for 2003 beta
+		if command[1:5] == b"\x00\x00\x00\x00": # \x00 for 2002 beta 1
+			self.process_beta1_packers(clientid, client_socket, client_address, log)
+		elif command[1:5] == b"\x00\x00\x00\x01":  # \x01 for 2003 beta 2
 
 			self.process_beta2_packets(clientid, client_socket, client_address, log)
 
@@ -680,7 +690,7 @@ class authserver(TCPNetworkHandler):
 				username_str = username.rstrip(b'\x00')
 				# print(len(username_str))
 				log.info(f"{clientid}New user: check username exists: {username_str}")
-				if (os.path.isfile("files/users/" + username_str + ".py")):
+				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
 					client_socket.send(b"\xff")  # not working
 				else:
@@ -1646,7 +1656,7 @@ class authserver(TCPNetworkHandler):
 				username_str = username.rstrip(b'\x00')
 				# print(len(username_str))
 				log.info(f"{clientid}New user: check username exists: {username_str}")
-				if (os.path.isfile("files/users/" + username_str + ".py")):
+				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
 					client_socket.send(b"\xff")  # not working
 				else:
@@ -2597,7 +2607,7 @@ class authserver(TCPNetworkHandler):
 				# print(len(username_str))
 				log.info(f"{clientid}New user: check username exists: {username_str}")
 				# TODO SEND SUGGESTIONS PACKET
-				if (os.path.isfile("files/users/" + username_str + ".py")):
+				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
 					client_socket.send(b"\xff")  # not working
 				else:
@@ -2740,7 +2750,7 @@ class authserver(TCPNetworkHandler):
 				print(blobdict)
 				usernamechk = blobdict[b'\x01\x00\x00\x00']
 				username_str = usernamechk.rstrip(b'\x00')
-				if os.path.isfile("files/users/" + username_str + ".py"):
+				if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 					client_socket.send(b"\x00")
 				else:
 					client_socket.send(b"\x01")
@@ -2794,7 +2804,7 @@ class authserver(TCPNetworkHandler):
 					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
 						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
 						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-						if (os.path.isfile("files/users/" + username_str + ".py")):
+						if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 							with open("files/users/" + username_str + ".py", 'w') as userblobfile:
 								userblobfile.write("user_registry = ")
 								userblobfile.write(str(userblob))
@@ -2950,7 +2960,7 @@ class authserver(TCPNetworkHandler):
 										blob = zlib.decompress(blob[20:])
 									blob2 = blobs.blob_unserialize(blob)
 									blob3 = blobs.blob_dump(blob2)
-									execdict_update = b"blob = " + blob3
+									execdict_update = "blob = " + blob3
 
 									for (search, replace, info) in globalvars.replacestringsCDR:
 										print("Fixing CDR 16")
@@ -2981,9 +2991,9 @@ class authserver(TCPNetworkHandler):
 									execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 								for k in execdict_update:
-									for j in execdict[b"blob"]:
+									for j in execdict["blob"]:
 										if j == k:
-											execdict[b"blob"][j].update(execdict_update[k])
+											execdict["blob"][j].update(execdict_update[k])
 										else:
 											if k == b"\x01\x00\x00\x00":
 												execdict_temp_01.update(execdict_update[k])
@@ -2991,12 +3001,12 @@ class authserver(TCPNetworkHandler):
 												execdict_temp_02.update(execdict_update[k])
 
 								for k, v in execdict_temp_01.items( ):
-									execdict[b"blob"].pop(k, v)
+									execdict["blob"].pop(k, v)
 
 								for k, v in execdict_temp_02.items( ):
-									execdict[b"blob"].pop(k, v)
+									execdict["blob"].pop(k, v)
 
-					blob = blobs.blob_serialize(execdict[b"blob"])
+					blob = blobs.blob_serialize(execdict["blob"])
 
 					if blob[0:2] == b"\x01\x43":
 						blob = zlib.decompress(blob[20:])
@@ -3036,7 +3046,7 @@ class authserver(TCPNetworkHandler):
 						blob = zlib.decompress(blob[20:])
 					blob2 = blobs.blob_unserialize(blob)
 					blob3 = blobs.blob_dump(blob2)
-					file = b"blob = " + blob3
+					file = "blob = " + blob3
 
 					for (search, replace, info) in globalvars.replacestringsCDR:
 						print("Fixing CDR 18")
@@ -3103,9 +3113,9 @@ class authserver(TCPNetworkHandler):
 									execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 								for k in execdict_update:
-									for j in execdict[b"blob"]:
+									for j in execdict["blob"]:
 										if j == k:
-											execdict[b"blob"][j].update(execdict_update[k])
+											execdict["blob"][j].update(execdict_update[k])
 										else:
 											if k == b"\x01\x00\x00\x00":
 												execdict_temp_01.update(execdict_update[k])
@@ -3113,12 +3123,12 @@ class authserver(TCPNetworkHandler):
 												execdict_temp_02.update(execdict_update[k])
 
 								for k, v in execdict_temp_01.items( ):
-									execdict[b"blob"].pop(k, v)
+									execdict["blob"].pop(k, v)
 
 								for k, v in execdict_temp_02.items( ):
-									execdict[b"blob"].pop(k, v)
+									execdict["blob"].pop(k, v)
 
-					blob = blobs.blob_serialize(execdict[b"blob"])
+					blob = blobs.blob_serialize(execdict["blob"])
 
 					# h = open("files/secondblob.bin", "wb")
 					# h.write(blob)
@@ -3180,12 +3190,8 @@ class authserver(TCPNetworkHandler):
 		client_socket.close( )
 		log.info(f"{clientid}Disconnected from Auth Server")
 
-
-
-	def send_mainkey(self, client_socket):
-		mainkey = encryption.get_mainkey_reply()
-		client_socket.send(mainkey)
-
+	def process_beta1_packers(self, clientid, client_socket, client_address, log):
+		return
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")
@@ -3832,7 +3838,10 @@ class authserver(TCPNetworkHandler):
 
 			client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
 		elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 			reply = client_socket.recv_withlen( )
 
 			RSAdata = reply[2:130]
@@ -3857,14 +3866,17 @@ class authserver(TCPNetworkHandler):
 			# print(len(username_str))
 			log.info(f"{clientid}New user: check username exists: {username_str}")
 			# TODO BEN SEND SUGGESTED NAMES IF NAME EXISTS
-			if (os.path.isfile("files/users/" + username_str + ".py")):
+			if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 				log.warning(f"{clientid}New user: username already exists")
 				client_socket.send(b"\xff")  # not working
 			else:
 				log.info(f"{clientid}New user: username not found")
 				client_socket.send(b"\x00")
 		elif command[0:1] == b"\x22":  # Check email - new user
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 
 			reply = client_socket.recv_withlen( )
 
@@ -3907,10 +3919,12 @@ class authserver(TCPNetworkHandler):
 				client_socket.send(b"\x00")
 		elif command[0:1] == b"\x01":  # New user
 			log.info(f"{clientid}New user: Create user")
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 
 			reply = client_socket.recv_withlen( )
-
 			encr_key_len, = struct.unpack(">H", reply[0:2])
 			RSAdata = reply[2:130]
 			datalength = struct.unpack(">L", reply[130:134])[0]
@@ -3952,14 +3966,17 @@ class authserver(TCPNetworkHandler):
 
 			plainblob_fixed = pprint.pformat(plainblob)
 
-			with open("files/users/" + username_str + ".py", 'w') as userblobfile:
+			with open("files/users/" + username_str.decode('latin-1') + ".py", 'w') as userblobfile:
 				userblobfile.write("user_registry = ")
 				userblobfile.write(str(plainblob))
 
 			client_socket.send(b"\x01")  # TO DO SEND \x00 FOR EMAIL IN USE
 		elif command[0:1] == b"\x0e":  # Check username - password reset
 			log.info(f"{clientid}Password reset: check username exists")
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 			reply = client_socket.recv_withlen( )
 
 			RSAdata = reply[2:130]
@@ -3981,13 +3998,16 @@ class authserver(TCPNetworkHandler):
 			print(blobdict)
 			usernamechk = blobdict[b'\x01\x00\x00\x00']
 			username_str = usernamechk.rstrip(b'\x00')
-			if os.path.isfile("files/users/" + username_str + ".py"):
+			if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 				client_socket.send(b"\x00")
 			else:
 				client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0f":  # Reset password
 			log.info(f"{clientid}Password reset by client")
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 			reply = client_socket.recv_withlen( )
 
 			RSAdata = reply[2:130]
@@ -4034,7 +4054,7 @@ class authserver(TCPNetworkHandler):
 				if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
 					userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
 					userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-					if (os.path.isfile("files/users/" + username_str + ".py")):
+					if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 						with open("files/users/" + username_str + ".py", 'w') as userblobfile:
 							userblobfile.write("user_registry = ")
 							userblobfile.write(str(userblob))
@@ -4054,7 +4074,10 @@ class authserver(TCPNetworkHandler):
 			reply2 = {}
 		elif command[0:1] == b"\x20":  # Check email - password reset
 			log.info(f"{clientid}Password reset by email")
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 			reply = client_socket.recv_withlen( )
 
 			RSAdata = reply[2:130]
@@ -4093,7 +4116,10 @@ class authserver(TCPNetworkHandler):
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x21":  # Check key - password reset
 			log.info(f"{clientid}Password reset by CD key")
-			self.send_mainkey(client_socket)
+			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
+			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
+			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+			client_socket.send(reply)
 			reply = client_socket.recv_withlen( )
 
 			RSAdata = reply[2:130]
@@ -4188,7 +4214,7 @@ class authserver(TCPNetworkHandler):
 									blob = zlib.decompress(blob[20:])
 								blob2 = blobs.blob_unserialize(blob)
 								blob3 = blobs.blob_dump(blob2)
-								execdict_update = b"blob = " + blob3
+								execdict_update = "blob = " + blob3
 
 								for (search, replace, info) in globalvars.replacestringsCDR:
 									print("Fixing CDR 1")
@@ -4223,9 +4249,9 @@ class authserver(TCPNetworkHandler):
 								execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 							for k in execdict_update:
-								for j in execdict[b"blob"]:
+								for j in execdict["blob"]:
 									if j == k:
-										execdict[b"blob"][j].update(execdict_update[k])
+										execdict["blob"][j].update(execdict_update[k])
 									else:
 										if k == b"\x01\x00\x00\x00":
 											execdict_temp_01.update(execdict_update[k])
@@ -4233,12 +4259,12 @@ class authserver(TCPNetworkHandler):
 											execdict_temp_02.update(execdict_update[k])
 
 							for k, v in execdict_temp_01.items( ):
-								execdict[b"blob"].pop(k, v)
+								execdict["blob"].pop(k, v)
 
 							for k, v in execdict_temp_02.items( ):
-								execdict[b"blob"].pop(k, v)
+								execdict["blob"].pop(k, v)
 
-				blob = blobs.blob_serialize(execdict[b"blob"])
+				blob = blobs.blob_serialize(execdict["blob"])
 
 				if blob[0:2] == b"\x01\x43":
 					blob = zlib.decompress(blob[20:])
@@ -4279,7 +4305,7 @@ class authserver(TCPNetworkHandler):
 					blob = zlib.decompress(blob[20:])
 				blob2 = blobs.blob_unserialize(blob)
 				blob3 = blobs.blob_dump(blob2)
-				file = b"blob = " + blob3
+				file = "blob = " + blob3
 
 				for (search, replace, info) in globalvars.replacestringsCDR:
 					print("Fixing CDR 3")
@@ -4289,7 +4315,7 @@ class authserver(TCPNetworkHandler):
 					if missinglength < 0:
 						print(f"WARNING: Replacement text {replace.decode('latin-1')} is too long! Not replaced!")
 					else:
-						file = file.replace(search, replace)
+						file = file.replace(search.decode('latin-1'), replace.decode('latin-1'))
 						print(f"Replaced {info} {search.decode('latin-1')} with {replace.decode('latin-1')}")
 
 				execdict = {}
@@ -4350,9 +4376,9 @@ class authserver(TCPNetworkHandler):
 								execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 							for k in execdict_update:
-								for j in execdict[b"blob"]:
+								for j in execdict["blob"]:
 									if j == k:
-										execdict[b"blob"][j].update(execdict_update[k])
+										execdict["blob"][j].update(execdict_update[k])
 									else:
 										if k == b"\x01\x00\x00\x00":
 											execdict_temp_01.update(execdict_update[k])
@@ -4360,12 +4386,12 @@ class authserver(TCPNetworkHandler):
 											execdict_temp_02.update(execdict_update[k])
 
 							for k, v in execdict_temp_01.items( ):
-								execdict[b"blob"].pop(k, v)
+								execdict["blob"].pop(k, v)
 
 							for k, v in execdict_temp_02.items( ):
-								execdict[b"blob"].pop(k, v)
+								execdict["blob"].pop(k, v)
 
-				blob = blobs.blob_serialize(execdict[b"blob"])
+				blob = blobs.blob_serialize(execdict["blob"])
 
 				# h = open("files/secondblob.bin", "wb")
 				# h.write(blob)

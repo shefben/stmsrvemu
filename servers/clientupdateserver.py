@@ -126,7 +126,7 @@ class clientupdateserver(TCPNetworkHandler):
                             except OSError as error:
                                 log.debug(clientid + "Internal pkg dir already exists")
 
-                            if str(self.address[0]) in ipcalc.Network(str(globalvars.server_net)):
+                            if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
                                 if not os.path.isfile("files/cache/internal/" + newfilename.decode()):
                                     neuter(self.config["packagedir"] + "betav2/" + newfilename.decode(),
                                            "files/cache/internal/" + newfilename.decode(), self.config["server_ip"],
@@ -166,7 +166,7 @@ class clientupdateserver(TCPNetworkHandler):
                             except OSError as error:
                                 log.debug(clientid + "Internal pkg dir already exists")
 
-                            if str(self.address[0]) in ipcalc.Network(str(globalvars.server_net)):
+                            if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
                                 if not os.path.isfile("files/cache/internal/" + filename.decode()):
                                     print(filename)
                                     neuter(self.config["packagedir"] + "betav2/" + filename.decode(),

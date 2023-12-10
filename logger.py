@@ -4,9 +4,10 @@ import configparser
 import sys
 import queue
 import re
+
 from config import read_config
 
-config = read_config( )
+config = read_config()
 loglevel = config["log_level"]
 logtofile = config["log_to_file"]
 
@@ -14,8 +15,7 @@ logtofile = config["log_to_file"]
 class SpecificDebugFilter(logging.Filter) :
     def filter(self, record) :
         # Define a regular expression pattern that matches your specific log messages
-        pattern = re.compile(
-                r"\('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', (\d+)\): Received data with length  - [0-9a-fA-F ]+")
+        pattern = re.compile(r"\('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', (\d+)\): Received data with length  - [0-9a-fA-F ]+")
         # Check if the log record matches the specific pattern
         if pattern.match(record.getMessage( )) :
             return False  # Exclude this specific message from the console
@@ -28,6 +28,7 @@ class ProgressBarFilter(logging.Filter) :
             return False  # Do not log to console for this logger if progress bar is enabled
         else :
             return True
+
 
 
 class ColoredFormatter(logging.Formatter) :

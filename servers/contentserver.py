@@ -82,6 +82,10 @@ class contentserver(TCPNetworkHandler):
         if len(msg) == 0:
             log.info(clientid + "Got simple handshake. Closing connection.")
 
+        elif msg == b"\x00\x00\x00\x00": # beta 1 version 0
+            pass
+        elif msg == b"\x00\x00\x00\x01": # beta 1 version 1
+            pass
         elif msg == b"\x00\x00\x00\x02":  # \x02 for 2003 beta v2 content
             log.info(clientid + "Storage mode entered")
 
@@ -95,7 +99,7 @@ class contentserver(TCPNetworkHandler):
                 command = client_socket.recv_withlen()
 
 
-                if command[0:1] == "\x00" : #SEND MANIFEST AND PROCESS RESPONSE
+                if command[0:1] == b"\x00" : #SEND MANIFEST AND PROCESS RESPONSE
 
                     (connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
                     # print(connid, messageid, app, version)
@@ -391,7 +395,7 @@ class contentserver(TCPNetworkHandler):
                                 else :
                                     url = b"about:blank"
 
-                                reply = struct.pack(">H", len(url)) + url.encode()
+                                reply = struct.pack(">H", len(url)) + url
 
                                 client_socket.send(reply)
 
