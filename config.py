@@ -30,7 +30,7 @@ def read_config():
                   'net_key_d': "0x4ee3ec697bb34d5e999cb2d3a3f5766210e5ce961de7334b6f7c6361f18682825b2cfa95b8b7894c124ada7ea105ec1eaeb3c5f1d17dfaa55d099a0f5fa366913b171af767fe67fb89f5393efdb69634f74cb41cb7b3501025c4e8fef1ff434307c7200f197b74044e93dbcf50dcc407cbf347b4b817383471cd1de7b5964a9d",
                   'v3storagedir2': "files/v3storages2/", 'v3manifestdir2': "files/v3manifests2/",
                   'store_url_new': "/storefront", 'support_url_new': "/support", 'http_port': "80", 'universe': "1",
-                  'apache_root': "files/webserver/apache24", 'web_root': "files/webserver/webroot",
+                  'apache_root': "files/webserver/apache24", 'web_root': "files/webserver/webroot", 'reset_clears_client': "true",
                   'use_webserver': "true", 'http_name': "", 'emu_auto_update': "", 'clupd_server_port': "27031",
                   'betamanifestdir': "", 'betastoragedir': "", 'server_sm': "255.255.255.0", 'server_ip': "127.0.0.1",
                   'steam_date': "", 'steam_time': "23:59:00", 'enable_steam3_servers': "0", 'auto_public_ip': "0", 'use_py_firstblob': "0"}

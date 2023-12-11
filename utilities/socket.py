@@ -35,6 +35,7 @@ class ImpSocket(object):
     def __init__(self, sock=None):
         if sock is None or sock == "tcp":
             self.s = real_socket.socket(real_socket.AF_INET, real_socket.SOCK_STREAM)
+
         elif sock == "udp":
             self.s = real_socket.socket(real_socket.AF_INET, real_socket.SOCK_DGRAM)
         else:
@@ -109,6 +110,9 @@ class ImpSocket(object):
             self.s.listen(connections)
         else:
             raise ValueError("Cannot listen on a non-socket")
+
+    def settimeout(self, timeout_time):
+        self.s.settimeout(timeout_time)
 
     def send(self, data, log=True):
         sentbytes = self.s.send(data)
