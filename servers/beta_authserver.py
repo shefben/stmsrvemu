@@ -15,7 +15,6 @@ from Crypto.Signature import pkcs1_15
 
 import globalvars
 import utils
-from beta1.blob import BlobException
 from utilities.database import beta1_authdb
 
 from utilities.database.beta1_authdb import *
