@@ -7,7 +7,6 @@ import struct
 import time
 import socket as real_socket
 
-import utilities.encryption
 import utils
 from utilities import encryption
 from utilities.networkhandler import TCPNetworkHandler
@@ -60,7 +59,7 @@ class validationserver(TCPNetworkHandler):
                 ticket = unknown1 + b"\x01" + tms + steamId
                 ticket_full = b"\x00\x97" + ticket
                 ticket_to_sign = ticket
-                ticket_signed = utilities.encryption.rsa_sign_message(encryption.network_key_sign, ticket_to_sign)
+                ticket_signed = encryption.rsa_sign_message(encryption.network_key, ticket_to_sign)
                 client_socket.send(ticket_full + ticket_signed)
 
         client_socket.close()
