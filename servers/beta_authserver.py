@@ -24,6 +24,8 @@ from utilities.networkhandler import TCPNetworkHandler
 log = logging.getLogger("B1AUTHSRV")
 
 
+
+
 def load_secondblob():
 	if os.path.isfile("files/secondblob.py") :
 		with open("files/secondblob.py", "r") as f:
@@ -375,8 +377,8 @@ class Beta1_AuthServer(TCPNetworkHandler):
 		# Client Registry Request
 		elif msg[0] == 11:
 			log.info(f"{clientid}Recieved Client Registry Request")
-			binblob = blobs.blob_serialize(self.blob)
-
+			binblob = blobs.blob_serialize(self.dict_blob)
+			
 			binblob = struct.pack(">I", len(binblob)) + binblob
 
 			client_socket.send(binblob)
