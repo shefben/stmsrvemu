@@ -55,20 +55,19 @@ def generate_config_lines(ip, user, passw, ip_range) :
 
 
 def process_cafe_files(steam_dll_path, zip_path, wan_path, lan_path, read_me_path, steam_exe_path, config) :
-    os.mkdir("client/cafe_server")
+    try:
+        os.mkdir("client/cafe_server")
+    except:
+        pass
     steam_dll = read_file(steam_dll_path)
     file_wan = neuter_file(steam_dll, config["public_ip"], config["dir_server_port"], "steam.dll", False)
     file_lan = neuter_file(steam_dll, config["server_ip"], config["dir_server_port"], "steam.dll", True)
 
-    lsclient_lines_wan = generate_config_lines(config["public_ip"], config["cafeuser"], config["cafepass"],
-                                               "192.168.0.1")
-    lsclient_lines_lan = generate_config_lines(config["server_ip"], config["cafeuser"], config["cafepass"],
-                                               "192.168.0.1")
+    lsclient_lines_wan = generate_config_lines(config["public_ip"], config["cafeuser"], config["cafepass"], "192.168.0.1")
+    lsclient_lines_lan = generate_config_lines(config["server_ip"], config["cafeuser"], config["cafepass"], "192.168.0.1")
 
-    caserver_lines_wan = generate_config_lines(config["public_ip"], config["cafeuser"], config["cafepass"],
-                                               "192.168.0.1")
-    caserver_lines_lan = generate_config_lines(config["server_ip"], config["cafeuser"], config["cafepass"],
-                                               "192.168.0.1")
+    caserver_lines_wan = generate_config_lines(config["public_ip"], config["cafeuser"], config["cafepass"], "192.168.0.1")
+    caserver_lines_lan = generate_config_lines(config["server_ip"], config["cafeuser"], config["cafepass"], "192.168.0.1")
 
     passwords_line = bytes(config["cafeuser"] + "%" + config["cafepass"], "latin-1")
     readme = read_file(read_me_path) if os.path.isfile(read_me_path) else None

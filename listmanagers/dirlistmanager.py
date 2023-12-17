@@ -27,10 +27,11 @@ class DirServerManager(object):
         with self.lock:
             for entry in self.dirserver_list:  # check for the same server, if it exists then update the timestamp
                 if entry[0] == wan_ip and entry[1] == lan_ip and entry[2] == int(port) and entry[3] == server_type:
-                    if entry[4] != 1:  # ignore permanent entries
-                        self.dirserver_list.remove(entry)
-                    else:
-                        return -1
+                    #if entry[4] != 1:  # ignore permanent entries
+                    self.dirserver_list.remove(entry)
+                    #else:
+                    #    return -1
+            print(f"adding: {repr(new_entry)}")
             self.dirserver_list.append(new_entry)
 
     def remove_old_entries(self):

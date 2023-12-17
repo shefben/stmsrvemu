@@ -28,6 +28,8 @@ class ProgressBarFilter(logging.Filter) :
             return False  # Do not log to console for this logger if progress bar is enabled
         else :
             return True
+        if record.name == "pyftpdlib":
+            return True
 
 
 
@@ -103,15 +105,13 @@ def init_logger() :
     queue_handler = logging.handlers.QueueHandler(log_queue)
 
     # Create a root logger
-    root = logging.getLogger( )
+    root = logging.getLogger()
     root.setLevel(logging.DEBUG)
 
-    # Attach handlers to the root logger
-    root.addHandler(fh)  # For Debug and higher
-    root.addHandler(fh2)  # For Info and higher
-    root.addHandler(er)  # For Warning and higher
+    # Attach ONLY the QueueHandler to the root logger
     root.addHandler(queue_handler)
 
     # Create and start a QueueListener
+    # QueueListener will distribute logs to the file and console handlers
     listener = logging.handlers.QueueListener(log_queue, fh, fh2, er, ch)
-    listener.start( )
+    listener.start()

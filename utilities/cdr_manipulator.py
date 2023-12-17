@@ -52,7 +52,7 @@ def fixblobs() :
                         if blob[0 :2] == b"\x01\x43" :
                             blob = zlib.decompress(blob[20 :])
                         blob2 = blobs.blob_unserialize(blob)
-                        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")
+                        blob3 = pprint.saferepr(blob2).encode("latin-1")
                         execdict_update = b"blob = " + blob3
                         print("Fixing CDR 1")
                         execdict_update = blobs.blob_replace(execdict_update, globalvars.replacestringsCDR)
@@ -115,7 +115,7 @@ def fixblobs() :
         if blob[0 :2] == b"\x01\x43" :
             blob = zlib.decompress(blob[20 :])
         blob2 = blobs.blob_unserialize(blob)
-        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")
+        blob3 = pprint.saferepr(blob2).encode("latin-1")
         file = b"blob = " + blob3
 
         print("Fixing CDR 3")
@@ -143,7 +143,7 @@ def fixblobs() :
                         if blob[0 :2] == b"\x01\x43" :
                             blob = zlib.decompress(blob[20 :])
                         blob2 = blobs.blob_unserialize(blob)
-                        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")
+                        blob3 = pprint.saferepr(blob2).encode("latin-1")
                         execdict_update = b"blob = " + blob3
 
                         print("Fixing CDR 4")
@@ -276,7 +276,7 @@ def fixblobs_configserver() :
                         if userblobstr_upd[0 :2] == b"\x01\x43" :
                             userblobstr_upd = zlib.decompress(userblobstr_upd[20 :])
                         blob2 = blobs.blob_unserialize(userblobstr_upd)
-                        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")
+                        blob3 = pprint.saferepr(blob2).encode("latin-1")
                         userblobstr_upd = b"blob = " + blob3
                         print("Fixing CDR 7")
                         execdict_update = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
@@ -341,7 +341,7 @@ def fixblobs_configserver() :
             log.warning("The first client waiting for this CDR might appear to have crashed")
         blob2 = blobs.blob_unserialize(userblobstr_upd)
         # blob3 = steam.pprint.saferepr(blob2)
-        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")  # 1/5th of the time compared with using pprint.saferepr
+        blob3 = pprint.saferepr(blob2).encode("latin-1")  # 1/5th of the time compared with using pprint.saferepr
         file = b"blob = " + blob3
         print("Fixing CDR 9")
         file = blobs.blob_replace(file, globalvars.replacestringsCDR)
@@ -349,6 +349,8 @@ def fixblobs_configserver() :
         execdict = {}
         execdict_temp_01 = {}
         execdict_temp_02 = {}
+        blob3 = pprint.saferepr(blob2).encode("latin-1")  # 1/5th of the time compared with using pprint.saferepr
+        file = b"blob = " + blob3
         exec(file, execdict)
         for sub_id_main in execdict["blob"][b"\x02\x00\x00\x00"] :
             #if "\x16\x00\x00\x00" in execdict["blob"]["\x02\x00\x00\x00"][sub_id_main]:
@@ -374,9 +376,8 @@ def fixblobs_configserver() :
                     print(sub_key)
                 if len(sub_key) == 0 :
                     execdict["blob"][b"\x02\x00\x00\x00"][sub_id_main].pop(b"\x17\x00\x00\x00")
-        print(repr(file))
-        for sig in execdict["blob"][
-            b"\x05\x00\x00\x00"] :  # replaces the old signature search, completes in less than 1 second now
+
+        for sig in execdict["blob"][b"\x05\x00\x00\x00"] :  # replaces the old signature search, completes in less than 1 second now
             value = execdict["blob"][b"\x05\x00\x00\x00"][sig]
             # print(value)
             if len(value) == 160 and value.startswith(binascii.a2b_hex("30819d300d06092a")) :
@@ -401,7 +402,7 @@ def fixblobs_configserver() :
                         if userblobstr_upd[0 :2] == b"\x01\x43" :
                             userblobstr_upd = zlib.decompress(userblobstr_upd[20 :])
                         blob2 = blobs.blob_unserialize(userblobstr_upd)
-                        blob3 = pprint.saferepr(blob2).encode("ISO-8859-1")
+                        blob3 = pprint.saferepr(blob2).encode("latin-1")
                         userblobstr_upd = b"blob = " + blob3
                         print("Fixing CDR 10")
                         execdict_update = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
@@ -431,7 +432,7 @@ def fixblobs_configserver() :
                         execdict["blob"].pop(k, v)
 
         blob = blobs.blob_serialize(execdict["blob"])
-        print("serialize: " + repr(blob))
+        #print("serialize: " + repr(blob))
         # h = open("files/secondblob.bin", "wb")
         # h.write(blob)
         # h.close()
@@ -465,5 +466,4 @@ def fixblobs_configserver() :
         f = open("files/cache/secondblob.bin", "wb")
         f.write(blob)
         f.close( )
-    print(repr(blob))
     return blob

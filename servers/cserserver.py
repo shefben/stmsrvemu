@@ -60,11 +60,11 @@ class CSERServer(UDPNetworkHandler) :
     def parse_downloadstats(self, address, data, clientid, log):
         log.info(f"{clientid}Received app download stats")
         reply = b"\xFF\xFF\xFF\xFFb"
-        unknown1 = data[0]
+        unknown1 = data[0:1]
         appId = struct.unpack('I', data[1:5])[0]
         duration = struct.unpack('I', data[5:9])[0]
-        isDownload = data[9]
-        nbGcf = data[10]
+        isDownload = data[9:10]
+        nbGcf = data[10:11]
 
         keys = ['GameID', '']
         vals = [str(appId), str(duration)]
@@ -139,7 +139,7 @@ class CSERServer(UDPNetworkHandler) :
         //		u8(C2M_REPORT_GAMESTATISTICS_PROTOCOL_VERSION)
         //		u32(appID)
         //		u32 requested upload data length"""
-        data_bin = binascii.unhexlify(data)
+        data_bin = bytes.fromhex(data[3:].hex())
         data_length = len(data_bin)
         buffer = NetworkBuffer(data_bin)
 
@@ -183,7 +183,7 @@ class CSERServer(UDPNetworkHandler) :
         //		u8(C2M_BUGREPORT_PROTOCOL_VERSION) = 1 2 or 3
         //		u16(encryptedlength)
         //		remainder=encrypteddata"""
-        data_bin = binascii.unhexlify(data[3:])
+        data_bin = bytes.fromhex(data[3:].hex())
         data_length = len(data_bin)
         buffer = NetworkBuffer(data_bin)
         reportver = buffer.extract_u8()
@@ -198,7 +198,7 @@ class CSERServer(UDPNetworkHandler) :
             # Decrypt the remainder of the data
             decrypted = ice.Decrypt(buffer.get_buffer_from_cursor())
             timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            filename = f"stats/bugreports/{address}.{timestamp}.bugreport.txt"
+            filename = f"clientstats/bugreports/{address}.{timestamp}.bugreport.txt"
 
             # Create a new NetworkBuffer instance for the decrypted data
             buffer = NetworkBuffer(decrypted)
@@ -286,7 +286,7 @@ class CSERServer(UDPNetworkHandler) :
         ipstr1 = ipstr.split('\'')
         ipactual = ipstr1[1]
 
-        message = binascii.b2a_hex(data[3:])
+        message = data[3:].hex()
         keylist = list(range(13))
         vallist = list(range(13))
         keylist[0] = "Unknown1"
@@ -321,7 +321,7 @@ class CSERServer(UDPNetworkHandler) :
         vallist[12] = str(templist2[23])
 
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"stats/exceptionlogs/{address}.{timestamp}.csv"
+        filename = f"clientstats/exceptionlogs/{address}.{timestamp}.csv"
 
         f = open(filename, "w")
         f.write("SteamExceptionsData")
@@ -353,7 +353,7 @@ class CSERServer(UDPNetworkHandler) :
         #         string(fieldname 32)
         #         string(value 128)
         ice = IceKey(1, [27, 200, 13, 14, 83, 45, 184, 54])
-        data_bin = binascii.unhexlify(data[3:])
+        data_bin = bytes.fromhex(data[3:].hex())
         data_length = len(data_bin)
         # Create a NetworkBuffer instance with the decrypted data
         buffer = NetworkBuffer(data_bin)
@@ -387,7 +387,7 @@ class CSERServer(UDPNetworkHandler) :
         info["values"] = values
 
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"stats/bugreports/{address}.{timestamp}.br{str(decrypted[0:1])}.csv"
+        filename = f"clientstats/bugreports/{address}.{timestamp}.br{str(decrypted[0:1])}.csv"
 
         # Save the information to a CSV file
         with open(filename, 'w', newline='') as csv_file:
@@ -405,17 +405,18 @@ class CSERServer(UDPNetworkHandler) :
         ipstr1 = ipstr.split('\'')
         ipactual = ipstr1[1]
 
-        message = binascii.b2a_hex(data[3:])
+        message = binascii.b2a_hex(data[1:])
         keylist = list(range(7))
         vallist = list(range(7))
-        keylist[0] = "LastUpload" # this was missing, shows up in ida in 2005.  havnt looked at older steam versions to see if it is also there
-        keylist[1] = "SuccessCount"
-        keylist[2] = "ShutdownFailureCount" # this was flipped with unknownfailurecount
-        keylist[3] = "UnknownFailureCount"
-        keylist[4] = "UptimeCleanCounter"
-        keylist[5] = "UptimeCleanTotal"
-        keylist[6] = "UptimeFailureCounter"
-        keylist[7] = "UptimeFailureTotal"
+        #keylist[0] = "LastUpload" # this was missing, shows up in ida in 2005.  havnt looked at older steam versions to see if it is also there
+        keylist[0] = "SuccessCount"
+        keylist[1] = "ShutdownFailureCount" # this was flipped with unknownfailurecount
+        keylist[2] = "UnknownFailureCount"
+        keylist[3] = "UptimeCleanCounter"
+        keylist[4] = "UptimeCleanTotal"
+        keylist[5] = "UptimeFailureCounter"
+        keylist[6] = "UptimeFailureTotal"
+        #keylist[7] =
 
         if message.startswith(b"537465616d2e657865") :  # Steam.exe
             vallist[0] = str(int(message[24:26], base=16))
@@ -425,17 +426,17 @@ class CSERServer(UDPNetworkHandler) :
             vallist[4] = str(int(message[32:34], base=16))
             vallist[5] = str(int(message[34:36], base=16))
             vallist[6] = str(int(message[36:38], base=16))
-            vallist[7] = str(int(message[38:40], base=16))
+            #vallist[7] = str(int(message[38:40], base=16))
 
             timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            filename = f"stats/steamstats/{ipactual}.{timestamp}.steamexe.csv"
+            filename = f"clientstats/steamstats/{ipactual}.{timestamp}.steamexe.csv"
 
             f = open(filename, "w")
             f.write(str(binascii.a2b_hex(message[6:24])))
             f.write("\n")
-            f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6] + "," + keylist[7])
+            f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6])#+ "," + keylist[7])
             f.write("\n")
-            f.write(vallist[0] + "," + vallist[1] + "," + vallist[2] + "," + vallist[3] + "," + vallist[4] + "," + vallist[5] + "," + vallist[6] + "," + vallist[7])
+            f.write(vallist[0] + "," + vallist[1] + "," + vallist[2] + "," + vallist[3] + "," + vallist[4] + "," + vallist[5] + "," + vallist[6])#+ "," + vallist[7])
             f.close()
 
         self.serversocket.sendto(b"\xFF\xFF\xFF\xFFf", address)
@@ -465,7 +466,7 @@ class CSERServer(UDPNetworkHandler) :
         ice = IceKey(1, [27, 200, 13, 14, 83, 45, 184, 54])  # unknown key, this is probably incorrect
 
         # Assuming you have received the encrypted data in the 'data' variable
-        data_bin = binascii.unhexlify(data[3:])
+        data_bin = bytes.fromhex(data[3:].hex())
         data_length = len(data_bin)
         reply = b"\xFF\xFF\xFF\xFF\x6E"
         # Create a NetworkBuffer instance with the decrypted data
@@ -520,7 +521,7 @@ class CSERServer(UDPNetworkHandler) :
 
             # Generate a filename based on the IP address and timestamp
             timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            filename = f"stats/phonehome/{address}.{timestamp}.phonehome.txt"
+            filename = f"clientstats/phonehome/{address}.{timestamp}.phonehome.txt"
 
             # Write the extracted data to a file
             with open(filename, "w") as file :
@@ -544,8 +545,7 @@ class CSERServer(UDPNetworkHandler) :
             return bytes_[start_index:end_index], end_index + 1
 
         ice = IceKey(1, [27, 200, 13, 14, 83, 45, 184, 54])
-
-        data_bin = binascii.unhexlify(data[3:])
+        data_bin = bytes.fromhex(data[3:].hex())
         byte_string = ice.Decrypt(data_bin)
 
         result = {}

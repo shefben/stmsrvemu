@@ -1,33 +1,38 @@
 import os
 import errno
-from config import get_config as read_config
+from config import get_config
 
-config = read_config()
+config = get_config()
+
 # List of directory paths to create
 dirs_to_create = [
+    config["v3storagedir2"],
+    config["v3manifestdir2"],
     config["v2storagedir"],
     config["v2manifestdir"],
     config["storagedir"],
     config["manifestdir"],
+    config["betastoragedir"],
+    config["betamanifestdir"],
     config["packagedir"],
     "logs",
     "client",
-    "stats",
-    "stats/clientstats",
-    "stats/gamestats",
-    "stats/bugreports",
-    "stats/steamstats",
-    "stats/phonehome",
-    "stats/exceptionlogs",
-    "stats/crashdump",
-    "stats/surveys",
-    "stats/downloadstats",
+    "clientstats",
+    "clientstats/clientstats",
+    "clientstats/gamestats",
+    "clientstats/bugreports",
+    "clientstats/steamstats",
+    "clientstats/phonehome",
+    "clientstats/exceptionlogs",
+    "clientstats/crashdump",
+    "clientstats/surveys",
+    "clientstats/downloadstats",
     "files",
     "files/users",
     "files/temp",
     "files/convert",
     "files/cache",
-    "client/cafe_server",
+    "files/beta1_ftp",
 ]
 
 def create_dirs() :

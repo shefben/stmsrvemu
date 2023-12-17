@@ -58,7 +58,6 @@ network_key_sign = RSA.construct((
 
 BERstring = network_key.public_key( ).export_key("DER")
 
-
 def get_aes_key(encryptedstring, rsakey) :
     return PKCS1_OAEP.new(rsakey).decrypt(encryptedstring)
 
@@ -169,7 +168,7 @@ def encrypt_message(ptext, key) :
     return IV + struct.pack(">HH", len(ptext), len(ctext)) + ctext
 
 
-def binaryxor(bytesA, bytesB) :
+"""def binaryxor(bytesA, bytesB) :
     if len(bytesA) != len(bytesB) :
         print("binaryxor: byte lengths don't match!!")
         sys.exit( )
@@ -180,7 +179,13 @@ def binaryxor(bytesA, bytesB) :
         valB = bytesB[i]
         valC = valA ^ valB
         outBytes.append(valC)
-    return bytes(outBytes)
+    return bytes(outBytes)"""
+
+def binaryxor(a, b):
+    if len(a) != len(b):
+        raise Exception("binaryxor: string lengths doesn't match!!")
+
+    return bytes(aa ^ bb for aa, bb in zip(a, b))
 
 
 def textxor(textstring) :
@@ -232,6 +237,16 @@ def encrypt(message, password) :
         encrypted += chr(ord(char) ^ ord(key))
     return encrypted
 
+def encrypt_bytes(message, password):
+    encrypted = bytearray()
+    for i in range(len(message)):
+        char = message[i]
+        key = password[i % len(password)]
+        encrypted.append(char ^ ord(key))
+    return bytes(encrypted)
+
+# Assuming password is a string and message is bytes
+
 
 def decrypt(encrypted, password) :
     decrypted = ""
@@ -240,6 +255,14 @@ def decrypt(encrypted, password) :
         key = password[i % len(password)]
         decrypted += chr(ord(char) ^ ord(key))
     return decrypted
+
+def decrypt_bytes(encrypted, password):
+    decrypted = bytearray()
+    for i in range(len(encrypted)):
+        byte = encrypted[i]
+        key = password[i % len(password)]
+        decrypted.append(byte ^ ord(key))
+    return decrypted  # or appropriate encoding
 
 
 # Beta 1 encryption functions

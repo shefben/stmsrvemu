@@ -1,10 +1,8 @@
-from __future__ import print_function
 
 import ast
 import binascii
 import os
 import os.path
-import pprint
 import shutil
 import threading
 import zlib
@@ -168,7 +166,7 @@ class clientupdateserver(TCPNetworkHandler):
 
                             if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
                                 if not os.path.isfile("files/cache/internal/" + filename.decode()):
-                                    print(filename)
+                                    #print(filename)
                                     neuter(self.config["packagedir"] + "betav2/" + filename.decode(),
                                            "files/cache/internal/" + filename.decode(), self.config["server_ip"],
                                            self.config["dir_server_port"], islan)
@@ -354,7 +352,7 @@ class clientupdateserver(TCPNetworkHandler):
                             file = g.read()
 
                         for (search, replace, info) in globalvars.replacestringsCDR:
-                            print(search)
+                            #print(search)
                             fulllength = len(search)
                             newlength = len(replace)
                             missinglength = fulllength - newlength

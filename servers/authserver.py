@@ -30,19 +30,19 @@ from utilities.database import ccdb
 from utilities.networkhandler import TCPNetworkHandler
 
 
+# noinspection ProblematicWhitespace
 class authserver(TCPNetworkHandler):
 	def __init__(self, port, config):
 		self.server_type = "AuthServer"
 		self.innerkey = binascii.a2b_hex("10231230211281239191238542314233")
 		# Create an instance of NetworkHandler
 		super(authserver, self).__init__(config, port, self.server_type)
-		
+
 	def send_mainkey(self, client_socket):
 		mainkey = encryption.signed_mainkey_reply
 		client_socket.send(mainkey)
 
 	def handle_client(self, client_socket, client_address):
-
 		log = logging.getLogger(self.server_type)
 		# Load this everytime a client connects, this ensures that we can change the blob without restarting the server
 		firstblob = ccdb.load_ccdb( )
@@ -56,11 +56,9 @@ class authserver(TCPNetworkHandler):
 		log.debug(f":{binascii.b2a_hex(command)}:")
 
 		if command[1:5] == b"\x00\x00\x00\x00": # \x00 for 2002 beta 1
-			self.process_beta1_packers(clientid, client_socket, client_address, log)
+			self.process_beta1_packets(clientid, client_socket, client_address, log)
 		elif command[1:5] == b"\x00\x00\x00\x01":  # \x01 for 2003 beta 2
-
 			self.process_beta2_packets(clientid, client_socket, client_address, log)
-
 		elif command[1:5] == b"\x00\x00\x00\x03":  # \x03 for 2003 release
 
 			log.debug(f"{clientid}Using 2003 auth protocol")
@@ -154,8 +152,6 @@ class authserver(TCPNetworkHandler):
 						# steamid = binascii.a2b_hex("ffff" + "ffffffff" + "ffffffff")
 						steamUniverse = struct.pack(">H", int(self.config["universe"]))
 						steamid = steamUniverse + userblob[b'\x06\x00\x00\x00'][username][b'\x01\x00\x00\x00']
-						# servers = binascii.a2b_hex("451ca0939a69451ca0949a69")
-						# authport = struct.pack("<L", int(port))
 
 						if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
 							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
@@ -396,6 +392,34 @@ class authserver(TCPNetworkHandler):
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
+			elif command[0:1] == b"\x13": # Verify email..?
+				log.info(f"{clientid}Verify Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x14":
+				log.info(f"{clientid}Requested Verification Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x15":
+				log.info(f"{clientid}Update Account Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x16":
+				log.info(f"{clientid}Update Subscription Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1b":
+				log.info(f"{clientid} Recieved Unknown Packet 0x1B - Not Operational")
+				log.debug(command)
+				client_socket.send(b"\x01")
+			elif command[0:1] == b"\x1c":
+				log.info(f"{clientid}Change Account Name - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1f":
+				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
 				command = ticket_full[0:2]
@@ -469,12 +493,12 @@ class authserver(TCPNetworkHandler):
 							receipt_sub_dict[b'\x0a\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0a\x00\x00\x00']
 							receipt_sub_dict[b'\x0b\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0b\x00\x00\x00']
 							receipt_sub_dict[b'\x0c\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0c\x00\x00\x00']
-							receipt_sub_dict[b'\x0d\x00\x00\x00'] = random.randint(111111, 999999).to_bytes(3,byteorder='little') + b"\x00"
+							receipt_sub_dict[b'\x0d\x00\x00\x00'] = str(random.randint(111111, 999999)).encode('ascii') + b'\x00'
 							receipt_sub_dict[b'\x0e\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x14\x00\x00\x00']
 							receipt_sub_dict[b'\x0f\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x15\x00\x00\x00']
 							receipt_sub_dict[b'\x10\x00\x00\x00'] = datetime.datetime.now( ).strftime("%d/%m/%Y").encode("latin-1") + b"\x00"
 							receipt_sub_dict[b'\x11\x00\x00\x00'] = datetime.datetime.now( ).strftime("%H:%M:%S").encode("latin-1") + b"\x00"
-							receipt_sub_dict[b'\x12\x00\x00\x00'] = random.randint(11111111, 99999999).to_bytes(4,byteorder='little') + b"\x00"
+							receipt_sub_dict[b'\x12\x00\x00\x00'] = str(random.randint(11111111, 99999999)).encode('ascii')  + b'\x00'
 							receipt_sub_dict[b'\x13\x00\x00\x00'] = b"\x00\x00\x00\x00"
 							receipt_dict_01[b'\x01\x00\x00\x00'] = b"\x05"
 							receipt_dict_01[b'\x02\x00\x00\x00'] = receipt_sub_dict
@@ -664,6 +688,10 @@ class authserver(TCPNetworkHandler):
 				ticket_signed = ticket + hmac.new(client_ticket[0:16], ticket, hashlib.sha1).digest( )
 
 				client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
+			elif command[0:1] == b"\x0c":
+				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
 				self.send_mainkey(client_socket)
 
@@ -737,6 +765,9 @@ class authserver(TCPNetworkHandler):
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x23":
+				log.info(clientid + "Client Acknowledged Subscription Receipt")
+				client_socket.close()
 			elif command[0:1] == b"\x01":  # New user
 				log.info(f"{clientid}New user: Create user")
 				self.send_mainkey(client_socket)
@@ -1055,7 +1086,7 @@ class authserver(TCPNetworkHandler):
 						decodedmessage = binascii.b2a_hex(encryption.aes_decrypt(key, IV, encrypted))
 						log.debug(f"{clientid}Authentication package: {decodedmessage}")
 
-						if not decodedmessage.endswith(b"\x04\x04\x04\x04") :
+						if not decodedmessage.endswith(b"04040404") :
 							wrongpass = "1"
 							log.info(f"{clientid}Incorrect password entered for: {username}")
 						else:
@@ -1104,14 +1135,12 @@ class authserver(TCPNetworkHandler):
 						# steamid = binascii.a2b_hex("ffff" + "ffffffff" + "ffffffff")
 						steamUniverse = struct.pack(">H", int(self.config["universe"]))
 						steamid = steamUniverse + userblob[b'\x06\x00\x00\x00'][username][b'\x01\x00\x00\x00']
-						# servers = binascii.a2b_hex("451ca0939a69451ca0949a69")
-						# authport = struct.pack("<L", int(port))
 						# TODO grab from directory server
 						if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
 							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
 						else:
 							bin_ip = utils.encodeIP((self.config["server_ip"], self.config["validation_port"]))
-						# bin_ip = utils.encodeIP(("172.21.0.20", "27039"))
+
 						servers = bin_ip + bin_ip
 						currtime = int(currtime)
 						times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(
@@ -1375,6 +1404,34 @@ class authserver(TCPNetworkHandler):
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
+			elif command[0:1] == b"\x13": # Verify email..?
+				log.info(f"{clientid}Verify Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x14":
+				log.info(f"{clientid}Requested Verification Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x15":
+				log.info(f"{clientid}Update Account Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x16":
+				log.info(f"{clientid}Update Subscription Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1b":
+				log.info(f"{clientid} Recieved Unknown Packet 0x1B - Not Operational")
+				log.debug(command)
+				client_socket.send(b"\x01")
+			elif command[0:1] == b"\x1c":
+				log.info(f"{clientid}Change Account Name - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1f":
+				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
 				command = ticket_full[0:2]
@@ -1449,12 +1506,12 @@ class authserver(TCPNetworkHandler):
 							receipt_sub_dict[b'\x0a\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0a\x00\x00\x00']
 							receipt_sub_dict[b'\x0b\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0b\x00\x00\x00']
 							receipt_sub_dict[b'\x0c\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0c\x00\x00\x00']
-							receipt_sub_dict[b'\x0d\x00\x00\x00'] = str(random.randint(111111, 999999).to_bytes(3,byteorder='little')).encode('latin-1') + b"\x00"
+							receipt_sub_dict[b'\x0d\x00\x00\x00'] = str(random.randint(111111, 999999)).encode('ascii') + b'\x00'
 							receipt_sub_dict[b'\x0e\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x14\x00\x00\x00']
 							receipt_sub_dict[b'\x0f\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x15\x00\x00\x00']
-							receipt_sub_dict[b'\x10\x00\x00\x00'] = datetime.datetime.now( ).strftime("%d/%m/%Y").encode('latin-1') + b"\x00"
-							receipt_sub_dict[b'\x11\x00\x00\x00'] = datetime.datetime.now( ).strftime("%H:%M:%S").encode('latin-1') + b"\x00"
-							receipt_sub_dict[b'\x12\x00\x00\x00'] = str(random.randint(11111111, 99999999).to_bytes(4,byteorder='little')).encode('latin-1') + b"\x00"
+							receipt_sub_dict[b'\x10\x00\x00\x00'] = datetime.datetime.now( ).strftime("%d/%m/%Y").encode("latin-1") + b"\x00"
+							receipt_sub_dict[b'\x11\x00\x00\x00'] = datetime.datetime.now( ).strftime("%H:%M:%S").encode("latin-1") + b"\x00"
+							receipt_sub_dict[b'\x12\x00\x00\x00'] = str(random.randint(11111111, 99999999)).encode('ascii')  + b'\x00'
 							receipt_sub_dict[b'\x13\x00\x00\x00'] = b"\x00\x00\x00\x00"
 							receipt_dict_01[b'\x01\x00\x00\x00'] = b"\x05"
 							receipt_dict_01[b'\x02\x00\x00\x00'] = receipt_sub_dict
@@ -1630,6 +1687,10 @@ class authserver(TCPNetworkHandler):
 				ticket_signed = ticket + hmac.new(client_ticket[0:16], ticket, hashlib.sha1).digest( )
 
 				client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
+			elif command[0:1] == b"\x0c":
+				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer  - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
 				self.send_mainkey(client_socket)
 
@@ -1687,7 +1748,7 @@ class authserver(TCPNetworkHandler):
 				email = plainblob[b'\x01\x00\x00\x00']
 				email_str = email.rstrip(b'\x00')
 				# print(len(username_str))
-				log.info(f"{clientid}New user: check email exists: " + email_str)
+				log.info(f"{clientid}New user: check email exists: {email_str}")
 				email_exists = False
 				for file in os.listdir("files/users/"):
 					if file.endswith("py"):
@@ -1704,6 +1765,9 @@ class authserver(TCPNetworkHandler):
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x23":
+				log.info(clientid + "Client Acknowledged Subscription Receipt")
+				client_socket.close()
 			elif command[0:1] == b"\x01":  # New user
 				log.info(f"{clientid}New user: Create user")
 				self.send_mainkey(client_socket)
@@ -1715,6 +1779,8 @@ class authserver(TCPNetworkHandler):
 				cryptedblob_length = reply[136:140]
 				cryptedblob_slack = reply[140:144]
 				cryptedblob = reply[144:144 + datalength - 10]  # modified for Steam '03 support
+
+
 
 				key = encryption.get_aes_key(RSAdata, encryption.network_key)
 				log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
@@ -2329,6 +2395,34 @@ class authserver(TCPNetworkHandler):
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
+			elif command[0:1] == b"\x13": # Verify email..?
+				log.info(f"{clientid}Verify Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x14":
+				log.info(f"{clientid}Requested Verification Email - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x15":
+				log.info(f"{clientid}Update Account Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x16":
+				log.info(f"{clientid}Update Subscription Billing Information - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1b":
+				log.info(f"{clientid} Recieved Unknown Packet 0x1B - Not Operational")
+				log.debug(command)
+				client_socket.send(b"\x01")
+			elif command[0:1] == b"\x1c":
+				log.info(f"{clientid}Change Account Name - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
+			elif command[0:1] == b"\x1f":
+				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
 				command = ticket_full[0:2]
@@ -2406,12 +2500,12 @@ class authserver(TCPNetworkHandler):
 						receipt_sub_dict[b'\x0a\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0a\x00\x00\x00']
 						receipt_sub_dict[b'\x0b\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0b\x00\x00\x00']
 						receipt_sub_dict[b'\x0c\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x0c\x00\x00\x00']
-						receipt_sub_dict[b'\x0d\x00\x00\x00'] = random.randint(111111, 999999).to_bytes(3, byteorder='little') + b"\x00"
+						receipt_sub_dict[b'\x0d\x00\x00\x00'] = str(random.randint(111111, 999999)).encode('ascii') + b'\x00'
 						receipt_sub_dict[b'\x0e\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x14\x00\x00\x00']
 						receipt_sub_dict[b'\x0f\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x15\x00\x00\x00']
 						receipt_sub_dict[b'\x10\x00\x00\x00'] = datetime.datetime.now( ).strftime("%d/%m/%Y").encode("latin-1") + b"\x00"
 						receipt_sub_dict[b'\x11\x00\x00\x00'] = datetime.datetime.now( ).strftime("%H:%M:%S").encode("latin-1") + b"\x00"
-						receipt_sub_dict[b'\x12\x00\x00\x00'] = random.randint(11111111, 99999999).to_bytes(4, byteorder='little') + b"\x00"
+						receipt_sub_dict[b'\x12\x00\x00\x00'] = str(random.randint(11111111, 99999999)).encode('ascii')  + b'\x00'
 						receipt_sub_dict[b'\x13\x00\x00\x00'] = b"\x00\x00\x00\x00"
 						receipt_dict_01[b'\x01\x00\x00\x00'] = b"\x05"
 						receipt_dict_01[b'\x02\x00\x00\x00'] = receipt_sub_dict
@@ -2446,7 +2540,6 @@ class authserver(TCPNetworkHandler):
 				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,
 																								   0) + blob_encrypted + blob_signature
 				client_socket.send(b"\x00" + blob_encrypted)
-
 			elif command[0:1] == b"\x09":  # Ticket Login
 				ticket_full = binascii.b2a_hex(command)
 				command = ticket_full[0:2]
@@ -2580,6 +2673,10 @@ class authserver(TCPNetworkHandler):
 				ticket_signed = ticket + hmac.new(client_ticket[0:16], ticket, hashlib.sha1).digest( )
 
 				client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
+			elif command[0:1] == b"\x0c":
+				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer - Not Operational")
+				log.debug(command)
+				client_socket.send("\x01")
 			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
 				self.send_mainkey(client_socket)
 
@@ -2638,7 +2735,7 @@ class authserver(TCPNetworkHandler):
 				email = plainblob[b'\x01\x00\x00\x00']
 				email_str = email.rstrip(b'\x00')
 				# print(len(username_str))
-				log.info(f"{clientid}New user: check email exists: " + email_str)
+				log.info(f"{clientid}New user: check email exists: {email_str}")
 				email_exists = False
 				for file in os.listdir("files/users/"):
 					if file.endswith("py"):
@@ -2655,6 +2752,9 @@ class authserver(TCPNetworkHandler):
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x23":
+				log.info(clientid + "Client Acknowledged Subscription Receipt")
+				client_socket.close()
 			elif command[0:1] == b"\x01":  # New user
 				log.info(f"{clientid}New user: Create user")
 				self.send_mainkey(client_socket)
@@ -3181,7 +3281,6 @@ class authserver(TCPNetworkHandler):
 			else:
 				log.debug(f"{clientid}Unknown command: {binascii.b2a_hex(command[0:1])}")  # 23 ?
 				client_socket.send(b"\x01")
-
 		else:
 			data = client_socket.recv(65535)
 			log.warning(f"{clientid}Invalid command: {binascii.b2a_hex(command[1:5])}")
@@ -3190,7 +3289,7 @@ class authserver(TCPNetworkHandler):
 		client_socket.close( )
 		log.info(f"{clientid}Disconnected from Auth Server")
 
-	def process_beta1_packers(self, clientid, client_socket, client_address, log):
+	def process_beta1_packets(self, clientid, client_socket, client_address, log):
 		return
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
@@ -3900,7 +3999,7 @@ class authserver(TCPNetworkHandler):
 			email = plainblob[b'\x01\x00\x00\x00']
 			email_str = email.rstrip(b'\x00')
 			# print(len(username_str))
-			log.info(f"{clientid}New user: check email exists: " + email_str)
+			log.info(f"{clientid}New user: check email exists: {email_str}")
 			email_exists = False
 			for file in os.listdir("files/users/"):
 				if file.endswith("py"):
@@ -3917,6 +4016,9 @@ class authserver(TCPNetworkHandler):
 			else:
 				log.info(f"{clientid}New user: email ok to use")
 				client_socket.send(b"\x00")
+		elif command[0:1] == b"\x23":
+			log.info(clientid + "Client Acknowledged Subscription Receipt")
+			client_socket.close()
 		elif command[0:1] == b"\x01":  # New user
 			log.info(f"{clientid}New user: Create user")
 			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")

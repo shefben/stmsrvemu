@@ -35,7 +35,7 @@ class contentlistserver(TCPNetworkHandler) :
         thread.daemon = True
         thread.start( )
 
-        # Ben note: Figure out how to get the appid's and versions from the sdk contentserver.
+        # TODO Ben note: Figure out how to get the appid's and versions from the sdk contentserver.
         # ideas include: if a packet exists for getting the app list, have csds send the packet and parse the response
         # or put sdk contentserver in a folder within stmserver that we can parse through the files ourselves
 
@@ -51,7 +51,7 @@ class contentlistserver(TCPNetworkHandler) :
         global csdsConnectionCount
 
         reply = b""
-        # BEN NOTE: Add peering to this server!
+        # TODO BEN NOTE: Add peering to this server!
 
         clientid = str(client_address) + ": "
         log.info(f"{clientid} Connected to Content List Server ")
@@ -84,24 +84,15 @@ class contentlistserver(TCPNetworkHandler) :
     def packet_getpkgcs(self, clientid) :
         log.info(f"{clientid} Sending out Content Servers with packages (0x00)")
         all_results, all_count = manager.get_empty_or_no_applist_entries( )
-        reply = struct.pack(">H", 1) + b"\x00\x00\x00\x00"
-        ip_port_tuple = ("192.168.3.180", "27031")
-        #print(f"pkg update servers: {ip} {port}")
-        bin_ip = utils.encodeIP(ip_port_tuple)
-        reply += (bin_ip + bin_ip)
-        """if all_count > 0 :
+
+        if all_count > 0 :
             reply = struct.pack(">H", 1) + b"\x00\x00\x00\x00"
-            ip_port_tuple = ("192.168.3.180", "27031")
-            print(f"pkg update servers: {ip} {port}")
-            bin_ip = utils.encodeIP(ip_port_tuple)
-            reply += (bin_ip + bin_ip)
-            #for ip, port in all_results :
-            #    ip_port_tuple = ("192.168.3.180", "27031")
-            #    print(f"pkg update servers: {ip} {port}")
-            #    bin_ip = utils.encodeIP(ip_port_tuple)
-            #    reply += (bin_ip + bin_ip)
+            for ip, port in all_results :
+                print(f"pkg update servers: {ip} {port}")
+                bin_ip = utils.encodeIP((ip, port))
+                reply += (bin_ip + bin_ip)
         else :
-            reply = b"\x00\x00"""
+            reply = b"\x00\x00"
 
         return reply
 

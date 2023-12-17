@@ -207,7 +207,7 @@ class Checksums :
 
         for chunkid in range(len(file)) :
             result = self.validate_chunk(fileid, chunkid, file[chunkid])
-            if result == False :
+            if not result :
                 return False
 
         return True

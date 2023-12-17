@@ -24,11 +24,6 @@ class ImpSocketThread(threading.Thread):
             self.imp_socket.run_frame()
 
 
-def inet_aton(packed_ip):
-    # Call inet_ntoa from the socket module
-    ip_address = real_socket.inet_aton(packed_ip)
-    return ip_address
-
 
 class ImpSocket(object):
     error = real_socket.error
@@ -60,6 +55,10 @@ class ImpSocket(object):
             "blacklist.txt") if config["enable_blacklist"] != "False" else None
 
         self.select_timeout = 0.1  # Adjust the timeout as needed for responsiveness
+
+    def inet_aton(self, packed_ip):
+        # Call inet_ntoa from the socket module
+        return real_socket.inet_aton(packed_ip)
 
     @staticmethod
     def load_ips_from_file(filename):
@@ -213,6 +212,7 @@ class ImpSocket(object):
                 str(self.address) + ": Received all data - " +
                 binascii.b2a_hex(data).decode())
         return data
+
     def recv_withlen(self, log=True):
         lengthstr = self.recv(4, False)
         if len(lengthstr) != 4:

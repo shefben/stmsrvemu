@@ -3,8 +3,6 @@ import struct
 import utils
 
 
-
-
 class BlobBuilder(object) :
     def __init__(self) :
         self.registry = {}

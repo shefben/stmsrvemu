@@ -18,12 +18,10 @@ from utilities.networkhandler import TCPNetworkHandler
 
 dirConnectionTotalCount = 0
 
-
 def expired_servers_thread():
     while True:
         time.sleep(3600)  # 1 hour
         manager.remove_old_entries()
-
 
 class directoryserver(TCPNetworkHandler):
 
@@ -426,7 +424,7 @@ class directoryserver(TCPNetworkHandler):
                 log.info(f"{clientid} Disconnected from Directory Server")
                 return
 
-            manager.add_server_info(wan_ip, lan_ip, int(port), None, server_type)
+            manager.add_server_info(wan_ip, lan_ip, int(port), server_type, 0)
 
             client_socket.send(b"\x01")
             log.info(f"[{server_type}] {clientid} Added to Directory Server")
@@ -452,7 +450,7 @@ class directoryserver(TCPNetworkHandler):
         elif command == b"\x1d":  # Remove server entry from the list
             wan_ip, port, server_type = unpack_removal_info(msg)
             try:
-                socket.inet_aton(wan_ip)
+                client_socket.inet_aton(wan_ip)
             except client_socket.error:
                 log.warning(f"{clientid} Sent bad removal request packet: {binascii.b2a_hex(msg).decode( )}")
                 client_socket.send(b"\x00")  # message decryption failed, the only response we give for failure

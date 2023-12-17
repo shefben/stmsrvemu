@@ -55,7 +55,7 @@ class configserver(TCPNetworkHandler):
                     else:
                         globalvars.tgt_version = "2"  # config file states 2 as default
                         log.debug(clientid + "TGT version set to 2")
-                    client_socket.send_withlen(firstblob)
+                    client_socket.send_withlen(firstblob, False)
 
                 elif command == b"\x04" :  # send net key
                     log.info(clientid + "sending network key")
@@ -112,7 +112,7 @@ class configserver(TCPNetworkHandler):
                     log.info(clientid + "Client didn't match our checksum for secondblob")
                     log.debug(clientid + "Sending new blob: " + binascii.b2a_hex(command).decode())
 
-                    client_socket.send_withlen(blob, True)  # false for not showing in log
+                    client_socket.send_withlen(blob, False)  # false for not showing in log
 
             else:
                 log.info(clientid + "Invalid message: " + binascii.b2a_hex(command).decode())

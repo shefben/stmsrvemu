@@ -106,7 +106,7 @@ class UDPNetworkHandler(NetworkHandler):
     def run(self):
         self.serversocket.bind((globalvars.server_ip, int(self.port)))
         while True:
-            data, address = self.serversocket.recvfrom(2048)
+            data, address = self.serversocket.recvfrom(16384)
             server_thread = threading.Thread(target=self.handle_client, args=(data, address)).start()
 
     def handle_client(self, data, address):

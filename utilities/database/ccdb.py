@@ -47,7 +47,7 @@ def create_firstblob_from_row(row):
     return firstblob
 
 
-def load_py_blob():
+def load_filesys_blob():
     if os.path.isfile("files/1stcdr.py") or os.path.isfile("files/firstblob.py") :
         if os.path.isfile("files/1stcdr.py") :
             shutil.copy2("files/1stcdr.py", "files/firstblob.py")
@@ -63,7 +63,7 @@ def load_py_blob():
     else :
         with open("files/firstblob.bin", "rb") as f :
             blob = f.read( )
-        if blob[0 :2] == b"\x01\x43" :
+        if blob[0:2] == b"\x01\x43" :
             blob = zlib.decompress(blob[20 :])
         firstblob_unser = blobs.blob_unserialize(blob)
         firstblob = "blob = " + blobs.blob_dump(firstblob_unser)
@@ -108,7 +108,7 @@ def load_ccdb():
 
                 if client_date == "20030119":  # First blob reached
                     logging.error("No more packages available, trying blob files instead.")
-                    return load_py_blob()  # load .py or .bin blob if DB not found
+                    return load_filesys_blob()  # load .py or .bin blob if DB not found
 
                 status = pkg_check_result
 
@@ -119,7 +119,7 @@ def load_ccdb():
             return blobs.blob_serialize(firstblob)
 
     log.debug("Using Filesystem firstblobs")
-    firstblob, blob = load_py_blob()
+    firstblob, blob = load_filesys_blob()
     globalvars.record_ver = struct.unpack("<L", firstblob[b"\x00\x00\x00\x00"])[0]
     globalvars.steam_ver = struct.unpack("<L", firstblob[b"\x01\x00\x00\x00"])[0]
     globalvars.steamui_ver = struct.unpack("<L", firstblob[b"\x02\x00\x00\x00"])[0]

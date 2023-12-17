@@ -14,7 +14,6 @@ update_exception2 = ""
 clear_config = False
 converting = "0"
 checksum_temp_file = 0
-#servernet = "0."
 
 # NOTE: Ben's added vars
 cs_region = "US"
