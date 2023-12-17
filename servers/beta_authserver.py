@@ -25,14 +25,35 @@ log = logging.getLogger("B1AUTHSRV")
 
 
 
+def blob_serialize(blobdict, version):
+	blobdata = b""
+
+	for key in blobdict:
+		if key == b"__slack__":
+			continue
+
+		value = blobdict[key]
+
+		if type(value) == dict:
+			value = blob_serialize(value, version)
+
+		blobdata += struct.pack("<HI", len(key), len(value)) + key + value
+
+	if b"__slack__" in blobdict:
+		slack = blobdict[b"__slack__"]
+	else :
+		slack = b""
+
+	return b"\x01\x50" + struct.pack("<II", 10 + len(blobdata), len(slack)) + blobdata + slack
 
 def load_secondblob():
 	if os.path.isfile("files/secondblob.py") :
 		with open("files/secondblob.py", "r") as f:
 			secondblob = f.read()
 		execdict = {}
+		# execfile("files/1stcdr.py", execdict)
 		exec(secondblob, execdict)
-		return blobs.blob_serialize(execdict["blob"]), secondblob
+		return execdict["blob"], secondblob
 	else :
 		with open("files/secondblob.bin", "rb") as f:
 			bin_blob = f.read( )
@@ -378,7 +399,7 @@ class Beta1_AuthServer(TCPNetworkHandler):
 		elif msg[0] == 11:
 			log.info(f"{clientid}Recieved Client Registry Request")
 			binblob = blobs.blob_serialize(self.dict_blob)
-			
+
 			binblob = struct.pack(">I", len(binblob)) + binblob
 
 			client_socket.send(binblob)
