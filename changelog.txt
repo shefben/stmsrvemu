@@ -12,6 +12,4 @@ dynamic serverlists for the directoryserver and content directory server
 created harvest server for bugreport files and other memory dump files
 added missing packets to auth server and directory server (not operational, just for collecting packet data)
 added ini option to automatically retrieve public ip address
-Beta 1 Authentication fully integrated
-2003 Trackerserver Integrated
-Added mini ftp server for beta 1 client updates
+

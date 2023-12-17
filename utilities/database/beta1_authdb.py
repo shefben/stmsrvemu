@@ -2,6 +2,7 @@ import time
 import struct
 import logging
 import logging
+from sqlalchemy import text
 import logger
 import struct
 
@@ -27,7 +28,7 @@ class beta1_dbdriver(object) :
 			self.db_driver.create_tables()
 			log.info("Inserting Beta 1 Default User Database Information")
 			self.insert_user(b'test', 1697417979, b'Egq-pe-y', b'0102030405060708', b'6ac85e8ff2ba19345023be1de9948f9592917642')
-			self.insert_subscription(b'test', 0x11, 1697417979)
+			self.insert_subscription(b'test', 0x06, 1697417979)
 
 
 	def insert_user(self, username, createtime, accountkey, salt, hash):
@@ -52,6 +53,13 @@ class beta1_dbdriver(object) :
 		# Insert the data
 		self.db_driver.insert_data(BaseDatabaseDriver.Beta1_Subscriptions, subscription_data)
 
+	def remove_subscription(self, username, subid):
+		unsubscribe_data = {
+			"username": username,
+			"subid": subid,
+		}
+		self.db_driver.remove_data(BaseDatabaseDriver.Beta1_Subscriptions, unsubscribe_data)
+
 	def get_user(self, username):
 		if isinstance(username, bytes):
 			username = username.decode('latin-1')
@@ -68,10 +76,8 @@ class beta1_dbdriver(object) :
 	def edit_subscription(self, username, subid, subtime = 0, remove_sub = False):
 		subid = int(subid)
 		subtime = int(subtime)
-		if isinstance(username, bytes):
-			username = username.decode('latin-1')
 		if remove_sub:
-			self.db_driver.execute_query(f"DELETE FROM beta1_subscriptions WHERE username = CAST('{username}' AS BLOB) AND subid = {subid}")
+			self.remove_subscription(username, subid)
 		else:
 			self.insert_subscription(username, subid, subtime)
 			#self.db_driver.execute_query(f"INSERT INTO beta1_subscriptions VALUES ( CAST('{username}' AS BLOB), {subid}, {subtime})")
@@ -125,8 +131,8 @@ class beta1_dbdriver(object) :
 
 	def get_user_blob(self, username, CDR, version):
 		subrows = self.db_driver.select_data(
-        		    BaseDatabaseDriver.Beta1_Subscriptions,
-        		    where_clause=BaseDatabaseDriver.Beta1_Subscriptions.username == username)
+					BaseDatabaseDriver.Beta1_Subscriptions,
+					where_clause=BaseDatabaseDriver.Beta1_Subscriptions.username == username)
 		print(subrows)
 		row = self.get_user(username)
 		if row is None :

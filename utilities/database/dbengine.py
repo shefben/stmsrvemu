@@ -80,9 +80,11 @@ class DatabaseDriver(BaseDatabaseDriver) :
 		upd = table.update( ).where(where_clause).values(**new_values)
 		self.execute_query(upd)
 
-	def remove_data(self, orm_class, where_clause) :
+	def remove_data(self, orm_class, data) :
 		table = orm_class.__table__
-		rem = table.delete( ).where(where_clause)
+		# Construct a WHERE clause for the delete statement
+		conditions = [getattr(orm_class, key) == value for key, value in data.items()]
+		rem = table.delete().where(*conditions)
 		self.execute_query(rem)
 
 	def get_rows_by_date(self, orm_class, date_column, order='asc') :

@@ -1,5 +1,3 @@
-
-
 import binascii
 import hashlib
 import hmac
@@ -10,20 +8,18 @@ import pickle
 import threading
 import time
 import zlib
-from time import sleep
-
 import ipcalc
+from time import sleep
 from Crypto.Hash import SHA
 
 import globalvars
-import utilities.blobs
-import utilities.encryption
-import utilities.storages
+import utilities
 import utils
+
 from gcf_to_storage import gcf2storage
 from listmanagers.contentlistmanager import manager
 from listmanagers.contentserverlist_utilities import send_heartbeat
-from utilities import cdr_manipulator, encryption
+from utilities import cdr_manipulator, encryption, blobs
 from utilities.checksums import Checksum2, Checksum3
 from utilities.manifests import *
 from utilities.networkhandler import TCPNetworkHandler
@@ -81,7 +77,7 @@ class contentserver(TCPNetworkHandler):
 		if len(msg) == 0:
 			log.info(f"{clientid}Got simple handshake. Closing connection.")
 
-		elif msg in [b"\x00\x00\x00\x00", b"\x00\x00\x00\x01"]: # beta 1 version 0 & Beta1 Version 1
+		elif msg in [b"\x00\x00\x00\x00", b"\x00\x00\x00\x01"]:  # beta 1 version 0 & Beta1 Version 1
 			log.info(f"{clientid}Storage mode entered")
 
 			storagesopen = 0
@@ -191,7 +187,7 @@ class contentserver(TCPNetworkHandler):
 						client_socket.send(b"")
 						break
 
-					elif command[0:1] in [b"\x02",b"\x04"] : #SEND MANIFEST AGAIN
+					elif command[0:1] in [b"\x02",b"\x04"] :  # SEND MANIFEST AGAIN
 						log.info(f"{clientid}Sending manifest")
 						client_socket.send(struct.pack(">I", len(manifest)) + manifest, False)
 
@@ -230,7 +226,7 @@ class contentserver(TCPNetworkHandler):
 
 				command = client_socket.recv_withlen()
 
-				if command[0:1] == b"\x00" : #SEND MANIFEST AND PROCESS RESPONSE
+				if command[0:1] == b"\x00":  # SEND MANIFEST AND PROCESS RESPONSE
 
 					(connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
 					# print(connid, messageid, app, version)
@@ -357,7 +353,7 @@ class contentserver(TCPNetworkHandler):
 							client_socket.close()
 							return
 
-						if command[0:1] == b"\x02" : #SEND MANIFEST AGAIN
+						if command[0:1] == b"\x02":  # SEND MANIFEST AGAIN
 
 							log.info(f"{clientid}Sending manifest")
 
@@ -373,9 +369,9 @@ class contentserver(TCPNetworkHandler):
 
 							# reply = struct.pack(">LLL", storageid, messageid, len(manifest))
 							reply = struct.pack(">L", len(manifest))
-							#print(binascii.b2a_hex(reply))
+							# print(binascii.b2a_hex(reply))
 
-							#print(binascii.b2a_hex(manifest))
+							# print(binascii.b2a_hex(manifest))
 
 							client_socket.send(b"\x01" + reply + manifest, False)
 
@@ -412,9 +408,9 @@ class contentserver(TCPNetworkHandler):
 
 							# reply = struct.pack(">LLL", storageid, messageid, len(manifest))
 							reply = struct.pack(">L", len(manifest))
-							#print(binascii.b2a_hex(reply))
+							# print(binascii.b2a_hex(reply))
 
-							#print(binascii.b2a_hex(manifest))
+							# print(binascii.b2a_hex(manifest))
 
 							client_socket.send(b"\x01" + reply + manifest, False)
 
@@ -460,12 +456,12 @@ class contentserver(TCPNetworkHandler):
 							for filename in filesOld:
 								if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
 									changedFiles.append(filesOld[filename].fileId)
-									log.debug(f"Changed file: {filename} : {filesOld[filename].fileId}" )
-								if not filename in filesNew:
+									log.debug(f"Changed file: {str(filename)} : {str(filesOld[filename].fileId)}" )
+								if filename not in filesNew:
 									changedFiles.append(filesOld[filename].fileId)
 									# if not 0xffffffff in changedFiles:
 									# changedFiles.append(0xffffffff)
-									log.debug(f"Deleted file: {filename} : {filesOld[filename].fileId}" )
+									log.debug(f"Deleted file: {str(filename)} : {str(filesOld[filename].fileId)}" )
 
 							for x in range(len(changedFiles)):
 								log.debug(changedFiles[x], )
@@ -494,7 +490,7 @@ class contentserver(TCPNetworkHandler):
 							fileid, offset, length = struct.unpack(">III", msg)
 							index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"
 							dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"
-							if islan == True:
+							if islan:
 								filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
 							else:
 								filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "external")
@@ -513,26 +509,24 @@ class contentserver(TCPNetworkHandler):
 								break
 							else:
 								log.info(f"Banner message: {binascii.b2a_hex(command)}")
-
-								if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87 :
+								if config["use_webserver"].lower() == "true" and self.config["http_port"] == "steam" or self.config["http_port"] == "0":
 									if islan:
-										url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php").encode("latin-1")
-										#print("INTERNAL BANNER")
+										url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php")
+										# print("INTERNAL BANNER")
 									else:
-										url = ("http://" + self.config["public_ip"] + "/platform/banner/random.php").encode("latin-1")
-										#print("EXTERNAL BANNER")
-									#url = b"about:blank"
+										url = ("http://" + self.config["public_ip"] + "/platform/banner/random.php")
+										# print("EXTERNAL BANNER")
+									# url = "about:blank"
 								else :
-									url = b"about:blank"
+									url = "about:blank"
 
-								reply = struct.pack(">H", len(url)) + url
+								reply = struct.pack(">H", len(url)) + url.encode("latin-1")
 
 								client_socket.send(reply)
 
 						elif command[0:1] == b"\x07":  # SEND DATA
 
-							(storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB",
-																									   command)
+							(storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
 
 							(chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
 
@@ -593,24 +587,23 @@ class contentserver(TCPNetworkHandler):
 						break
 					else:
 						log.info(f"Banner message: {binascii.b2a_hex(command)}")
-
-						if self.config["http_port"] == "steam" or self.config[
-							"http_port"] == "0" or globalvars.steamui_ver < 87:
-							if self.config["public_ip"] != "0.0.0.0":
-								url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+						if config["use_webserver"].lower() == "true":
+							if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87:
+								if self.config["public_ip"] != "0.0.0.0":
+									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+								else:
+									url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
 							else:
-								url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
-						else:
-							if self.config["public_ip"] != "0.0.0.0":
-								url = "http://" + self.config["public_ip"] + ":" + self.config[
-									"http_port"] + "/platform/banner/random.php"
-							else:
-								url = "http://" + self.config["http_ip"] + ":" + self.config[
-									"http_port"] + "/platform/banner/random.php"
+								if self.config["public_ip"] != "0.0.0.0":
+									url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+								else:
+									url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+						else :
+							url = "about:blank"
 
-						reply = struct.pack(">BH", 1, len(url)) + url.encode()
+					reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
 
-						client_socket.send(reply)
+					client_socket.send(reply)
 
 				elif command[0:1] == b"\x02":  # SEND MANIFEST
 
@@ -640,7 +633,7 @@ class contentserver(TCPNetworkHandler):
 						IV = postticketdata[0:16]
 						# print(len(IV))
 						# print(len(postticketdata))
-						ptext = utilities.encryption.aes_decrypt(key, IV, postticketdata[4:])
+						ptext = encryption.aes_decrypt(key, IV, postticketdata[4:])
 						log.info(f"{clientid}Opening application {app}, {version}")
 						# connid = pow(2,31) + connid
 
@@ -654,16 +647,14 @@ class contentserver(TCPNetworkHandler):
 
 							break
 						storageid = storagesopen
-						storagesopen = storagesopen + 1
+						storagesopen += 1
 
 						storages[storageid] = s
 						storages[storageid].app = app
 						storages[storageid].version = version
 
 						if str(app) == "3" or str(app) == "7":
-							if not os.path.isfile(
-									"files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-										version) + ".manifest"):
+							if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 								if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
 									log.info("Fixing files in app " + str(app) + " version " + str(version))
 									g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
@@ -699,10 +690,8 @@ class contentserver(TCPNetworkHandler):
 							f = open(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
 							log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 depot")
 						elif os.path.isdir(self.config["v3manifestdir2"]):
-							if os.path.isfile(
-									self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
-								f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest",
-										 "rb")
+							if os.path.isfile(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
+								f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest", "rb")
 								log.info(f"{clientid}{app}_{version} is a v0.3 extra depot" )
 							else:
 								log.error(f"Manifest not found for {app} {version} " )
@@ -746,10 +735,9 @@ class contentserver(TCPNetworkHandler):
 
 						client_socket.send(reply, False)
 					else:
-						a = 1  # DUMMY, TAKE OUT
+						pass
 
-				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[
-					0] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
+				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
 
 					if command[0:1] == b"\x0a":
 						log.info(f"{clientid}Login packet used")
@@ -777,16 +765,14 @@ class contentserver(TCPNetworkHandler):
 						break
 
 					storageid = storagesopen
-					storagesopen = storagesopen + 1
+					storagesopen += 1
 
 					storages[storageid] = s
 					storages[storageid].app = app
 					storages[storageid].version = version
 
 					if str(app) == "3" or str(app) == "7":
-						if not os.path.isfile(
-								"files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-									version) + ".manifest"):
+						if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 							if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
 								log.info("Fixing files in app " + str(app) + " version " + str(version))
 								g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
@@ -812,10 +798,8 @@ class contentserver(TCPNetworkHandler):
 								sleep(1)
 								os.remove("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
 
-					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-							version) + ".manifest"):
-						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-							version) + ".manifest", "rb")
+					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
+						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
 						log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
 					elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
 						f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
@@ -943,7 +927,7 @@ class contentserver(TCPNetworkHandler):
 						if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
 							changedFiles.append(filesOld[filename].fileId)
 							log.debug("Changed file: " + str(filename) + " : " + str(filesOld[filename].fileId))
-						if not filename in filesNew:
+						if filename not in filesNew:
 							changedFiles.append(filesOld[filename].fileId)
 							# if not 0xffffffff in changedFiles:
 							# changedFiles.append(0xffffffff)
@@ -977,20 +961,14 @@ class contentserver(TCPNetworkHandler):
 
 					(storageid, messageid) = struct.unpack(">xLL", command)
 
-					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(
-						storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + ".manifest"):
+					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
+					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + ".manifest"):
+					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
 					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(
-								storages[storageid].version) + ".manifest"):
+						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 							filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
 						else:
 							log.error(b"Manifest not found for %s %s " % (app, version))
@@ -1008,7 +986,7 @@ class contentserver(TCPNetworkHandler):
 
 					# hack to rip out old sig, insert new
 					file = file[0:-128]
-					signature = utilities.encryption.rsa_sign_message(utilities.encryption.network_key, file)
+					signature = encryption.rsa_sign_message(encryption.network_key, file)
 
 					file = file + signature
 
@@ -1074,20 +1052,21 @@ class contentserver(TCPNetworkHandler):
 					elif len(command) > 1:
 						log.info(b"Banner message: " + binascii.b2a_hex(command))
 
-						if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87:
-							if self.config["public_ip"] != "0.0.0.0":
-								url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+						if config["use_webserver"].lower() == "true":
+							if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87:
+								if self.config["public_ip"] != "0.0.0.0":
+									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+								else:
+									url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
 							else:
-								url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
-						else:
-							if self.config["public_ip"] != "0.0.0.0":
-								url = "http://" + self.config["public_ip"] + ":" + self.config[
-									"http_port"] + "/platform/banner/random.php"
-							else:
-								url = "http://" + self.config["http_ip"] + ":" + self.config[
-									"http_port"] + "/platform/banner/random.php"
+								if self.config["public_ip"] != "0.0.0.0":
+									url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+								else:
+									url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+						else :
+							url = "about:blank"
 
-						reply = struct.pack(">BH", 1, len(url)) + url.encode()
+						reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
 
 						client_socket.send(reply)
 					else:
@@ -1110,7 +1089,7 @@ class contentserver(TCPNetworkHandler):
 
 						client_socket.send_withlen(blob, False)
 
-				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
+				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
 
 					if command[0:1] == b"\x0a":
 						log.info(f"{clientid}Login packet used")
@@ -1138,16 +1117,14 @@ class contentserver(TCPNetworkHandler):
 						break
 
 					storageid = storagesopen
-					storagesopen = storagesopen + 1
+					storagesopen += 1
 
 					storages[storageid] = s
 					storages[storageid].app = app
 					storages[storageid].version = version
 
 					if str(app) == "3" or str(app) == "7":
-						if not os.path.isfile(
-								"files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-									version) + ".manifest"):
+						if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 							if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
 								log.info("Fixing files in app " + str(app) + " version " + str(version))
 								g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
@@ -1173,10 +1150,8 @@ class contentserver(TCPNetworkHandler):
 								sleep(1)
 								os.remove("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
 
-					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-							version) + ".manifest"):
-						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(
-							version) + ".manifest", "rb")
+					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
+						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
 						log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
 					elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
 						f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
@@ -1205,8 +1180,7 @@ class contentserver(TCPNetworkHandler):
 					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
 					log.debug(clientid + ("Manifest ID: %s Version: %s" % (manifest_appid, manifest_verid)))
 					if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-						log.error("Manifest doesn't match requested file: (%s, %s) (%s, %s)" % (
-							app, version, manifest_appid, manifest_verid))
+						log.error("Manifest doesn't match requested file: (%s, %s) (%s, %s)" % (app, version, manifest_appid, manifest_verid))
 
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
@@ -1339,20 +1313,14 @@ class contentserver(TCPNetworkHandler):
 
 					(storageid, messageid) = struct.unpack(">xLL", command)
 
-					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(
-						storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + ".manifest"):
+					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
+					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(
-							storages[storageid].version) + ".manifest"):
+					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
 					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(
-								storages[storageid].version) + ".manifest"):
+						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 							filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
 						else:
 							log.error("Manifest not found for %s %s " % (app, version))
@@ -1370,7 +1338,7 @@ class contentserver(TCPNetworkHandler):
 
 					# hack to rip out old sig, insert new
 					file = file[0:-128]
-					signature = utilities.encryption.rsa_sign_message(utilities.encryption.network_key, file)
+					signature = encryption.rsa_sign_message(encryption.network_key, file)
 
 					file = file + signature
 
@@ -1428,8 +1396,7 @@ class contentserver(TCPNetworkHandler):
 	def parse_manifest_files(self, contentserver_info):
 
 		# Define the locations to search for '.manifest' files
-		locations = ['files/cache/', self.config["v2manifestdir"], self.config["manifestdir"],
-					 self.config["v3manifestdir2"]]
+		locations = ['files/cache/', self.config["v2manifestdir"], self.config["manifestdir"], self.config["v3manifestdir2"], self.config["betamanifestdir"]]
 		app_buffer = ""
 		for location in locations:
 			for file_name in os.listdir(location):

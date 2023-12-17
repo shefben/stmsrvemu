@@ -100,7 +100,7 @@ class CSERServer(UDPNetworkHandler) :
                     vals.append(ip_str)
 
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = "stats/downloadstats/{}.{}.downloadstats.txt".format(address, timestamp)
+        filename = "clientstats/downloadstats/{}.{}.downloadstats.txt".format(address, timestamp)
         with open(filename, 'w') as file:
             for key, val in zip(keys, vals):
                 file.write(f'{key}: {val}\n')
@@ -162,7 +162,7 @@ class CSERServer(UDPNetworkHandler) :
                 txt_gamestats = (f'Protocol 2\nApplication ID: {appid}\nReport Size: {uploadsize}\n')
 
             timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            filename = "stats/gamestats/{}.{}.gamestats.txt".format(address, timestamp)
+            filename = "clientstats/gamestats/{}.{}.gamestats.txt".format(address, timestamp)
             with open(filename, "w") as file :
                 file.write(txt_gamestats)
 
@@ -647,7 +647,7 @@ class CSERServer(UDPNetworkHandler) :
 
             ip_address = address[0]
             timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            filename = "stats/surveys/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
+            filename = "clientstats/surveys/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
 
             with open(filename, 'w') as file:
                 for key, value in result.items():

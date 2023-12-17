@@ -1,4 +1,4 @@
-from sqlalchemy import BLOB, Column, Integer, String, Date, Time, Text, ForeignKey, DECIMAL
+from sqlalchemy import BLOB, Column, Integer, String, Date, Time, Text, ForeignKey, DECIMAL, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base( )
 
@@ -57,7 +57,7 @@ class BaseDatabaseDriver :
 	class Beta1_Subscriptions(Base):
 		__tablename__ = 'beta1_subscriptions'
 		username = Column(BLOB, primary_key=True)
-		subid = Column(Integer)
+		subid = Column(Integer, primary_key=True)
 		subtime = Column(Integer)
 
 	# Log related table

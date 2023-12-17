@@ -60,8 +60,14 @@ class configserver(TCPNetworkHandler):
                 elif command == b"\x04" :  # send net key
                     log.info(clientid + "sending network key")
                     # This is cheating. I've just cut'n'pasted the hex from the network_key. FIXME
-                    client_socket.send(encryption.signed_mainkey_reply)
+                    #client_socket.send(encryption.signed_mainkey_reply)
+                    BERstring = binascii.a2b_hex("30819d300d06092a864886f70d010101050003818b0030818702818100") + binascii.a2b_hex(self.config["net_key_n"][2:]) + b"\x02\x01\x11"
 
+                    signature = encryption.rsa_sign_message_1024(encryption.main_key, BERstring)
+
+                    reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
+
+                    client_socket.send(reply)
                 elif command == b"\x05":
                     log.info(clientid + "confserver command 5, GetCurrentAuthFailSafeMode, sending zero reply")
                     client_socket.send(b"\x00")

@@ -547,13 +547,8 @@ def finalinitialize(log):
 		if not os.path.isdir("client/wan"):
 			os.mkdir("client/wan")
 
-		if globalvars.record_ver == 0:
-			# 2002 Beta 1
-			file = neuter.neuter_beta1(file, b"SteamNew.exe")
-			file2 = neuter.neuter_beta1(file2, b"SteamNewLAN.exe")
-		else:
-			file = neuter.neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
-			file2 = neuter.neuter_file(file2, config["server_ip"], config["dir_server_port"], b"SteamNewLAN.exe", True)
+		file = neuter.neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
+		file2 = neuter.neuter_file(file2, config["server_ip"], config["dir_server_port"], b"SteamNewLAN.exe", True)
 
 		f = open("client/wan/Steam.exe", "wb")
 		g = open("client/lan/Steam.exe", "wb")
@@ -564,11 +559,8 @@ def finalinitialize(log):
 		f.close( )
 		g.close( )
 	else:
-		if globalvars.record_ver == 0:
-			# 2002 Beta 1
-			file = neuter.neuter_beta1(file, b"SteamNew.exe")
-		else:
-			file = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"SteamNew.exe", True)
+
+		file = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"SteamNew.exe", True)
 		# file2 = neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
 
 		f = open("client/Steam.exe", "wb")
