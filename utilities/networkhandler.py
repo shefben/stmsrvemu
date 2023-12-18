@@ -121,21 +121,12 @@ class TCPUDPNetworkHandler(TCPNetworkHandler, UDPNetworkHandler):
 
 """ # Example handle_client function; for accepting/handling both UDP and TCP Connections
     def handle_client(self):
-        try:
-            while True:
-                if isinstance(self.socket, emu_socket.ImpSocket):  # Check if it's TCP
-                    (client_socket, self.address) = self.socket.accept()
-                    print("Received a TCP connection from", self.address)
-                    # Handle TCP connection
-                    # Add your TCP handling code here
-                elif isinstance(self.socket, emu_socket.ImpUDPSocket):  # Check if it's UDP
-                    data, self.address = self.socket.recvfrom(2048)
-                    print("Received a UDP message from", self.address)
-                    # Handle UDP connection
-                    # Add your UDP handling code here
-                else:
-                    # Unknown socket type
-                    print("Received an unknown socket type from", self.address)
-        except KeyboardInterrupt:
+          if self.socket.socket_type == 'tcp':
+            # Handle TCP client
             pass
+        elif self.socket.socket_type == 'udp':
+            # Handle UDP client
+            pass
+        else:
+            raise NotImplementedError("Unknown socket type")
 """

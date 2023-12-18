@@ -50,22 +50,22 @@ def neuter_file(file, server_ip, server_port, filename, islan):
 		file = replace_ips_in_file(file, filename, globalvars.loopback_ips, server_ip)
 
 	if config["public_ip"] != "0.0.0.0" and filename != b"SteamNewLAN.exe" :
-		fullstring = globalvars.replace_string(False)
+		fullstring1 = globalvars.replace_string(False)
 	else :
-		fullstring = globalvars.replace_string(True)
+		fullstring1 = globalvars.replace_string(True)
 
-	file = config_replace_in_file(file, filename, fullstring, 1)
+	file = config_replace_in_file(file, filename, fullstring1, 1)
 
 	if config["http_port"] != "steam" :
 		if config["public_ip"] != "0.0.0.0" and filename != b"SteamNewLAN.exe" :
-			fullstring1 = globalvars.replace_string_name_space(False)
-			fullstring2 = globalvars.replace_string_name(False)
+			fullstring2 = globalvars.replace_string_name_space(False)
+			fullstring3 = globalvars.replace_string_name(False)
 		else :
-			fullstring1 = globalvars.replace_string_name_space(True)
-			fullstring2 = globalvars.replace_string_name(True)
+			fullstring2 = globalvars.replace_string_name_space(True)
+			fullstring3 = globalvars.replace_string_name(True)
 
-		file = config_replace_in_file(file, filename, fullstring1, 2)
-		file = config_replace_in_file(file, filename, fullstring2, 3)
+		file = config_replace_in_file(file, filename, fullstring2, 2)
+		file = config_replace_in_file(file, filename, fullstring3, 3)
 	return file
 
 
@@ -202,62 +202,6 @@ def neuter(pkg_in, pkg_out, server_ip, server_port, islan):
 	f = open(pkg_out, "wb")
 	f.write(pkg.pack())
 	f.close()
-
-def neuter_beta1(file, save_path):
-	# Byte string to search for
-	original_berstring = bytes([
-		0x30, 0x81, 0x9D, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7,
-		0x0D, 0x01, 0x01, 0x01, 0x05, 0x00, 0x03, 0x81, 0x8B, 0x00, 0x30, 0x81,
-		0x87, 0x02, 0x81, 0x81, 0x00, 0xDA, 0xDE, 0x57, 0xFE, 0x10, 0x99, 0xF9,
-		0x4B, 0x81, 0xB9, 0x0D, 0x00, 0x82, 0x50, 0x5B, 0xE3, 0x74, 0xCA, 0x97,
-		0x28, 0xAB, 0x9A, 0x88, 0x5B, 0x3B, 0x0E, 0x8E, 0x02, 0x5E, 0x43, 0xE5,
-		0xCC, 0xD8, 0x1B, 0x00, 0xCD, 0xBD, 0x05, 0xE2, 0x2A, 0xC2, 0x5C, 0x53,
-		0x18, 0xBF, 0x84, 0xC3, 0x40, 0x21, 0x42, 0xA5, 0xC3, 0x8A, 0xC3, 0xF4,
-		0x27, 0x1B, 0xAB, 0xC3, 0xE5, 0xC0, 0x60, 0x18, 0xED, 0x26, 0x57, 0xF4,
-		0x68, 0xC5, 0xDA, 0x55, 0xAA, 0x7E, 0x3B, 0x3B, 0x1A, 0xB2, 0x72, 0x06,
-		0x17, 0x4A, 0x85, 0x6E, 0xE2, 0xB6, 0x73, 0x91, 0x9D, 0xEB, 0x47, 0xBD,
-		0x49, 0x1D, 0x10, 0x21, 0x3E, 0x90, 0xDB, 0xD5, 0x6E, 0x25, 0x2C, 0xC6,
-		0xC9, 0xE9, 0x18, 0x8D, 0x0B, 0xC5, 0x71, 0x9B, 0x57, 0xED, 0x57, 0x02,
-		0xC6, 0x45, 0x5F, 0x27, 0x31, 0x6A, 0xA0, 0xAA, 0x03, 0x78, 0x2F, 0x06,
-		0xDF, 0x02, 0x01, 0x11
-	])
-	original_ascii_key = b"130819d300d06092a864886f70d010101050003818b0030818702818100bc265d3402562c8afb78904e7ec84ee5b6662a09216b6b50da4205094c54f8b09d211bdeb8219ca4df67e39d2349bcbe9cb3b0d1e18b23cf33b5b51cabbeaa529a27e2b3928bdbe1c5c5a7de6bee7e87aecfa26f82286cad35df7ee53fe12adb2d1e81e98ca5faa6db509de8c4f482fa3c4fcf875ce21d443ed635bbdcb425db02011"
-
-	new_ascii_key = b"30819d300d06092a864886f70d010101050003818b0030818702818100bf973e24beb372c12bea4494450afaee290987fedae8580057e4f15b93b46185b8daf2d952e24d6f9a23805819578693a846e0b8fcc43c23e1f2bf49e843aff4b8e9af6c5e2e7b9df44e29e3c1c93f166e25e42b8f9109be8ad03438845a3c1925504ecc090aabd49a0fc6783746ff4e9e090aa96f1c8009baf9162b66716059020111"
-
-	original_ip = b"63.251.171.132"
-
-	# griddev.valvesoftware.com, has null bytes between each character
-	griddev_original = b"\x67\x00\x72\x00\x69\x00\x64\x00\x64\x00\x65\x00\x76\x00\x2E\x00\x76\x00\x61\x00\x6C\x00\x76\x00\x65\x00\x73\x00\x6F\x00\x66\x00\x74\x00\x77\x00\x61\x00\x72\x00\x65\x00\x2E\x00\x63\x00\x6F\x00\x6D"
-
-	if (globalvars.public_ip != "0.0.0.0"):
-		serverip = config['public_ip']
-	else:
-		serverip = config['server_ip']
-
-	if len(serverip) > 15:
-		log.error(f'Server_IP Larger than 15 bytes!!! ip: {serverip}  length: {len(serverip)}')
-		os._exit()
-
-	new_ip = serverip.encode('latin-1') + b"\x00"
-	try:
-		# Read the file
-		file_data = file
-		BERstring = encryption.network_key.public_key( ).export_key("DER")
-		# Replace the byte string
-		file_data = file_data.replace(original_berstring, BERstring, 1)
-		file_data = file_data.replace(original_ascii_key, new_ascii_key, 1)
-		file_data = file_data.replace(original_ip, new_ip, 1)
-		# Write the modified content back to the file
-		#with open(save_path, 'wb') as file:
-		#    file.write(file_data)
-		print(f"File '{save_path}' has been updated.")
-	except FileNotFoundError:
-		print(f"File '{save_path}' not found.")
-	except Exception as e:
-		print(f"An error occurred: {e}")
-	return file_data
-
 
 def recursive_pkg(dir_in):
 	files = os.listdir(dir_in)

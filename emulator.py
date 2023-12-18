@@ -16,6 +16,7 @@ from servers.authserver import authserver
 from servers.beta_authserver import Beta1_AuthServer
 from servers.beta_contentserver import Beta1_ContentServer
 from servers.clientupdateserver import clientupdateserver
+from servers.cmserver import cmserver, cmserver2
 from servers.configserver import configserver
 from servers.contentlistserver import contentlistserver
 from servers.contentserver import contentserver
@@ -141,10 +142,11 @@ log.info(f"Valve Time Tracking Server listening on port {str(config['vtt_server_
 vttserver(config["vtt_server_port2"], config).start()
 log.info(f"Valve CyberCafe server listening on port {str(config['vtt_server_port2'])}")
 
-if config["enable_steam3_servers"] == "1":
-	# cmserver2(int(config["cm_server_port2"]), friends, config).start()
+if config["enable_steam3_servers"].lower() == "true":
+	cmserver(27014, config).start()
+	cmserver2(27017, config).start()
 	globalvars.tracker = 0
-	log.info(f"Steam3 Connection Manager Server listening on port {config['cm_server_port2']}")
+	log.info(f"Steam3 Connection Manager Server's 1 and 2 listening on port 27014 and 27017 TCP and UDP")
 else:
 	if globalvars.record_ver == 1:
 		globalvars.tracker = 1

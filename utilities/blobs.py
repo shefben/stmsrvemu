@@ -145,13 +145,11 @@ def blob_dump(blob, spacer=""):
 
 def blob_replace(blob_dict, replacement_dict) :
     for (search, replace, info) in replacement_dict :
-        fulllength = len(search)
-        newlength = len(replace)
-        missinglength = fulllength - newlength
+        missinglength = len(search) - len(replace)
         if missinglength < 0 :
             print("WARNING: Replacement text " + replace.decode( ) + " is too long! Not replaced!")
         else :
-            blob_dict = blob_dict.replace(search, replace)
+            blob_dict = blob_dict.replace(search.decode('latin-1'), replace.decode('latin-1'))
             print("Replaced " + info.decode( ) + " " + search.decode( ) + " with " + replace.decode( ))
     return blob_dict
 
