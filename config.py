@@ -22,7 +22,7 @@ def read_config():
                   'enable_blacklist': "False", 'smtp_server': "", 'smtp_port': "", 'stmp_username': "",
                   'stmp_password': "", 'validation_port': "27040", 'database': "stmserver.db", 'database_type': "sqlite", 'database_username': "root",
                   'database_password': "", 'database_database': "stmserver", 'database_host': "localhost",
-                  'contentdir_server_port': "27030", 'auto_public_ip': "0",
+                  'contentdir_server_port': "27030",
                   'database_port': "3306", 'cellid': "2", 'masterdir_ipport': "", 'cs_region': "US", 'show_convert_bar': "True",
                   'main_key_n': "0x86724794f8a0fcb0c129b979e7af2e1e309303a7042503d835708873b1df8a9e307c228b9c0862f8f5dbe6f81579233db8a4fe6ba14551679ad72c01973b5ee4ecf8ca2c21524b125bb06cfa0047e2d202c2a70b7f71ad7d1c3665e557a7387bbc43fe52244e58d91a14c660a84b6ae6fdc857b3f595376a8e484cb6b90cc992f5c57cccb1a1197ee90814186b046968f872b84297dad46ed4119ae0f402803108ad95777615c827de8372487a22902cb288bcbad7bc4a842e03a33bd26e052386cbc088c3932bdd1ec4fee1f734fe5eeec55d51c91e1d9e5eae46cf7aac15b2654af8e6c9443b41e92568cce79c08ab6fa61601e4eed791f0436fdc296bb373",
                   'main_key_e': "0x07e89acc87188755b1027452770a4e01c69f3c733c7aa5df8aac44430a768faef3cb11174569e7b44ab2951da6e90212b0822d1563d6e6abbdd06c0017f46efe684adeb74d4113798cec42a54b4f85d01e47af79259d4670c56c9c950527f443838b876e3e5ef62ae36aa241ebc83376ffde9bbf4aae6cabea407cfbb08848179e466bcb046b0a857d821c5888fcd95b2aae1b92aa64f3a6037295144aa45d0dbebce075023523bce4243ae194258026fc879656560c109ea9547a002db38b89caac90d75758e74c5616ed9816f3ed130ff6926a1597380b6fc98b5eeefc5104502d9bee9da296ca26b32d9094452ab1eb9cf970acabeecde6b1ffae57b56401",
