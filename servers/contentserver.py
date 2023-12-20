@@ -110,7 +110,7 @@ class contentserver(TCPNetworkHandler):
 				# ptext = encryption.decrypt_message(bio.read()[:-20], key)
 				log.info(f"{clientid}Opening application {app} {version}" )
 				try:
-					s = utilities.storages.Storage(app, self.config["storagedir"], version)
+					s = utilities.storages.Storage(app, self.config["betastoragedir"], version)
 				except Exception:
 					log.error("Application not installed! %d %d" % (app, version))
 
@@ -126,8 +126,8 @@ class contentserver(TCPNetworkHandler):
 				storages[storageid].app = app
 				storages[storageid].version = version
 
-				if os.path.isfile(self.config["betamanifestdir/beta1"] + str(app) + "_" + str(version) + ".manifest"):
-					f = open(self.config["betamanifestdir/beta1"] + str(app) + "_" + str(version) + ".manifest", "rb")
+				if os.path.isfile(self.config["betamanifestdir"]  + str(app) + "_" + str(version) + ".manifest"): #+ "/beta1/"
+					f = open(self.config["betamanifestdir"]  + str(app) + "_" + str(version) + ".manifest", "rb") #+ "/beta1/"
 					log.info(f"{clientid}{app}_{version} is a beta depot" )
 				else:
 					log.error(f"Manifest not found for {app} {version} " )
@@ -166,8 +166,8 @@ class contentserver(TCPNetworkHandler):
 
 				client_socket.send(reply, False)
 
-				index_file = self.config["betastoragedir/beta1"] + str(app) + "_" + str(version) + ".index"
-				dat_file = self.config["betastoragedir/beta1"] + str(app) + "_" + str(version) + ".dat"
+				index_file = self.config["betastoragedir"]  + str(app) + "_" + str(version) + ".index" #+ "/beta1/"
+				dat_file = self.config["betastoragedir"]  + str(app) + "_" + str(version) + ".dat" #+ "/beta1/"
 				# Load the index
 				with open(index_file, 'rb') as f:
 					index_data = pickle.load(f)
@@ -200,8 +200,8 @@ class contentserver(TCPNetworkHandler):
 					elif command[0:1] == b"\x05":  # SEND DATA
 						msg = client_socket.recv(12)
 						fileid, offset, length = struct.unpack(">III", msg)
-						index_file = self.config["betastoragedir/beta1"] + str(app) + "_" + str(version) + ".index"
-						dat_file = self.config["betastoragedir/beta1"] + str(app) + "_" + str(version) + ".dat"
+						index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index" #+ "/beta1/"
+						dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat" #+ "/beta1/"
 						if islan:
 							filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
 						else:

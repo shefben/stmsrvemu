@@ -36,7 +36,7 @@ blob = {
                     b"\x01\x00\x00\x00" : b"\x00\x00\x00\x00",
 
                     # Name (string)
-                    b"\x02\x00\x00\x00" : b"Steam HL\x00",
+                    b"\x02\x00\x00\x00" : b"Half-Life\x00",
 
                     # CurVersionId (size 4)
                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -51,7 +51,7 @@ blob = {
                     b"\x06\x00\x00\x00": b'\x80\x00\x00\x00',
 
                     # MaxCacheFileSizeMB
-                    b"\x07\x00\x00\x00": b'\xac\x01\x00\x00',
+                    b"\x07\x00\x00\x00": b'\xa0\x01\x00\x00',
 
                     # AppLaunchOptionsRecord (subblob)
                     b"\x08\x00\x00\x00" :
@@ -59,10 +59,10 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"half-life.\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam HL\x00",
 
                                     # CommandLine (string)
-                                    b"\x02\x00\x00\x00" : b"hl.exe\x00",
+                                    b"\x02\x00\x00\x00" : b"hl.exe -steam\x00",
 
                                     # AppIconIdx (size 4)
                                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -98,7 +98,7 @@ blob = {
                     b"\x01\x00\x00\x00" : b"\x01\x00\x00\x00",
 
                     # Name (string)
-                    b"\x02\x00\x00\x00" : b"Steam CS\x00",
+                    b"\x02\x00\x00\x00" : b"Counter-Strike\x00",
 
                     # CurVersionId (size 4)
                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -107,7 +107,7 @@ blob = {
                     b"\x04\x00\x00\x00" : b"1.5.0.0\x00",
 
                     # InstallDirName (string)
-                    b"\x05\x00\x00\x00" : b"Half-life\x00",
+                    b"\x05\x00\x00\x00" : b"Counter-Strike\x00",
 
                     # MinCacheFileSizeMB (size 4)
                     b"\x06\x00\x00\x00": b'\x80\x00\x00\x00',
@@ -121,10 +121,10 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"Counter-Strike\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam CS\x00",
 
                                     # CommandLine (string)
-                                    b"\x02\x00\x00\x00" : b"cstrike.exe\x00",
+                                    b"\x02\x00\x00\x00" : b"hl.exe -steam -game cstrike\x00",
 
                                     # AppIconIdx (size 4)
                                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -160,7 +160,7 @@ blob = {
                     b"\x01\x00\x00\x00" : b"\x02\x00\x00\x00",
 
                     # Name (string)
-                    b"\x02\x00\x00\x00" : b"Steam TFC\x00",
+                    b"\x02\x00\x00\x00" : b"TeamFortress Classic\x00",
 
                     # CurVersionId (size 4)
                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -169,7 +169,7 @@ blob = {
                     b"\x04\x00\x00\x00" : b"1.5.0.0\x00",
 
                     # InstallDirName (string)
-                    b"\x05\x00\x00\x00" : b"Half-life\x00",
+                    b"\x05\x00\x00\x00" : b"TeamFortress Classic\x00",
 
                     # MinCacheFileSizeMB (size 4)
                     b"\x06\x00\x00\x00": b'\x80\x00\x00\x00',
@@ -183,10 +183,10 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"TeamFortress Classic\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam TFC\x00",
 
                                     # CommandLine (string)
-                                    b"\x02\x00\x00\x00" : b"tfc.exe\x00",
+                                    b"\x02\x00\x00\x00" : b"hl.exe -steam -game tfc\x00",
 
                                     # AppIconIdx (size 4)
                                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -222,7 +222,7 @@ blob = {
                     b"\x01\x00\x00\x00" : b"\x03\x00\x00\x00",
 
                     # Name (string)
-                    b"\x02\x00\x00\x00" : b"Steam DMC\x00",
+                    b"\x02\x00\x00\x00" : b"Deathmatch Classic\x00",
 
                     # CurVersionId (size 4)
                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -231,7 +231,7 @@ blob = {
                     b"\x04\x00\x00\x00" : b"1.0.0.0\x00",
 
                     # InstallDirName (string)
-                    b"\x05\x00\x00\x00" : b"Half-life\x00",
+                    b"\x05\x00\x00\x00" : b"Deathmatch Classic\x00",
 
                     # MinCacheFileSizeMB (size 4)
                     b"\x06\x00\x00\x00": b'\x80\x00\x00\x00',
@@ -245,10 +245,10 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"Deathmatch Classic\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam DMC\x00",
 
                                     # CommandLine (string)
-                                    b"\x02\x00\x00\x00" : b"dmc.exe\x00",
+                                    b"\x02\x00\x00\x00" : b"hl.exe -steam -game dmc\x00",
 
                                     # AppIconIdx (size 4)
                                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -284,7 +284,7 @@ blob = {
                     b"\x01\x00\x00\x00" : b"\x04\x00\x00\x00",
 
                     # Name (string)
-                    b"\x02\x00\x00\x00" : b"Steam DOD\x00",
+                    b"\x02\x00\x00\x00" : b"Day Of Defeat\x00",
 
                     # CurVersionId (size 4)
                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -293,7 +293,7 @@ blob = {
                     b"\x04\x00\x00\x00" : b"1.0.0.0\x00",
 
                     # InstallDirName (string)
-                    b"\x05\x00\x00\x00" : b"Half-life\x00",
+                    b"\x05\x00\x00\x00" : b"Day of Defeat\x00",
 
                     # MinCacheFileSizeMB (size 4)
                     b"\x06\x00\x00\x00": b'\x80\x00\x00\x00',
@@ -307,10 +307,10 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"Day Of Defeat\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam DOD\x00",
 
                                     # CommandLine (string)
-                                    b"\x02\x00\x00\x00" : b"dod.exe\x00",
+                                    b"\x02\x00\x00\x00" : b"hl.exe -steam -game dod\x00",
 
                                     # AppIconIdx (size 4)
                                     b"\x03\x00\x00\x00" : b"\x00\x00\x00\x00",
@@ -371,7 +371,7 @@ blob = {
                             b"\x00\x00\x00\x00" :
                                 {
                                     # Description (string)
-                                    b"\x01\x00\x00\x00" : b"Tracker\x00",
+                                    b"\x01\x00\x00\x00" : b"Steam Tracker\x00",
 
                                     # CommandLine (string)
                                     b"\x02\x00\x00\x00" : b"tracker.exe\x00",
@@ -407,11 +407,79 @@ blob = {
     # AllSubscriptionsRecord
     b"\x02\x00\x00\x00" :
         {
-		#Counter-strike
+		# Valve Premier Pack
 		b"\x00\x00\x00\x00" :
 			{
 				# SubscriptionId (size 4)
 				b"\x01\x00\x00\x00" : b"\x00\x00\x00\x00",
+
+				# Name (string)
+				b"\x02\x00\x00\x00" : b"Valve Premier\x00",
+
+				# SubscriptionDuration (size 8)
+				b"\x03\x00\x00\x00" : b'\x00\x80\x8eC3\x02\x00\x00',
+
+				# need to be this or the sub won't show up
+
+				# CostInCents (size 4)
+				b"\x04\x00\x00\x00" : b"\x00\x00\x00\x00",
+
+				# IsAutoRenewing (size 1)
+				b"\x05\x00\x00\x00" : b"\x01",  # need to be this or the sub won't show up
+
+				# SubscriptionAppIdsRecord (subblob)
+				b"\x06\x00\x00\x00" :
+					{
+						b"\x00\x00\x00\x00" : b"",
+						b"\x01\x00\x00\x00" : b"",
+						b"\x02\x00\x00\x00" : b"",
+						b"\x03\x00\x00\x00" : b"",
+						b"\x04\x00\x00\x00" : b"",
+						b"\x08\x00\x00\x00" : b"",
+					},
+
+				# OnSubscribeRunAppId (size 4)
+				b"\x07\x00\x00\x00" : b"\xff\xff\xff\xff",
+
+				# OnSubscribeRunLaunchOptionIdx (size 4)
+				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
+			},
+		# Half-life
+		b"\x01\x00\x00\x00" :
+			{
+				# SubscriptionId (size 4)
+				b"\x01\x00\x00\x00" : b"\x01\x00\x00\x00",
+
+				# Name (string)
+				b"\x02\x00\x00\x00" : b"Half-Life Only\x00",
+
+				# SubscriptionDuration (size 8)
+				b"\x03\x00\x00\x00": b'\x00\x80\x8eC3\x02\x00\x00',
+
+				# CostInCents (size 4)
+				b"\x04\x00\x00\x00" : b"\x00\x00\x00\x00" ,
+
+				# IsAutoRenewing (size 1)
+				b"\x05\x00\x00\x00" : b"\x01",
+
+				# SubscriptionAppIdsRecord (subblob)
+				b"\x06\x00\x00\x00" :
+					{
+						b"\x00\x00\x00\x00" : b"",
+						#b"\x05\x00\x00\x00" : b"",
+					},
+
+				# OnSubscribeRunAppId (size 4)
+				b"\x07\x00\x00\x00" : b"\xff\xff\xff\xff",
+
+				# OnSubscribeRunLaunchOptionIdx (size 4)
+				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
+			},
+		#Counter-strike
+		b"\x02\x00\x00\x00" :
+			{
+				# SubscriptionId (size 4)
+				b"\x01\x00\x00\x00" : b"\x02\x00\x00\x00",
 
 				# Name (string)
 				b"\x02\x00\x00\x00" : b"Counter-Strike Only\x00",
@@ -440,11 +508,45 @@ blob = {
 				# OnSubscribeRunLaunchOptionIdx (size 4)
 				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
 			},
-		# Deathmatch Classic
-		b"\x01\x00\x00\x00" :
+		# Team Fortress Classic
+		b"\x03\x00\x00\x00" :
 			{
 				# SubscriptionId (size 4)
-				b"\x01\x00\x00\x00" : b"\x01\x00\x00\x00",
+				b"\x01\x00\x00\x00" : b"\x03\x00\x00\x00",
+
+				# Name (string)
+				b"\x02\x00\x00\x00" : b"TeamFortress Classic Only\x00",
+
+				# SubscriptionDuration (size 8)
+				b"\x03\x00\x00\x00": b'\x00\x80\x8eC3\x02\x00\x00',
+				# need to be this or the sub won't show up
+
+				# CostInCents (size 4)
+				b"\x04\x00\x00\x00" : b"\x00\x00\x00\x00",
+
+				# IsAutoRenewing (size 1)
+				b"\x05\x00\x00\x00" : b"\x01",  # need to be this or the sub won't show up
+
+				# SubscriptionAppIdsRecord (subblob)
+				b"\x06\x00\x00\x00" :
+					{
+						#b"\x00\x00\x00\x00" : b"",
+						b"\x02\x00\x00\x00" : b"",
+						#b"\x05\x00\x00\x00" : b"",
+					},
+
+				# OnSubscribeRunAppId (size 4)
+				b"\x07\x00\x00\x00" : b"\xff\xff\xff\xff",
+
+				# OnSubscribeRunLaunchOptionIdx (size 4)
+				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
+			},
+		# subid 4 is opposing forces
+		# Deathmatch Classic
+		b"\x05\x00\x00\x00" :
+			{
+				# SubscriptionId (size 4)
+				b"\x01\x00\x00\x00" : b"\x05\x00\x00\x00",
 
 				# Name (string)
 				b"\x02\x00\x00\x00" : b"Deathmatch Classic Only\x00",
@@ -474,10 +576,10 @@ blob = {
 				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
 			},
 		# Day of Defeat
-		b"\x02\x00\x00\x00" :
+		b"\x06\x00\x00\x00" :
 			{
 				# SubscriptionId (size 4)
-				b"\x01\x00\x00\x00" : b"\x02\x00\x00\x00",
+				b"\x01\x00\x00\x00" : b"\x06\x00\x00\x00",
 
 				# Name (string)
 				b"\x02\x00\x00\x00" : b"Day Of Defeat Only\x00",
@@ -506,76 +608,15 @@ blob = {
 				# OnSubscribeRunLaunchOptionIdx (size 4)
 				b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
 			},
-			# Half-life
-			b"\x03\x00\x00\x00" :
-                {
-                    # SubscriptionId (size 4)
-                    b"\x01\x00\x00\x00" : b"\x03\x00\x00\x00",
 
-                    # Name (string)
-                    b"\x02\x00\x00\x00" : b"Half-Life Only\x00",
 
-                    # SubscriptionDuration (size 8)
-                    b"\x03\x00\x00\x00": b'\x00\x80\x8eC3\x02\x00\x00',
-
-                    # CostInCents (size 4)
-                    b"\x04\x00\x00\x00" : b"\x00\x00\x00\x00" ,
-
-                    # IsAutoRenewing (size 1)
-                    b"\x05\x00\x00\x00" : b"\x01",
-
-                    # SubscriptionAppIdsRecord (subblob)
-                    b"\x06\x00\x00\x00" :
-                        {
-                            b"\x00\x00\x00\x00" : b"",
-                            #b"\x05\x00\x00\x00" : b"",
-                        },
-
-                    # OnSubscribeRunAppId (size 4)
-                    b"\x07\x00\x00\x00" : b"\xff\xff\xff\xff",
-
-                    # OnSubscribeRunLaunchOptionIdx (size 4)
-                    b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
-                },
-			# subid 4 is opposing forces
-            # Team Fortress Classic
-            b"\x05\x00\x00\x00" :
-                {
-                    # SubscriptionId (size 4)
-                    b"\x01\x00\x00\x00" : b"\x05\x00\x00\x00",
-
-                    # Name (string)
-                    b"\x02\x00\x00\x00" : b"TeamFortress Classic Only\x00",
-
-                    # SubscriptionDuration (size 8)
-                    b"\x03\x00\x00\x00": b'\x00\x80\x8eC3\x02\x00\x00',
-                    # need to be this or the sub won't show up
-
-                    # CostInCents (size 4)
-                    b"\x04\x00\x00\x00" : b"\x00\x00\x00\x00",
-
-                    # IsAutoRenewing (size 1)
-                    b"\x05\x00\x00\x00" : b"\x01",  # need to be this or the sub won't show up
-
-                    # SubscriptionAppIdsRecord (subblob)
-                    b"\x06\x00\x00\x00" :
-                        {
-                            #b"\x00\x00\x00\x00" : b"",
-                            b"\x02\x00\x00\x00" : b"",
-                            #b"\x05\x00\x00\x00" : b"",
-                        },
-
-                    # OnSubscribeRunAppId (size 4)
-                    b"\x07\x00\x00\x00" : b"\xff\xff\xff\xff",
-
-                    # OnSubscribeRunLaunchOptionIdx (size 4)
-                    b"\x08\x00\x00\x00" : b"\xff\xff\xff\xff",
-                },
+            # subid 7 is ricochete
+            # subid 8 is dedicated server
             # Tracker
-            b"\x06\x00\x00\x00" :
+            b"\x09\x00\x00\x00" :
                 {
                     # SubscriptionId (size 4)
-                    b"\x01\x00\x00\x00" : b"\x06\x00\x00\x00",
+                    b"\x01\x00\x00\x00" : b"\x09\x00\x00\x00",
 
                     # Name (string)
                     b"\x02\x00\x00\x00" : b"Tracker Only\x00",
@@ -615,7 +656,8 @@ blob = {
         {
             b"\x00\x00\x00\x00" :
                 {
-                    b"\x03\x00\x00\x00" : b"",
+                    b"\x01\x00\x00\x00" : b"",
+		    		b"\x00\x00\x00\x00": b"",
                     #b"\x11\x00\x00\x00" : b"",
                     #b"\x12\x00\x00\x00" : b"",
                     #b"\x13\x00\x00\x00" : b"",
@@ -624,30 +666,31 @@ blob = {
             b"\x01\x00\x00\x00" :
                 {
                     #b"\x10\x00\x00\x00" : b"",
-                    b"\x00\x00\x00\x00" : b"",
+                    b"\x02\x00\x00\x00" : b"",
+		    		b"\x00\x00\x00\x00": b"",
                 },
             b"\x02\x00\x00\x00" :
                 {
                     #b"\x10\x00\x00\x00" : b"",
-                    b"\x05\x00\x00\x00" : b"",
+                    b"\x03\x00\x00\x00" : b"",
+		    		b"\x00\x00\x00\x00": b"",
                 },
             b"\x03\x00\x00\x00" :
                 {
                     #b"\x10\x00\x00\x00" : b"",
-                    b"\x01\x00\x00\x00" : b"",
+                    b"\x05\x00\x00\x00" : b"",
+		    		b"\x00\x00\x00\x00": b"",
                 },
             b"\x04\x00\x00\x00" :
                 {
                     #b"\x10\x00\x00\x00" : b"",
-                    b"\x02\x00\x00\x00" : b"",
+                    b"\x06\x00\x00\x00" : b"",
+		    		b"\x00\x00\x00\x00": b"",
                 },
             b"\x08\x00\x00\x00" :
                 {
-                    #b"\x10\x00\x00\x00" : b"",
-                    #b"\x11\x00\x00\x00" : b"",
-                    #b"\x12\x00\x00\x00" : b"",
-                    #b"\x13\x00\x00\x00" : b"",
-                    b"\x06\x00\x00\x00" : b"",
+                    b"\x09\x00\x00\x00" : b"",
+		   			b"\x00\x00\x00\x00": b"",
                 },
         },
 }
@@ -812,11 +855,11 @@ class Beta1_AuthServer(TCPNetworkHandler):
 				client_socket.close()
 				return
 
-			"""if ptext[8:12] != client_internal_ip:
+			if ptext[8:12] != client_internal_ip:
 				log.info(f"{clientid}Internal IP Does not match, Bad Decryption!")
 				client_socket.send(b"\x00")
 				client_socket.close()
-				return"""
+				return
 
 			controlhash = hashlib.sha1(client_external_ip + client_internal_ip).digest()
 			client_time = utils.steamtime_to_unixtime(encryption.binaryxor(ptext[0:8], controlhash[0:8]))
@@ -837,12 +880,12 @@ class Beta1_AuthServer(TCPNetworkHandler):
 			innerkey = bytes.fromhex("10231230211281239191238542314233")
 			times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(currtime + (60*60*24*28))
 			if version == 1:
-				steamid = bytes.fromhex("0000" + "00000000" + userblob[beta1_authdb.k(6)][username1][beta1_authdb.k(1)][0:4].hex())
+				steamid = bytes.fromhex("0000" + "00000000" + userblob[b"\x06\x00\x00\x00"][username1][b"\x01\x00\x00\x00"][0:4].hex())
 
 				if islan == True:
-					bin_ip = utils.encodeIP((self.config["server_ip"], int(self.config["validation_server_port"])))
+					bin_ip = utils.encodeIP((self.config["server_ip"], int(self.config["validation_port"])))
 				else:
-					bin_ip = utils.encodeIP((self.config["public_ip"], int(self.config["validation_server_port"])))
+					bin_ip = utils.encodeIP((self.config["public_ip"], int(self.config["validation_port"])))
 
 				servers = bin_ip + bin_ip  # bytes.fromhex("111213149a69151617189a69")
 				times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(currtime + (60 * 60 * 24 * 28))
@@ -932,7 +975,7 @@ class Beta1_AuthServer(TCPNetworkHandler):
 
 				subid, = struct.unpack("<I", binsubid)
 
-				if binsubid not in self.dict_blob[beta1_authdb.k(2)]:
+				if binsubid not in self.dict_blob[b"\x02\x00\x00\x00"]:
 					log.info(f"{clientid}Tried Adding Subscription Which Does Not Exist: {subid}")
 					client_socket.send(b"\x00")
 					client_socket.close()
@@ -957,7 +1000,7 @@ class Beta1_AuthServer(TCPNetworkHandler):
 
 				subid, = struct.unpack("<I", binsubid)
 
-				if binsubid not in self.dict_blob[beta1_authdb.k(2)]:
+				if binsubid not in self.dict_blob[b"\x02\x00\x00\x00"]:
 					log.info(f"{clientid}Tried UnSubscribing Using a SubID Which Does Not Exist: {subid}")
 					client_socket.send(b"\x00")
 					client_socket.close()
@@ -1002,7 +1045,10 @@ class Beta1_AuthServer(TCPNetworkHandler):
 				ticket_signed = ticket + hmac.digest(client_ticket[0:16], ticket, hashlib.sha1)
 
 				# for feb2002 the ticket size is encoded as u16
-				client_socket.send(b"\x00\x01" + struct.pack(">H", len(ticket_signed)) + ticket_signed)
+				if version == 1:
+					client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
+				else:
+					client_socket.send(b"\x00\x01" + struct.pack(">H", len(ticket_signed)) + ticket_signed)
 
 		# Client Registry Request
 		elif msg[0] == 11:
@@ -1016,7 +1062,14 @@ class Beta1_AuthServer(TCPNetworkHandler):
 		elif msg[0] == 13:
 			log.warning(f"{clientid}Packet ID 13 (0x0d) not supported!")
 			log.info(msg)
-			client_socket.send(b"\x00")
+			#dict = {
+			#	b"\x00\x00\x00\x00": b"google.com\x00"
+			#}
+			#binblob = blobs.blob_serialize(dict)
+
+			#binblob = struct.pack(">I", len("localhost")) + "localhost"
+
+			client_socket.send_withlen(b"google.com nuwon.net microsoft.com")
 		else:
 			log.info(f"{clientid}Unknown Subcommand Received: {msg[0]}")
 			log.debug(f"{clientid}{msg}")

@@ -240,7 +240,7 @@ def formatstring(text):
 
 
 def autoupdate(arguments):
-	if not config["emu_auto_update"] == "no":
+	if not config["emu_auto_update"].lower() == "false":
 		autoupdate(sys.argv[0])
 
 		if arguments.endswith("emulator.exe"):
@@ -503,7 +503,7 @@ def initialize(log):
 			os.mkdir("files/cache")
 			shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
 			print( )
-	if int(config["auto_public_ip"]) == 1:
+	if config["auto_public_ip"] == "true":
 		globalvars.public_ip = get_external_ip( )
 		globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
 	else:

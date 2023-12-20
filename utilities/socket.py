@@ -30,11 +30,11 @@ class ImpSocket(object):
     def __init__(self, sock=None):
         if sock is None or sock == "tcp":
             self.s = real_socket.socket(real_socket.AF_INET, real_socket.SOCK_STREAM)
-
         elif sock == "udp":
             self.s = real_socket.socket(real_socket.AF_INET, real_socket.SOCK_DGRAM)
         else:
             self.s = sock
+        self.socket_type = 'udp' if sock == 'udp' else 'tcp'
         self.start_time = int(time.time())
         self.address = 0
         self.port = 0

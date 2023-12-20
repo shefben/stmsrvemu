@@ -3,6 +3,7 @@ import struct
 import logging
 import logging
 from sqlalchemy import text
+import globalvars
 import logger
 import struct
 
@@ -91,32 +92,32 @@ class beta1_dbdriver(object) :
 		if len(userblob) != numkeys :
 			raise Exception( )
 
-		if userblob[k(0)] != struct.pack("<H", 1) :
+		if userblob[b"\x00\x00\x00\x00"] != struct.pack("<H", 1) :
 			raise Exception( )
 
-		username = userblob[k(1)]
+		username = userblob[b"\x01\x00\x00\x00"]
 		if username[-1] != 0 :
 			raise Exception( )
 
 		username = username[:-1]
 
-		createtime = utils.steamtime_to_unixtime(userblob[k(2)])
+		createtime = utils.steamtime_to_unixtime(userblob[b"\x02\x00\x00\x00"])
 
-		accountkey = userblob[k(3)]
+		accountkey = userblob[b"\x03\x00\x00\x00"]
 		if accountkey[-1] != 0 :
 			raise Exception( )
 
 		accountkey = accountkey[:-1]
 
 
-		pwddetails = userblob[k(5)][username]
+		pwddetails = userblob[b"\x05\x00\x00\x00"][username]
 
 		if len(pwddetails) != 2 :
 			raise Exception( )
 
-		hash = pwddetails[k(1)]
+		hash = pwddetails[b"\x01\x00\x00\x00"]
 
-		salt = pwddetails[k(2)]
+		salt = pwddetails[b"\x02\x00\x00\x00"]
 
 		# First we check if the name already exists
 		if self.get_user(username) is not None :
@@ -142,16 +143,16 @@ class beta1_dbdriver(object) :
 		blob = {}
 
 		# VersionNum
-		blob[k(0)] = struct.pack("<H", 1)
+		blob[b"\x00\x00\x00\x00"] = struct.pack("<H", 1)
 
 		# UniqueAccountName
-		blob[k(1)] = username + b"\x00"
+		blob[b"\x01\x00\x00\x00"] = username + b"\x00"
 
 		# AccountCreationTime
-		blob[k(2)] = utils.unixtime_to_steamtime(createtime)
+		blob[b"\x02\x00\x00\x00"] = utils.unixtime_to_steamtime(createtime)
 
 		# OptionalAccountCreationKey
-		blob[k(3)] = accountkey + b"\x00"
+		blob[b"\x03\x00\x00\x00"] = accountkey + b"\x00"
 
 		# OptionalBillingInfoRecord - not in client blob
 
@@ -161,48 +162,47 @@ class beta1_dbdriver(object) :
 		entry = {}
 
 		# SteamLocalUserID
-		if version == 1:
-			entry[k(1)] = k_v1(userid)
-		else:
-			entry[k(1)] = k(userid)
+		entry[b"\x01\x00\x00\x00"] = k_v1(userid) if version == 1 else k(userid)
 
 		# UserType
-		entry[k(2)] = struct.pack("<H", 1)
+		entry[b"\x02\x00\x00\x00"] = struct.pack("<H", 1)
 
 		# UserAppAccessRightsRecord
-		entry[k(3)] = {}
+		entry[b"\x03\x00\x00\x00"] = {}
 
-		blob[k(6)] = {username : entry}
+		blob[b"\x06\x00\x00\x00"] = {username : entry}
 
 		# AccountSubscriptionsRecord
 		subs = {}
 		for _, subid, subtime in subrows :
 			entry = {}
+			subid_bytes = struct.pack('<I', subid)
 
 			# SubscribedDate
-			entry[k(1)] = utils.unixtime_to_steamtime(subtime)
+			entry[b"\x01\x00\x00\x00"] = utils.unixtime_to_steamtime(subtime)
 
 			# UnsubscribedDate
-			entry[k(2)] = b"\x00" * 8
+			entry[b"\x02\x00\x00\x00"] = b"\x00" * 8
 
-			subs[k(subid)] = entry
+			subs[subid_bytes] = entry
 
-		blob[k(7)] = subs
+		blob[b"\x07\x00\x00\x00"] = subs
 
 		apps = {}
 		for _, subid, subtime in subrows:
-			for key in CDR[k(2)][k(subid)][k(6)] :
+			subid_bytes = struct.pack('<I', subid)
+			for key in CDR[b"\x02\x00\x00\x00"][subid_bytes][b"\x06\x00\x00\x00"] :
 				log.info("Added app %d for sub %d" % (struct.unpack("<I", key)[0], subid))
 				apps[key] = b""
 
 		# DerivedSubscribedAppsRecord
-		blob[k(8)] = apps
+		blob[b"\x08\x00\x00\x00"] = apps
 
 		# LastRecalcDerivedSubscribedAppsTime
-		blob[k(9)] = utils.unixtime_to_steamtime(time.time( ))
+		blob[b"\x09\x00\x00\x00"] = utils.unixtime_to_steamtime(time.time( ))
 
 		# CellId
-		blob[k(10)] = k(0)
+		blob[b"\x0a\x00\x00\x00"] = b"\x00\x00" + struct.pack('<h', int(globalvars.cellid))
 
 		blob[b"__slack__"] = b"\x00" * 256
 		return blob

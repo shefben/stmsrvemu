@@ -9,7 +9,7 @@ import pprint
 import random
 import secrets
 import shutil
-import socket
+import socket as real_socket
 import struct
 import time
 import zlib
@@ -62,9 +62,9 @@ class authserver(TCPNetworkHandler):
 		elif command[1:5] == b"\x00\x00\x00\x03":  # \x03 for 2003 release
 
 			log.debug(f"{clientid}Using 2003 auth protocol")
-			client_socket.send(b"\x00" + socket.inet_aton(client_address[0]))
-			log.debug((str(socket.inet_aton(client_address[0]))))
-			log.debug((str(socket.inet_ntoa(socket.inet_aton(client_address[0])))))
+			client_socket.send(b"\x00" + real_socket.inet_aton(client_address[0]))
+			log.debug((str(real_socket.inet_aton(client_address[0]))))
+			log.debug((str(real_socket.inet_ntoa(real_socket.inet_aton(client_address[0])))))
 
 			command = client_socket.recv_withlen( )
 
@@ -75,7 +75,7 @@ class authserver(TCPNetworkHandler):
 				userblob = {}
 
 				username = command[3:3 + usernamelen]
-				username = username
+				# username = username
 				if os.path.isfile("files/users/" + username.decode( ) + ".py") :
 					with open("files/users/" + username.decode( ) + ".py", 'r') as f :
 						userblobstr = f.read( )
@@ -143,9 +143,7 @@ class authserver(TCPNetworkHandler):
 						blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 						blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 						blob_encrypted_len = 10 + len(blob_encrypted) + 20
-						blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																										   blob_encrypted_len,
-																										   0) + blob_encrypted + blob_signature
+						blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 						currtime = time.time( )
 						outerIV = binascii.a2b_hex("92183129534234231231312123123353")
 						# steamid = binascii.a2b_hex("ffff" + "ffffffff" + "ffffffff")
@@ -153,9 +151,9 @@ class authserver(TCPNetworkHandler):
 						steamid = steamUniverse + userblob[b'\x06\x00\x00\x00'][username][b'\x01\x00\x00\x00']
 
 						if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
-						else:
 							bin_ip = utils.encodeIP((self.config["server_ip"], self.config["validation_port"]))
+						else:
+							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
 
 						# bin_ip = utils.encodeIP(("172.21.0.20", "27039"))
 						servers = bin_ip + bin_ip
@@ -166,11 +164,11 @@ class authserver(TCPNetworkHandler):
 						subhead_encr_len = b"\x00\x40"
 						subheader_encrypted = b"\x00\x01" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted  # TTicket_SubHeader (EncrData)
 						log.debug(f"{clientid}TGT Version: 1")  # v1/v2 Steam
-						clientIP = socket.inet_aton(client_address[0])
+						clientIP = real_socket.inet_aton(client_address[0])
 						publicIP = clientIP[::-1]
 						# subcommand3 = b"\x00\x00\x00\x00"
 						data1_len_str = b"\x00\x80"
-						# empty1 = (b"\x00" * 0x80) #TTicketHeader unknown encrypted
+						# empty1 = (b"\x00" * 0x80)  # TTicketHeader unknown encrypted
 						data1 = username + username + b"\x00\x01" + publicIP + clientIP + servers + key + times
 						data1_len_empty = int(0x80 * 2) - len(binascii.b2a_hex(data1))
 						data1_full = data1 + (b"\x00" * (data1_len_empty // 2))
@@ -376,17 +374,14 @@ class authserver(TCPNetworkHandler):
 				# print(blob)
 				bloblen = len(blob)
 				log.debug("Blob length: {str(bloblen)}")
-				innerkey = binascii.a2b_hex(
-					"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+				innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				# innerIV  = secrets.token_bytes(16) #ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				innerIV = userIV
 				blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																								   blob_encrypted_len,
-																								   0) + blob_encrypted
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
@@ -535,9 +530,7 @@ class authserver(TCPNetworkHandler):
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 					blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 					blob_encrypted_len = 10 + len(blob_encrypted) + 20
-					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																									   blob_encrypted_len,
-																									   0) + blob_encrypted + blob_signature
+					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 					# client_socket.send(b"\x01" + blob_encrypted)
 					client_socket.send(blob_encrypted)
 			elif command[0:1] == b"\x09":  # Ticket Login
@@ -602,9 +595,7 @@ class authserver(TCPNetworkHandler):
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 					blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 					blob_encrypted_len = 10 + len(blob_encrypted) + 20
-					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																									   blob_encrypted_len,
-																									   0) + blob_encrypted + blob_signature
+					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 
 					client_socket.send(blob_encrypted)
 					# print(bloblen)
@@ -668,9 +659,9 @@ class authserver(TCPNetworkHandler):
 				client_ticket += os.urandom(8)  # struct.pack("<II", 1, 2)
 
 				if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-					client_ticket += utils.encodeIP((self.config["public_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
-				else:
 					client_ticket += utils.encodeIP((self.config["server_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
+				else:
+					client_ticket += utils.encodeIP((self.config["public_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
 
 				server_ticket = b"\x55" * 0x80
 
@@ -771,7 +762,7 @@ class authserver(TCPNetworkHandler):
 				self.send_mainkey(client_socket)
 
 				reply = client_socket.recv_withlen( )
-				print(reply)
+				# print(reply)
 				RSAdata = reply[2:130]
 				datalength = struct.unpack(">L", reply[130:134])[0]
 				cryptedblob_signature = reply[134:136]
@@ -878,7 +869,7 @@ class authserver(TCPNetworkHandler):
 
 				key = encryption.get_aes_key(RSAdata, encryption.network_key)
 				log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
-				username_str = b""
+				# username_str = b""
 
 				if repr(encryption.verify_message(key, cryptedblob)) :
 					plaintext_length = struct.unpack("<L", cryptedblob[0 :4])[0]
@@ -911,12 +902,9 @@ class authserver(TCPNetworkHandler):
 					padding_byte = dec_blob[-1]
 					unser_blob = blobs.blob_unserialize(dec_blob[:-padding_byte])
 
-					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][
-						b'\x04\x00\x00\x00']:
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[
-							b'\x03\x00\x00\x00']
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[
-							b'\x02\x00\x00\x00']
+					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
+						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
+						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
 						if (os.path.isfile("files/users/" + username_str.decode( ) + ".py")) :
 							with open("files/users/" + username_str.decode( ) + ".py", 'w') as userblobfile :
 								userblobfile.write("user_registry = ")
@@ -1009,8 +997,7 @@ class authserver(TCPNetworkHandler):
 							for sub in userblob[b'\x0f\x00\x00\x00']:
 								for prodcdkey in userblob[b'\x0f\x00\x00\x00'][sub][b'\x01\x00\x00\x00']:
 									if prodcdkey == b"\x06":
-										key = userblob[b'\x0f\x00\x00\x00'][sub][b'\x02\x00\x00\x00'][
-												  b'\x02\x00\x00\x00'][:-1]
+										key = userblob[b'\x0f\x00\x00\x00'][sub][b'\x02\x00\x00\x00'][b'\x02\x00\x00\x00'][:-1]
 										if key == key_str:
 											key_found = True
 											break
@@ -1039,9 +1026,9 @@ class authserver(TCPNetworkHandler):
 		elif command[1:5] == b"\x00\x00\x00\x04": # and globalvars.steamui_ver < 336:  # or command[1:5] == b"\x00\x00\x00\x02" : #\x04 for 2004-2007
 
 			log.debug(f"{clientid}Using 2004 auth protocol")
-			client_socket.send(b"\x00" + socket.inet_aton(client_address[0]))
-			log.debug((str(socket.inet_aton(client_address[0]))))
-			log.debug((str(socket.inet_ntoa(socket.inet_aton(client_address[0])))))
+			client_socket.send(b"\x00" + real_socket.inet_aton(client_address[0]))
+			log.debug((str(real_socket.inet_aton(client_address[0]))))
+			log.debug((str(real_socket.inet_ntoa(real_socket.inet_aton(client_address[0])))))
 
 			command = client_socket.recv_withlen( )
 
@@ -1124,9 +1111,7 @@ class authserver(TCPNetworkHandler):
 						blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 						blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 						blob_encrypted_len = 10 + len(blob_encrypted) + 20
-						blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																										   blob_encrypted_len,
-																										   0) + blob_encrypted + blob_signature
+						blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 						currtime = time.time( )
 						outerIV = binascii.a2b_hex("92183129534234231231312123123353")
 						# steamid = binascii.a2b_hex("ffff" + "ffffffff" + "ffffffff")
@@ -1134,14 +1119,13 @@ class authserver(TCPNetworkHandler):
 						steamid = steamUniverse + userblob[b'\x06\x00\x00\x00'][username][b'\x01\x00\x00\x00']
 						# TODO grab from directory server
 						if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
-						else:
 							bin_ip = utils.encodeIP((self.config["server_ip"], self.config["validation_port"]))
-
+						else:
+							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
+						#bin_ip = utils.encodeIP(('192.168.0.185', 27034))
 						servers = bin_ip + bin_ip
 						currtime = int(currtime)
-						times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(
-								currtime + (60 * 60 * 24 * 28))
+						times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(currtime + (60 * 60 * 24 * 28))
 						subheader = innerkey + steamid + servers + times
 						subheader_encrypted = encryption.aes_encrypt(key, outerIV, subheader)
 						subhead_decr_len = b"\x00\x36"
@@ -1155,7 +1139,7 @@ class authserver(TCPNetworkHandler):
 						else:
 							subheader_encrypted = b"\x00\x02" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted
 							log.debug(f"{clientid}TGT Version: 2")  # Assume v3 Steam
-						clientIP = socket.inet_aton(client_address[0])
+						clientIP = real_socket.inet_aton(client_address[0])
 						publicIP = clientIP[::-1]
 						# subcommand3 = b"\x00\x00\x00\x00"
 						data1_len_str = b"\x00\x80"
@@ -1219,8 +1203,7 @@ class authserver(TCPNetworkHandler):
 						steamtime = utils.unixtime_to_steamtime(time.time( ))
 						clock_skew_tolerance = b"\x00\xd2\x49\x6b\x00\x00\x00\x00"
 						authenticate = tgt_command + steamtime + clock_skew_tolerance
-						writeAccountInformation = struct.pack(">L",
-															  len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
+						writeAccountInformation = struct.pack(">L", len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
 						client_socket.send(authenticate + writeAccountInformation)
 						# print(bloblen)
 
@@ -1387,17 +1370,14 @@ class authserver(TCPNetworkHandler):
 				# print(blob)
 				bloblen = len(blob)
 				log.debug(f"Blob length: {str(bloblen)}")
-				innerkey = binascii.a2b_hex(
-					"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+				innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				# innerIV  = secrets.token_bytes(16) #ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				innerIV = userIV
 				blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																								   blob_encrypted_len,
-																								   0) + blob_encrypted
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
@@ -1459,7 +1439,7 @@ class authserver(TCPNetworkHandler):
 				blobnew = blobs.blob_unserialize(decodedmessage[header:header + blob_len])
 				log.info(f"{clientid}Subscribe to package" + str([struct.unpack("<L", blobnew[b'\x01\x00\x00\x00'])[0]]))
 				# ------------------------------------------------------------------
-				if (os.path.isfile("files/users/" + username.decode( ) + ".py")) :
+				if (os.path.isfile("files/users/" + username.decode('latin-1') + ".py")) :
 					execdict = {}
 					execdict_new = {}
 					with open("files/users/" + username.decode('latin-1') + ".py", 'r') as f:
@@ -1488,8 +1468,7 @@ class authserver(TCPNetworkHandler):
 						if new_buy[subid][b'\x01\x00\x00\x00'] == b"\x02" :  # PREPURCHASED
 							receipt_sub_dict[b'\x01\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x01\x00\x00\x00']
 							# receipt_sub_dict [b'\x02\x00\x00\x00'] = random.randint(11111111, 99999999).to_bytes(4, byteorder='little')  + b"\x00" #should be 8 digit hash of key, FIX ME
-							receipt_sub_dict[b'\x02\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][
-																		b'\x02\x00\x00\x00'] + b"\x00"  # saving key for now for verification
+							receipt_sub_dict[b'\x02\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x02\x00\x00\x00'] + b"\x00"  # saving key for now for verification
 							receipt_dict_01[b'\x01\x00\x00\x00'] = b"\x06"
 							receipt_dict_01[b'\x02\x00\x00\x00'] = receipt_sub_dict
 							receipt_dict[subid] = receipt_dict_01
@@ -1534,8 +1513,7 @@ class authserver(TCPNetworkHandler):
 					# print(blob)
 					bloblen = len(blob)
 					log.debug(f"Blob length: {str(bloblen)}")
-					innerkey = binascii.a2b_hex(
-							"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+					innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 					innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 					blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
@@ -1593,16 +1571,13 @@ class authserver(TCPNetworkHandler):
 					# print(blob)
 					bloblen = len(blob)
 					log.debug(f"Blob length: {str(bloblen)}")
-					innerkey = binascii.a2b_hex(
-							"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+					innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 					innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 					blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 					blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 					blob_encrypted_len = 10 + len(blob_encrypted) + 20
-					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																									   blob_encrypted_len,
-																									   0) + blob_encrypted + blob_signature
+					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 					client_socket.send(b"\x00" + blob_encrypted)
 
 					execdict = {}
@@ -1675,8 +1650,7 @@ class authserver(TCPNetworkHandler):
 
 				client_ticket_encrypted = encryption.aes_encrypt(key, innerIV, client_ticket)  # utils.encrypt_with_pad(client_ticket, key, innerIV)
 
-				ticket = b"\x00\x02" + innerIV + struct.pack(">HH", len(client_ticket),
-															 len(client_ticket_encrypted)) + client_ticket_encrypted
+				ticket = b"\x00\x02" + innerIV + struct.pack(">HH", len(client_ticket), len(client_ticket_encrypted)) + client_ticket_encrypted
 				# ticket = b"\x00\x01" + innerIV + struct.pack(">HH", len(client_ticket), len(client_ticket_encrypted)) + client_ticket_encrypted #FOR BETA 2003
 				ticket += struct.pack(">H", len(server_ticket)) + server_ticket
 
@@ -1835,7 +1809,7 @@ class authserver(TCPNetworkHandler):
 
 				plainblob_fixed = pprint.pformat(plainblob_fixed)
 
-				with open("files/users/" + username_str.decode( ) + ".py", 'w') as userblobfile :
+				with open("files/users/" + username_str.decode('latin-1') + ".py", 'w') as userblobfile :
 					userblobfile.write("user_registry = ")
 					userblobfile.write(str(plainblob))
 
@@ -1893,7 +1867,7 @@ class authserver(TCPNetworkHandler):
 					# print(blobdict)
 					usernamechk = blobdict[b'\x01\x00\x00\x00']
 					username_str = usernamechk.rstrip(b'\x00')
-					with open("files/users/" + username_str.decode( ) + ".py", 'r') as userblobfile :
+					with open("files/users/" + username_str.decode('latin-1') + ".py", 'r') as userblobfile :
 						userblobstr = userblobfile.read( )
 						userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
 					# print(userblob)
@@ -2036,9 +2010,9 @@ class authserver(TCPNetworkHandler):
 		elif command[1:5] == b"\x00\x00\x00\x05":  # \x04 for 2007+ TEMP SOLUTION FOR DEFAULT SUBSCRIBE ISSUE
 
 			log.debug(f"{clientid}Using 2007 auth protocol")
-			client_socket.send(b"\x00" + socket.inet_aton(client_address[0]))
-			log.debug((str(socket.inet_aton(client_address[0]))))
-			log.debug((str(socket.inet_ntoa(socket.inet_aton(client_address[0])))))
+			client_socket.send(b"\x00" + real_socket.inet_aton(client_address[0]))
+			log.debug((str(real_socket.inet_aton(client_address[0]))))
+			log.debug((str(real_socket.inet_ntoa(real_socket.inet_aton(client_address[0])))))
 
 			command = client_socket.recv_withlen( )
 
@@ -2130,13 +2104,12 @@ class authserver(TCPNetworkHandler):
 						# authport = struct.pack("<L", int(port))
 						# TODO grab from directory server
 						if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
-						else:
 							bin_ip = utils.encodeIP((self.config["server_ip"], self.config["validation_port"]))
+						else:
+							bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
 						# bin_ip = utils.encodeIP(("172.21.0.20", "27039"))
 						servers = bin_ip + bin_ip
-						times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(
-							currtime + (60 * 60 * 24 * 28))
+						times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(currtime + (60 * 60 * 24 * 28))
 						subheader = innerkey + steamid + servers + times
 						subheader_encrypted = encryption.aes_encrypt(key, outerIV, subheader)
 						subhead_decr_len = b"\x00\x36"
@@ -2150,7 +2123,7 @@ class authserver(TCPNetworkHandler):
 						else:
 							subheader_encrypted = b"\x00\x02" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted
 							log.debug(f"{clientid}TGT Version: 2")  # Assume v3 Steam
-						clientIP = socket.inet_aton(client_address[0])
+						clientIP = real_socket.inet_aton(client_address[0])
 						publicIP = clientIP[::-1]
 						# subcommand3 = b"\x00\x00\x00\x00"
 						data1_len_str = b"\x00\x80"
@@ -2212,8 +2185,7 @@ class authserver(TCPNetworkHandler):
 						steamtime = utils.unixtime_to_steamtime(time.time( ))
 						clock_skew_tolerance = b"\x00\xd2\x49\x6b\x00\x00\x00\x00"
 						authenticate = tgt_command + steamtime + clock_skew_tolerance
-						writeAccountInformation = struct.pack(">L",
-															  len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
+						writeAccountInformation = struct.pack(">L", len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
 						client_socket.send(authenticate + writeAccountInformation)
 						# print(bloblen)
 
@@ -2352,8 +2324,8 @@ class authserver(TCPNetworkHandler):
 				blob_len = struct.unpack("<H", decodedmessage[header + 2:header + 4])
 				blob_len = (blob_len[0])
 				blob = (decodedmessage[header:header + blob_len])
+				new_email_addr = blob[:-struct.unpack(">B", blob[-1:])[0]] + b"\x00"
 
-				new_email_addr = blob[:-blob[-1]] + b"\x00"
 
 
 				userblob = {}
@@ -2387,8 +2359,7 @@ class authserver(TCPNetworkHandler):
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,
-																								   0) + blob_encrypted
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
@@ -2447,7 +2418,8 @@ class authserver(TCPNetworkHandler):
 				# Assuming decodedmessage is a byte-string
 				blob = decodedmessage[header:header + blob_len]
 				# Slice the dec_blob to remove padding and unserialize
-				blobnew = blobs.blob_unserialize(decodedmessage[:-blob[-1]])
+				blobnew = steam.blob_unserialize(decodedmessage[header:header + struct.unpack(">B", blob[-1:])[0]])
+
 
 
 
@@ -2482,8 +2454,7 @@ class authserver(TCPNetworkHandler):
 					if new_buy[subid][b'\x01\x00\x00\x00'] == b"\x02":  # PREPURCHASED
 						receipt_sub_dict[b'\x01\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x01\x00\x00\x00']
 						# receipt_sub_dict[b'\x02\x00\x00\x00'] = random.randint(11111111, 99999999).to_bytes(4, byteorder='little') + b"\x00" #should be 8 digit hash of key, FIX ME
-						receipt_sub_dict[b'\x02\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][
-																	b'\x02\x00\x00\x00'] + b"\x00"  # saving key for now for verification
+						receipt_sub_dict[b'\x02\x00\x00\x00'] = new_buy[subid][b'\x02\x00\x00\x00'][b'\x02\x00\x00\x00'] + b"\x00"  # saving key for now for verification
 						receipt_dict_01[b'\x01\x00\x00\x00'] = b"\x06"
 						receipt_dict_01[b'\x02\x00\x00\x00'] = receipt_sub_dict
 						receipt_dict[subid] = receipt_dict_01
@@ -2534,8 +2505,7 @@ class authserver(TCPNetworkHandler):
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,
-																								   0) + blob_encrypted + blob_signature
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 				client_socket.send(b"\x00" + blob_encrypted)
 			elif command[0:1] == b"\x09":  # Ticket Login
 				ticket_full = binascii.b2a_hex(command)
@@ -2593,8 +2563,7 @@ class authserver(TCPNetworkHandler):
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 					blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 					blob_encrypted_len = 10 + len(blob_encrypted) + 20
-					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,
-																									   0) + blob_encrypted + blob_signature
+					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,0) + blob_encrypted + blob_signature
 					client_socket.send(b"\x00" + blob_encrypted)
 
 					execdict = {}
@@ -2654,7 +2623,13 @@ class authserver(TCPNetworkHandler):
 				client_ticket += utils.unixtime_to_steamtime(currtime + 86400)  # TicketValidUntilTime
 				client_ticket += os.urandom(4)  # struct.pack("<I", 1)
 				client_ticket += os.urandom(8)  # struct.pack("<II", 1, 2)
-				client_ticket += utils.encodeIP((self.config["server_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
+				
+				# TODO BEN ADD LAN CHECK
+
+				if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
+					client_ticket = utils.encodeIP((self.config["server_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
+				else:
+					client_ticket = utils.encodeIP((self.config["public_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
 
 				server_ticket = b"\x55" * 0x80
 
@@ -2894,8 +2869,9 @@ class authserver(TCPNetworkHandler):
 					enc_blob = reply2[30:-20]
 					sig = reply2[-20:]
 					dec_blob = encryption.aes_decrypt(key, innerIV, enc_blob)
-					pad_size = dec_blob[-1]
-					unser_blob = blobs.blob_unserialize(dec_blob[:-pad_size])
+					unser_blob = blobs.blob_unserialize(dec_blob[:-dec_blob[-1]])
+
+
 
 
 					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
@@ -3003,6 +2979,7 @@ class authserver(TCPNetworkHandler):
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
+			# TODO BEN SWITCH TO CDR MANIPULATOR FUNCTION
 				if os.path.isfile("files/cache/secondblob.bin"):
 					with open("files/cache/secondblob.bin", "rb") as f:
 						blob = f.read( )
@@ -3288,9 +3265,9 @@ class authserver(TCPNetworkHandler):
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")
-		client_socket.send(b"\x00" + socket.inet_aton(client_address[0]))
-		log.debug((str(socket.inet_aton(client_address[0]))))
-		log.debug((str(socket.inet_ntoa(socket.inet_aton(client_address[0])))))
+		client_socket.send(b"\x00" + real_socket.inet_aton(client_address[0]))
+		log.debug((str(real_socket.inet_aton(client_address[0]))))
+		log.debug((str(real_socket.inet_ntoa(real_socket.inet_aton(client_address[0])))))
 		command = client_socket.recv_withlen( )
 		if command[0:1] == b"\x02":  # LOGIN
 
@@ -3320,8 +3297,7 @@ class authserver(TCPNetworkHandler):
 					# print(personalsalt)
 					client_socket.send(personalsalt)  # NEW SALT PER USER
 					command = client_socket.recv_withlen( )
-					key = userblob[b'\x05\x00\x00\x00'][username][b'\x01\x00\x00\x00'][
-						  0:16]  # password hash generated by client on user creation, passwordCypherRijndaelKey/authenticationRijndaelKey in TINserver
+					key = userblob[b'\x05\x00\x00\x00'][username][b'\x01\x00\x00\x00'][0:16]  # password hash generated by client on user creation, passwordCypherRijndaelKey/authenticationRijndaelKey in TINserver
 					# print(binascii.b2a_hex(key))
 					IV = command[0:16]
 					# print(binascii.b2a_hex(IV))
@@ -3361,17 +3337,13 @@ class authserver(TCPNetworkHandler):
 					# print(blob)
 					bloblen = len(blob)
 					log.debug(f"Blob length: {str(bloblen)}")
-					innerkey = binascii.a2b_hex(
-							"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
-					innerIV = binascii.a2b_hex(
-							"12899c8312213a123321321321543344")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+					innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+					innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 					blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 					blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 					blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 					blob_encrypted_len = 10 + len(blob_encrypted) + 20
-					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																									   blob_encrypted_len,
-																									   0) + blob_encrypted + blob_signature
+					blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 					currtime = time.time( )
 					outerIV = binascii.a2b_hex("92183129534234231231312123123353")
 					steamUniverse = struct.pack(">H", int(self.config["universe"]))
@@ -3381,15 +3353,14 @@ class authserver(TCPNetworkHandler):
 					else:
 						bin_ip = utils.encodeIP((self.config["public_ip"], self.config["validation_port"]))
 					servers = bin_ip + bin_ip
-					times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(
-							currtime + (60 * 60 * 24 * 28))
+					times = utils.unixtime_to_steamtime(currtime) + utils.unixtime_to_steamtime(currtime + (60 * 60 * 24 * 28))
 					subheader = innerkey + steamid + servers + times
 					subheader_encrypted = encryption.aes_encrypt(key, outerIV, subheader)
 					subhead_decr_len = b"\x00\x36"
 					subhead_encr_len = b"\x00\x40"
 					subheader_encrypted = b"\x00\x01" + outerIV + subhead_decr_len + subhead_encr_len + subheader_encrypted  # TTicket_SubHeader (EncrData)
 					log.debug(f"{clientid}TGT Version: 1")  # v1/v2 Steam
-					clientIP = socket.inet_aton(client_address[0])
+					clientIP = real_socket.inet_aton(client_address[0])
 					publicIP = clientIP[::-1]
 					# subcommand3 = b"\x00\x00\x00\x00"
 					data1_len_str = b"\x00\x80"
@@ -3425,8 +3396,7 @@ class authserver(TCPNetworkHandler):
 					steamtime = utils.unixtime_to_steamtime(time.time( ))
 					clock_skew_tolerance = b"\x00\xd2\x49\x6b\x00\x00\x00\x00"
 					authenticate = tgt_command + steamtime + clock_skew_tolerance
-					writeAccountInformation = struct.pack(">L",
-														  len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
+					writeAccountInformation = struct.pack(">L", len(ticket_signed)) + ticket_signed  # FULL TICKET (steamticket.bin)
 					client_socket.send(authenticate + writeAccountInformation)
 					# print(bloblen)
 
@@ -3597,8 +3567,7 @@ class authserver(TCPNetworkHandler):
 			blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 			blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 			blob_encrypted_len = 10 + len(blob_encrypted) + 20
-			blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len,
-																							   0) + blob_encrypted
+			blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted
 			ticket = ticket + blob_encrypted
 			ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
 			client_socket.send(b"\x00" + blob_encrypted + blob_signature)
@@ -3712,16 +3681,13 @@ class authserver(TCPNetworkHandler):
 				# print(blob)
 				bloblen = len(blob)
 				log.debug(f"Blob length: {str(bloblen)}")
-				innerkey = binascii.a2b_hex(
-						"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+				innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																								   blob_encrypted_len,
-																								   0) + blob_encrypted + blob_signature
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 				# client_socket.send(b"\x01" + blob_encrypted)
 				client_socket.send(blob_encrypted)
 		elif command[0:1] == b"\x06":  # Unsubscribe
@@ -3776,16 +3742,13 @@ class authserver(TCPNetworkHandler):
 				blob = blobs.blob_serialize(execdict_new2)
 				bloblen = len(blob)
 				log.debug(f"Blob length: {str(bloblen)}")
-				innerkey = binascii.a2b_hex(
-						"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+				innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																								   blob_encrypted_len,
-																								   0) + blob_encrypted + blob_signature
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 				client_socket.send(blob_encrypted)
 		elif command[0:1] == b"\x09":  # Ticket Login/refresh games list
 			ticket_full = binascii.b2a_hex(command)
@@ -3842,16 +3805,13 @@ class authserver(TCPNetworkHandler):
 				# print(blob)
 				bloblen = len(blob)
 				log.debug(f"Blob length: {str(bloblen)}")
-				innerkey = binascii.a2b_hex(
-						"10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
+				innerkey = binascii.a2b_hex("10231230211281239191238542314233")  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				innerIV = secrets.token_bytes(16)  # ONLY FOR BLOB ENCRYPTION USING AES-CBC
 				blob_encrypted = encryption.aes_encrypt(innerkey, innerIV, blob)
 				blob_encrypted = struct.pack("<L", bloblen) + innerIV + blob_encrypted
 				blob_signature = encryption.sign_message(innerkey, blob_encrypted)
 				blob_encrypted_len = 10 + len(blob_encrypted) + 20
-				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL",
-																								   blob_encrypted_len,
-																								   0) + blob_encrypted + blob_signature
+				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted + blob_signature
 				# client_socket.send(b"\x00" + blob_encrypted)
 				client_socket.send(blob_encrypted)
 
@@ -3912,6 +3872,7 @@ class authserver(TCPNetworkHandler):
 			client_ticket += utils.unixtime_to_steamtime(currtime + 86400)  # TicketValidUntilTime
 			client_ticket += os.urandom(4)  # struct.pack("<I", 1)
 			client_ticket += os.urandom(8)  # struct.pack("<II", 1, 2)
+			# TODO BEN GRAB FROM DIR SERVER
 			if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
 				client_ticket += utils.encodeIP((self.config["server_ip"], self.config["content_server_port"])) + b"\x00\x00"  # why are there extra bytes? maybe padding to 4 byte boundary
 			else:
@@ -4256,6 +4217,7 @@ class authserver(TCPNetworkHandler):
 				else:
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
+			# TODO BEN USE CDR MANIPULATOR FUNCTION
 			if os.path.isfile("files/cache/secondblob.bin"):
 				with open("files/cache/secondblob.bin", "rb") as f:
 					blob = f.read( )

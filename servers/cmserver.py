@@ -12,12 +12,16 @@ class cmserver(TCPUDPNetworkHandler):
 		super(cmserver, self).__init__(config, port)  # Create an instance of NetworkHandler
 
 	def handle_client(self, *args):
-		if self.socket.socket_type == 'tcp':
-			self.handle_client_tcp(*args)
-		elif self.socket.socket_type == 'udp':
-			self.handle_client_udp(*args)
+		# Determine if the socket is TCP or UDP based on socket_type
+		if args and hasattr(args[0], 'socket_type'):
+			if args[0].socket_type == 'tcp':
+				self.handle_client_tcp(*args)
+			elif args[0].socket_type == 'udp':
+				self.handle_client_udp(*args)
+			else:
+				raise NotImplementedError("Unknown socket type")
 		else:
-			raise NotImplementedError("Unknown socket type")
+			raise NotImplementedError("Invalid arguments for handle_client")
 
 	def handle_client_tcp(self, client_socket, client_address):
 		log = logging.getLogger("CMTCP27014")
@@ -37,12 +41,16 @@ class cmserver2(TCPUDPNetworkHandler):
 		super(cmserver2, self).__init__(config, port)  # Create an instance of NetworkHandler
 
 	def handle_client(self, *args):
-		if self.socket.socket_type == 'tcp':
-			self.handle_client_tcp(*args)
-		elif self.socket.socket_type == 'udp':
-			self.handle_client_udp(*args)
+		# Determine if the socket is TCP or UDP based on socket_type
+		if args and hasattr(args[0], 'socket_type'):
+			if args[0].socket_type == 'tcp':
+				self.handle_client_tcp(*args)
+			elif args[0].socket_type == 'udp':
+				self.handle_client_udp(*args)
+			else:
+				raise NotImplementedError("Unknown socket type")
 		else:
-			raise NotImplementedError("Unknown socket type")
+			raise NotImplementedError("Invalid arguments for handle_client")
 
 	def handle_client_tcp(self, client_socket, client_address):
 		log = logging.getLogger("CMTCP27017")

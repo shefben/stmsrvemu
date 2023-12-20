@@ -31,9 +31,9 @@ def read_config():
                   'v3storagedir2': "files/v3storages2/", 'v3manifestdir2': "files/v3manifests2/",
                   'store_url_new': "/storefront", 'support_url_new': "/support", 'http_port': "80", 'universe': "1",
                   'apache_root': "files/webserver/apache24", 'web_root': "files/webserver/webroot", 'reset_clears_client': "true",
-                  'use_webserver': "true", 'http_name': "", 'emu_auto_update': "", 'clupd_server_port': "27031",
+                  'use_webserver': "true", 'http_name': "", 'emu_auto_update': "true", 'clupd_server_port': "27031",
                   'betamanifestdir': "", 'betastoragedir': "", 'server_sm': "255.255.255.0", 'server_ip': "127.0.0.1",
-                  'steam_date': "", 'steam_time': "23:59:00", 'enable_steam3_servers': "0", 'auto_public_ip': "0", 'use_py_firstblob': "0"}
+                  'steam_date': "", 'steam_time': "23:59:00", 'enable_steam3_servers': "false", 'auto_public_ip': "false", 'use_py_firstblob': "false"}
 
     c = configparser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")
