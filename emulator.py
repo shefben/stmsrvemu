@@ -30,7 +30,7 @@ from servers.trackerserver_beta2 import TrackerServer
 from steamweb.ftp import create_ftp_server
 from steamweb.steamweb import check_child_pid
 from steamweb.steamweb import steamweb
-
+from utilities.filesystem_monitor import DirectoryMonitor, GCFFileHandler
 from utilities.inputmanager import start_watchescape_thread
 from utils import flush_cache, parent_initializer
 
@@ -192,6 +192,11 @@ else:
 if new_password == 1:
 	log.info("New Peer Password Generated: \033[1;33m{}\033[0m".format(globalvars.peer_password))
 	log.info("Make sure to give this password to any servers that may want to add themselves to your network!")
+
+# Monitor to convert gcf files in the background when they are added to the convert folder while server is running
+gcf_handler = GCFFileHandler()
+directory_monitor = DirectoryMonitor("files/convert/", gcf_handler)
+directory_monitor.start()
 
 # input_buffer = ""
 time.sleep(1) # This is needed for the following line to show up AFTER the sever initialization information

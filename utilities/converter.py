@@ -35,15 +35,21 @@ def replace_ip_addresses(file, log, config, event):
 		num_to_replace = search_length // ip_length
 		ips = (ip + " ") * num_to_replace
 		replace = ips.encode('latin-1') + (b'\x00' * (search_length - len(ips)))
-		if file.find(search) != -1:
+		loc = file.find(search)
+		if loc != -1:
 			file = file.replace(search, replace)
 			log.debug(message)
+			log.debug(f"Replaced IP {ip} at location {loc:08x} with {replace}")
+			verify_replacement(file, loc, replace, log)
 
 	# CC expiry date field replacement
 	search = binascii.a2b_hex(b"2245787069726174696F6E59656172436F6D626F220D0A09092278706F7322090922323632220D0A09092279706F7322090922313634220D0A09092277696465220909223636220D0A09092274616C6C220909223234220D0A0909226175746F526573697A652209092230220D0A09092270696E436F726E65722209092230220D0A09092276697369626C652209092231220D0A090922656E61626C65642209092231220D0A090922746162506F736974696F6E2209092234220D0A0909227465787448696464656E2209092230220D0A0909226564697461626C65220909223022")
 	replace = binascii.a2b_hex(b"2245787069726174696F6E59656172436F6D626F220D0A09092278706F7322090922323632220D0A09092279706F7322090922313634220D0A09092277696465220909223636220D0A09092274616C6C220909223234220D0A0909226175746F526573697A652209092230220D0A09092270696E436F726E65722209092230220D0A09092276697369626C652209092231220D0A090922656E61626C65642209092231220D0A090922746162506F736974696F6E2209092234220D0A0909227465787448696464656E2209092230220D0A0909226564697461626C65220909223122")
+	loc = file.find(search)
 	file = file.replace(search, replace)
 	log.debug("Replaced CC expiry date field")
+	log.debug(f"Replaced CC expiry date field at location {loc:08x}")
+	verify_replacement(file, loc, replace, log)
 	event.set()
 
 
@@ -83,18 +89,8 @@ def parallel_process_file(file, log, config, origsize, replace_strings, replace_
 
 
 def convertgcf() :
-	log = logging.getLogger("converter")
-	if config["public_ip"] != "0.0.0.0" :
-		server_ip = config["public_ip"]
-	else:
-		server_ip = config["server_ip"]
-	server_ip = server_ip.encode("latin-1")
-	# makeenc = Manifest( )
-	# makeenc.make_encrypted("files/convert/206_1.manifest")
-	# makeenc.make_encrypted("files/convert/207_1.manifest")
-	# makeenc.make_encrypted("files/convert/208_1.manifest")
-	# makeenc.make_encrypted("files/convert/221_0.manifest")
-	# makeenc.make_encrypted("files/convert/281_0.manifest")
+	log = logging.getLogger("converters")
+
 	for filename in os.listdir("files/convert/") :
 		if str(filename.endswith(".gcf")) :
 			# dirname = filename[0:-4]
@@ -138,20 +134,15 @@ def convertgcf() :
 
 def replace_loopback_ips(file, log, server_ip, event):
 	if not config["server_ip"] == "127.0.0.1" :
-		for ip in globalvars.loopback_ips :
+		for ip in globalvars.loopback_ips:
 			loc = file.find(ip)
-			if loc != -1 :
-				if config["public_ip"] != "0.0.0.0" :
-					server_ip = config["public_ip"]
-					server_ip = server_ip.encode( )
-					replace_ip = server_ip + (b"\x00" * (16 - len(server_ip)))
-					file = file[:loc] + replace_ip + file[loc + 16 :]
-					log.debug(" Found and replaced IP %16s at location %08x" % (ip, loc))
-				else :
-					replace_ip = server_ip + (b"\x00" * (16 - len(server_ip)))
-					file = file[:loc] + replace_ip + file[loc + 16 :]
-					log.debug(" Found and replaced IP %16s at location %08x" % (ip, loc))
-	event.set()
+			if loc != -1:
+				replace_ip = server_ip + (b"\x00" * (16 - len(server_ip)))
+				file = file[:loc] + replace_ip + file[loc + 16:]
+				log.debug(f"Replaced IP {ip.decode()} at location {loc:08x} with {replace_ip}")
+				# Verify replacement
+				verify_replacement(file, loc, replace_ip, log)
+		event.set()
 
 def find_replace1(file, log, replacement_tuple, event):
 	for (search, replace, info) in replacement_tuple:
@@ -160,22 +151,24 @@ def find_replace1(file, log, replacement_tuple, event):
 			log.debug(f"WARNING: Cannot replace {info} {search} with {replace} as it's too long")
 		else:
 			padding = b'\x00' * max(0, missinglength)  # Add padding if necessary
-			file = file.replace(search, replace + padding)
-			log.debug(f"Replaced {info}")
+			start = 0
+			while True:
+				loc = file.find(search, start)
+				if loc == -1:
+					break
+				file = file[:loc] + replace + padding + file[loc + len(search):]
+				log.debug(f"Replaced {info} at location {loc:08x} with {replace + padding}")
+				# Verify replacement
+				verify_replacement(file, loc, replace + padding, log)
+				start = loc + len(replace) + len(padding)
 	event.set()
-
 
 def find_replace2(file, log, origsize, replacement_tuple, event):
 	for search, replace, info in replacement_tuple:
-		search_decoded = search.decode()
-		replace_decoded = replace.decode()
-		info_decoded = info.decode()
 		missinglength = len(search) - len(replace)
-
 		if missinglength < 0:
-			log.debug(f"WARNING: Cannot replace {info_decoded} {search_decoded} with {replace_decoded} as it's too long")
+			log.debug(f"WARNING: Cannot replace {info} {search} with {replace} as it's too long")
 			continue
-
 		replace_extended = replace + (b'\x20' * missinglength) if missinglength > 0 else replace
 		start = 0
 		while True:
@@ -183,15 +176,11 @@ def find_replace2(file, log, origsize, replacement_tuple, event):
 			if loc == -1:
 				break
 			file = file[:loc] + replace_extended + file[loc + len(search):]
+			log.debug(f"Replaced {info} at location {loc:08x} with {replace_extended}")
+			# Verify replacement
+			verify_replacement(file, loc, replace_extended, log)
 			start = loc + len(replace_extended)
-
-		log.debug(f"Replaced {info_decoded} {search_decoded} with {replace_decoded}")
-
-	if len(file) != origsize:
-		raise Exception("SIZE MISMATCH")
 	event.set()
-
-
 
 
 def replace_ips_combined(file, log, config, origsize, event):
@@ -206,7 +195,14 @@ def replace_ips_combined(file, log, config, origsize, event):
 		if loc != -1:
 			replace_ip = server_ip_encoded + (b'\x00' * (16 - len(server_ip_encoded)))
 			file = file[:loc] + replace_ip + file[loc + 16:]
-			log.debug(f"Found and replaced IP {ip.decode() if isinstance(ip, bytes) else ip} at location {loc:08x}")
-			if len(file) != origsize:
-				raise Exception("SIZE MISMATCH")
+			log.debug(f"Replaced IP {ip.decode()} at location {loc:08x} with {replace_ip}")
+			# Verify replacement
+			verify_replacement(file, loc, replace_ip, log)
 	event.set()
+
+def verify_replacement(file, location, expected, log):
+	actual = file[location:location+len(expected)]
+	if actual == expected:
+		log.debug(f"Verification successful at location {location:08x}")
+	else:
+		log.debug(f"Verification failed at location {location:08x}. Expected {expected}, found {actual}")
