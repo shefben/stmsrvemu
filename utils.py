@@ -618,7 +618,10 @@ def finalinitialize(log):
 			os.remove("files/cache/Steam_" + str(globalvars.steam_ver) + ".pkg")
 	else:
 		if os.path.isfile("files/pkg_add/steam/Steam.cfg"):
-			os.remove("files/cache/Steam_" + str(globalvars.steam_ver) + ".pkg")
+			try:
+				os.remove("files/cache/Steam_" + str(globalvars.steam_ver) + ".pkg")
+			except:
+				pass
 			os.remove("files/pkg_add/steam/Steam.cfg")
 
 	if os.path.isfile("Steam.exe"):
