@@ -6,6 +6,18 @@ Base = declarative_base( )
 class BaseDatabaseDriver :
 	def create_tables(self):
 		Base.metadata.create_all(self.engine)
+	# Tracker 2003 beta2 table
+	class User(Base):
+		__tablename__ = 'users'
+		email = Column(String(64), primary_key=True)
+		username = Column(String(32))
+		firstname = Column(String(32))
+		lastname = Column(String(32))
+
+	class Friend(Base):
+		__tablename__ = 'friend'
+		source = Column(Integer, primary_key=True)
+		target = Column(Integer)
 
 	# CCR/First Blob table
 	class FirstBlob(Base) :
@@ -31,19 +43,6 @@ class BaseDatabaseDriver :
 		custom_pkg = Column(Integer)
 		client_date = Column(Date)
 		client_time = Column(Time)
-
-	# Tracker 2003 beta2 table
-	class User(Base):
-		__tablename__ = 'users'
-		email = Column(BLOB, primary_key=True)
-		username = Column(BLOB)
-		firstname = Column(BLOB)
-		lastname = Column(BLOB)
-
-	class Friend(Base):
-		__tablename__ = 'friend'
-		source = Column(Integer, primary_key=True)
-		target = Column(Integer)
 
 	# 2002 Beta 1 Tables
 	class Beta1_User(Base):

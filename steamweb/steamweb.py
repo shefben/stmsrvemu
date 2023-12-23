@@ -28,11 +28,11 @@ class steamweb():
                 finally:
                     if pidfile.endswith(".pid"): os.remove("logs/" + pidfile)
 
-        #if globalvars.steamui_ver < 36 :
+        # if globalvars.steamui_ver < 36 :
         #    http_port = "80"
-        #elif len(http_port) > 0: 
+        # elif len(http_port) > 0: 
         #    http_port = http_port[1:]
-        #else:
+        # else:
         #    http_port = "80"
         log.debug(serverid + "Apache2 binary: " + apache_root + "/bin/httpd.exe")
         apache_bin = apache_root + "/bin/httpd.exe"

@@ -6,11 +6,11 @@ import shutil
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Define the new path for DocumentRoot and <Directory>
-#new_path = os.path.join(script_dir, 'webroot')
+# new_path = os.path.join(script_dir, 'webroot')
 
 # Define the path to the Apache configuration file
-#apache_conf_path = os.path.join(script_dir, 'apache24', 'conf', 'httpd.conf')
-#default_apache_conf_path = os.path.join(script_dir, 'apache24', 'conf', 'httpd.conf')
+# apache_conf_path = os.path.join(script_dir, 'apache24', 'conf', 'httpd.conf')
+# default_apache_conf_path = os.path.join(script_dir, 'apache24', 'conf', 'httpd.conf')
 
 # Regular expression patterns for matching relevant lines
 docroot_pattern = r'^\s*DocumentRoot\s+"[^"]*"'
@@ -71,9 +71,9 @@ def modify_apache_config(file_path, ip, port, webroot):
     if config_modified:
         with open(file_path, 'w') as f:
             f.write('\n'.join(new_lines))
-        #print("Apache configuration file modified successfully.")
-    #else:
-        #print("No relevant configuration found.")
+        # print("Apache configuration file modified successfully.")
+    # else:
+        # print("No relevant configuration found.")
 
 
 def check_config(apache_conf_path, ip, port, webroot, default_apache_conf_path):

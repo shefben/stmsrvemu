@@ -1,4 +1,5 @@
 import datetime
+import logging
 import struct
 import threading
 
@@ -6,6 +7,8 @@ from builtins import object
 from builtins import str
 
 import utils
+
+log = logging.getLogger("DIRLSTMGR")
 
 
 class DirServerManager(object):
@@ -21,17 +24,17 @@ class DirServerManager(object):
         packed_size = struct.pack('I', size)
         return packed_size, self.dirserver_list
 
-    def add_server_info(self, wan_ip, lan_ip, port, server_type, permanent=0) :
+    def add_server_info(self, wan_ip, lan_ip, port, server_type, permanent=0):
         current_time = datetime.datetime.now()
         new_entry = (wan_ip, lan_ip, port, server_type, permanent, current_time)
         with self.lock:
             for entry in self.dirserver_list:  # check for the same server, if it exists then update the timestamp
                 if entry[0] == wan_ip and entry[1] == lan_ip and entry[2] == int(port) and entry[3] == server_type:
-                    #if entry[4] != 1:  # ignore permanent entries
+                    # if entry[4] != 1:  # ignore permanent entries
                     self.dirserver_list.remove(entry)
-                    #else:
+                    # else:
                     #    return -1
-            print(f"adding: {repr(new_entry)}")
+            log.debug(f"adding: {repr(new_entry)}")
             self.dirserver_list.append(new_entry)
 
     def remove_old_entries(self):
@@ -79,7 +82,7 @@ class DirServerManager(object):
         if count > 0:
             reply = struct.pack(">H", 1)
             for wan_ip, lan_ip, port in server_list:
-                if islan :
+                if islan:
                     ip_port_tuple = (lan_ip, port)
                     print(f"{server_type} {lan_ip} {port}")
                 else:

@@ -62,7 +62,7 @@ globalvars.server_ip = config["server_ip"]
 
 log = logging.getLogger('emulator')
 
-utils.initialize(log)
+utils.initialize()
 
 log.info("...Starting Steam Server...")
 

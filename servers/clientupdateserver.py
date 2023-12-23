@@ -107,7 +107,7 @@ class clientupdateserver(TCPNetworkHandler):
 					filename = msg[filename_start:filename_start + filenamelength]
 
 					if len(msg) != (filenamelength + 16):
-						log.warning(clientid + "There is extra data in the request")
+						log.warning(f"{clientid}There is extra data in the request packet: {msg}")
 
 					log.info(clientid + filename.decode())
 
@@ -171,6 +171,7 @@ class clientupdateserver(TCPNetworkHandler):
 										   "files/cache/internal/" + filename.decode(), self.config["server_ip"],
 										   self.config["dir_server_port"], islan)
 								f = open('files/cache/internal/' + filename.decode(), 'rb')
+							else:
 								if not os.path.isfile("files/cache/external/" + filename.decode()):
 									neuter(self.config["packagedir"] + "betav2/" + filename.decode(),
 										   "files/cache/external/" + filename.decode(), self.config["public_ip"],

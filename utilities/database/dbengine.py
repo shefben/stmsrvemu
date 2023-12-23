@@ -2,7 +2,7 @@ import threading
 
 import globalvars
 
-from sqlalchemy import create_engine, Table, MetaData, text, inspect
+from sqlalchemy import TextClause, create_engine, Table, MetaData, text, inspect
 from sqlalchemy.sql import select, insert, update, delete, Select, Insert, Update, Delete, func
 from datetime import datetime
 
@@ -43,12 +43,21 @@ class DatabaseDriver(BaseDatabaseDriver) :
 		with self.lock :
 			with self.engine.connect( ) as connection :
 				result = None
-				if isinstance(query, str) :
+				if isinstance(query, (str, TextClause)):  # Check for TextClause along with str
+					query = text(query) if isinstance(query, str) else query  # Handle raw SQL string
+					try:
+						result = connection.execute(query, params or {}).fetchall()
+					except Exception as e:
+						# Log the exception for debugging
+						log.error(f"Query execution failed: {e}")
+						raise e
+				elif isinstance(query, str) :
 					query = text(query)  # Handle raw SQL string
 					try:
 						result = connection.execute(query, params or {}).fetchall( )
-					except:
-						# If we are here, it means the statement was most likely an update statement and that doesnt get a reutn
+					except Exception as e:
+						# Log the exception for debugging
+						TypeError(f"Query execution failed: {e}")
 						pass
 				elif isinstance(query, Select):
 					result = connection.execute(query).fetchall()  # Handle SELECT queries

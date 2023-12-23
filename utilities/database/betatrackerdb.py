@@ -1,4 +1,4 @@
-from sqlalchemy import TEXT, Table, MetaData, Column, BLOB, Integer, text
+from sqlalchemy import TEXT, Table, MetaData, Column, BLOB, Integer, and_, func, text
 from sqlalchemy.sql import select, insert, update, literal_column
 import logging
 import logger
@@ -9,98 +9,99 @@ log = logging.getLogger('TRKRDB')
 
 class beta2_dbdriver:
 
-    def __init__(self, config):
+	def __init__(self, config):
 
-        # Assuming you have a db_driver instance created and connected
-        self.db_driver = dbengine.create_database_driver(config['database_type'])
-        self.db_driver.connect()
+		# Assuming you have a db_driver instance created and connected
+		self.db_driver = dbengine.create_database_driver(config['database_type'])
+		self.db_driver.connect()
 
-        if not self.db_driver.check_table_exists('users') or not self.db_driver.check_table_exists('friend'):
-            self.db_driver.create_tables()
+		if not self.db_driver.check_table_exists('users') or not self.db_driver.check_table_exists('friend'):
+			self.db_driver.create_tables()
 
-    def get_user_by_email(self, email):
-        # Convert email to string if it's bytes
-        if isinstance(email, bytes):
-            email = email.decode('latin-1')
-        query = f"SELECT ROWID + 0x10000, email, username, firstname, lastname FROM users WHERE email = CAST('{email}' AS BLOB)"
-        result = self.db_driver.execute_query(query)
-        return result[0] if result else None
+	def get_user_by_email(self, email):
+		query = "SELECT ROWID + 0x10000, email, username, firstname, lastname FROM users WHERE email = :email"
+		params = {'email': email}
+		result = self.db_driver.execute_query(query, params)
+		return result[0] if result else None
 
-    def get_user_by_uid(self, uid):
-        result = self.db_driver.execute_query(f"SELECT ROWID + 0x10000, email, username, firstname, lastname FROM users WHERE ROWID + 0x10000 = {uid}")
-        return result[0] if result else None
+	def get_user_by_uid(self, uid):
+		# Construct a raw SQL query with the calculation
+		uid = uid - 0x10000
+		query = text("SELECT ROWID + 0x10000, email, username, firstname, lastname FROM users WHERE ROWID = :uid")
+		params = {'uid': uid}
+		result = self.db_driver.execute_query(query, params)
+		return result[0] if result else None
 
+	def search_users(self):
+		query = text("SELECT ROWID + 0x10000, username, firstname, lastname FROM users")
+		result = self.db_driver.execute_query(query)
+		print(repr(result))
+		return result if result else []
 
-    def search_users(self):
-        result = self.db_driver.execute_query("SELECT ROWID + 0x10000, username, firstname, lastname FROM users")
-        return result
+	def auth(self, email, username):
+		row = self.get_user_by_email(email)
+		if row is None:
+			log.info(f"Creating user with email {email} and username {username}")
+			new_user = {"email": email, "username": username, "firstname": b'none', "lastname": b'none'}
+			self.db_driver.insert_data(self.db_driver.User, new_user)
 
-    def auth(self, email, username):
-        row = self.get_user_by_email(email)
-        if row is None:
+			row = self.get_user_by_email(email)
+		else:
+			log.info(f"Found existing user with email {email}")
 
-            if isinstance(email, bytes):
-                email = email.decode('latin-1')
-            if isinstance(username, bytes):
-                username = username.decode('latin-1')
+		return row[0]
 
-            log.info("created user with email %s username %s" % (email, username))
-            self.db_driver.execute_query(f"INSERT INTO users VALUES (CAST('{email}' AS BLOB), CAST('{username}' AS BLOB), 'none', 'none')")
+	def update_details(self, uid, username, firstname, lastname):
+		# Find the user's email first
+		user_row = self.get_user_by_uid(uid)
+		if user_row:
+			email = user_row[1]  # Assuming email is the second column in the result
+			where_clause = self.db_driver.User.email == email
+			new_values = {'username': username, 'firstname': firstname, 'lastname': lastname}
+			self.db_driver.update_data(self.db_driver.User, where_clause, new_values)
 
-            row = self.get_user_by_email(email)
-        else:
-            log.info("found existing user with email %s" % email)
+	def request_friend(self, source, target):
+		query = text("SELECT source, target FROM friend WHERE source = :source and target = :target")
+		params = {'source': source, 'target': target}
+		result = self.db_driver.execute_query(query, params)
+		row = result[0] if result else None
+		if row is None:
+			new_friend = {"source": source, "target": target}
+			self.db_driver.insert_data(self.db_driver.Friend, new_friend)
+			return True
+		else:
+			return False
 
-        return row[0]
+	def get_friends_by_source(self, uid):
+		where_clause = self.db_driver.Friend.source == uid
+		result = self.db_driver.select_data(self.db_driver.Friend, where_clause)
+		return [x[1] for x in result]  # Assuming target is the second column
 
-    def update_details(self, uid, username, firstname, lastname):
-        if isinstance(username, bytes):
-            username = username.decode('latin-1')
-        if isinstance(firstname, bytes):
-            firstname = firstname.decode('latin-1')
-        if isinstance(lastname, bytes):
-            lastname = lastname.decode('latin-1')
+	def get_friends_by_target(self, uid):
+		where_clause = self.db_driver.Friend.target == uid
+		result = self.db_driver.select_data(self.db_driver.Friend, where_clause)
+		return [x[0] for x in result]  # Assuming source is the first column
 
-        self.db_driver.execute_query(f"UPDATE users SET username = CAST('{username}' AS BLOB), firstname = CAST('{firstname}' AS BLOB), lastname = CAST('{lastname}' AS BLOB) WHERE ROWID + 0x10000 = {uid}")
+	def pending_friends(self, uid):
+		wannabe = self.get_friends_by_target(uid)
 
-    def request_friend(self, source, target):
-        result = self.db_driver.execute_query(f"SELECT source, target FROM friend WHERE source = {source} and target = {target}")
-        row = result[0]
+		realfriends = self.get_friends_by_source(uid)
 
-        if row is None:
-            self.db_driver.execute_query(f"INSERT INTO friend VALUES ({source}, {target})")
-            return True
-        else:
-            return False
+		res = []
+		for friendid in wannabe:
+			if friendid not in realfriends:
+				res.append(friendid)
 
-    def get_friends_by_source(self, uid):
-        result = self.db_driver.execute_query(f"SELECT target FROM friend WHERE source = {uid}")
-        return [x[0] for x in result]
+		return res
 
-    def get_friends_by_target(self, uid):
-        result = self.db_driver.execute_query(f"SELECT source FROM friend WHERE target = {uid}")
-        return [x[0] for x in result]
+	def real_friends(self, uid):
+		wannabe = self.get_friends_by_target(uid)
 
-    def pending_friends(self, uid):
-        wannabe = self.get_friends_by_target(uid)
+		realfriends = self.get_friends_by_source(uid)
 
-        realfriends = self.get_friends_by_source(uid)
+		res = []
+		for friendid in wannabe:
+			if friendid in realfriends:
+				res.append(friendid)
 
-        res = []
-        for friendid in wannabe:
-            if friendid not in realfriends:
-                res.append(friendid)
-
-        return res
-
-    def real_friends(self, uid):
-        wannabe = self.get_friends_by_target(uid)
-
-        realfriends = self.get_friends_by_source(uid)
-
-        res = []
-        for friendid in wannabe:
-            if friendid in realfriends:
-                res.append(friendid)
-
-        return res
+		return res

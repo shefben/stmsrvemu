@@ -9,12 +9,16 @@ import subprocess
 import sys
 import time
 import requests
+import socket
+import struct
+
 from future.utils import old_div
 from tqdm import tqdm
 from collections import Counter
 from datetime import datetime, timedelta
 
 import globalvars
+
 from config import get_config as read_config
 from utilities import cafe_neutering, neuter, packages
 from utilities.converter import convertgcf
@@ -22,7 +26,7 @@ from utilities.database import ccdb
 from utilities.packages import Package
 
 
-config = read_config( )
+config = read_config()
 log = logging.getLogger('UTILS')
 
 
@@ -51,8 +55,8 @@ def hex_to_bytes(hex_string):
 	return bytes.fromhex(hex_string)
 
 
-def decodeIP(string):
-	(oct1, oct2, oct3, oct4, port) = struct.unpack("<BBBBH", string)
+def decodeIP(ipport_str):
+	(oct1, oct2, oct3, oct4, port) = struct.unpack("<BBBBH", ipport_str)
 	ip = "%d.%d.%d.%d" % (oct1, oct2, oct3, oct4)
 	return ip, port
 
@@ -148,7 +152,7 @@ def readfile_beta(fileid, offset, length, index_data, dat_file_handle, net_type)
 
 def get_current_datetime():
 	# Get the current datetime object
-	current_datetime = datetime.now( )
+	current_datetime = datetime.now()
 	# Format the datetime object as "mm/dd/yyyy hr:mn:sec"
 	formatted_datetime = current_datetime.strftime("%m/%d/%Y %H:%M:%S")
 	return formatted_datetime
@@ -175,7 +179,7 @@ def steamtime_to_datetime(raw_bytes):
 
 def datetime_to_steamtime(formatted_datetime):
 	dt_object = datetime.strptime(formatted_datetime, '%m/%d/%Y %H:%M:%S')
-	unix_time = int((dt_object - datetime(1970, 1, 1)).total_seconds( ))
+	unix_time = int((dt_object - datetime(1970, 1, 1)).total_seconds())
 	steam_time = (unix_time + 62135596800) * 1000000
 	raw_bytes = struct.pack("<Q", steam_time)
 
@@ -199,7 +203,7 @@ def unixtime_to_steamtime(unixtime):
 
 def get_nanoseconds_since_time0():
 	before_time0 = 62135596800
-	current = int(time.time( ))
+	current = int(time.time())
 	now = current + before_time0
 	nano = 1000000
 	now *= nano
@@ -249,14 +253,14 @@ def autoupdate(arguments):
 					os.remove("emulatorTmp.exe")
 				if os.path.isfile("emulatorNew.exe"):
 					os.remove("emulatorNew.exe")
-				# if clear_config == True :
+				# if clear_config == True:
 					# print("Config change detected, flushing cache...")
 					# shutil.rmtree("files/cache")
 					# os.mkdir("files/cache")
 					# shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
 					# print
 				if config["uat"] == "1":
-					#url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update-test/main/version"
+					# url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update-test/main/version"
 					url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update/main/version"
 				else:
 					url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update/main/version"
@@ -276,7 +280,7 @@ def autoupdate(arguments):
 					shutil.copy("emulator.exe", "emulatorTmp.exe")
 					print("Update found " + globalvars.emu_ver + " -> " + online_ver + ", downloading...")
 					if config["uat"] == "1":
-						#url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update-test/main/server_" + online_ver + ".pkg"
+						# url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update-test/main/server_" + online_ver + ".pkg"
 						url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update/main/server_" + online_ver + ".pkg"
 					else:
 						url = "https://raw.githubusercontent.com/real-pmein1/stmemu-update/main/server_" + online_ver + ".pkg"
@@ -289,14 +293,14 @@ def autoupdate(arguments):
 						for data in response.iter_content(block_size):
 							progress_bar.update(len(data))
 							file.write(data)
-					progress_bar.close( )
+					progress_bar.close()
 					if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
 						print("ERROR, something went wrong")
 
 					packages.package_unpack2('server_' + online_ver + '.pkg', ".", online_ver)
 
 					for file in os.listdir("."):
-						if file.endswith(".mst") and file != "server_" + online_ver + ".mst" :
+						if file.endswith(".mst") and file != "server_" + online_ver + ".mst":
 							os.remove(file)
 						elif file.endswith(".out"):
 							os.remove(file)
@@ -333,11 +337,6 @@ def autoupdate(arguments):
 	else:
 		print("Skipping checking for updates (ini override)")
 		return
-
-
-import socket
-import struct
-
 
 def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478):
 	# STUN server request
@@ -385,7 +384,7 @@ def is_valid_ip(ip_address):
 	"""Checks if the given IP address is valid."""
 	try:
 		socket.inet_aton(ip_address)
-		return Counter(ip_address)['.'] == 3 and all(char.isdigit( ) or char == '.' for char in ip_address)
+		return Counter(ip_address)['.'] == 3 and all(char.isdigit() or char == '.' for char in ip_address)
 	except:
 		return False
 
@@ -395,7 +394,7 @@ def check_ip_and_exit(ip_address, ip_type):
 	if ip_address != "0.0.0.0" and not is_valid_ip(ip_address):
 		log.error(f"ERROR! The {ip_type} ip is malformed, currently {ip_address}")
 		input("Press Enter to exit...")
-		quit( )
+		quit()
 
 
 def checkip():
@@ -406,14 +405,14 @@ def checkip():
 
 def setserverip():
 	# Define the IP prefixes and their corresponding network strings
-	#ip_prefixes = {
-	#    "10."     :"('10.",
+	# ip_prefixes = {
+	#    "10."    :"('10.",
 	#    **{"172." + str(i) + ".":"('172." + str(i) + "." for i in range(16, 32)},
 	#    "192.168.":"('192.168."
-	#}
+	# }
 
 	# Check and set the server network based on IP prefixes
-	#for prefix, network in ip_prefixes.items( ):
+	# for prefix, network in ip_prefixes.items():
 	#    if config["server_ip"].startswith(prefix):
 	#        globalvars.servernet = network
 	#        break
@@ -433,33 +432,33 @@ def setserverip():
 	print("")
 
 
-def initialize(log):
+def initialize():
 	# Initial loading for ccdb for steam.exe neutering and palcement.
-	firstblob_eval = ccdb.load_ccdb( )
+	globalvars.firstblob_eval = ccdb.load_ccdb()
 
-	for filename in os.listdir("files/cache/") :
-		if globalvars.record_ver == 1 and "SteamUI_" in filename :
+	for filename in os.listdir("files/cache/"):
+		if globalvars.record_ver == 1 and "SteamUI_" in filename:
 			os.remove("files/cache/" + filename)
 			break
-		elif globalvars.record_ver != 1 and "PLATFORM_" in filename :
+		elif globalvars.record_ver != 1 and "PLATFORM_" in filename:
 			os.remove("files/cache/" + filename)
 			break
 
-	if os.path.isdir("files/cache/internal") :
-		for filename in os.listdir("files/cache/internal/") :
-			if globalvars.record_ver == 1 and "SteamUI_" in filename :
+	if os.path.isdir("files/cache/internal"):
+		for filename in os.listdir("files/cache/internal/"):
+			if globalvars.record_ver == 1 and "SteamUI_" in filename:
 				os.remove("files/cache/internal/" + filename)
 				break
-			elif globalvars.record_ver != 1 and "PLATFORM_" in filename :
+			elif globalvars.record_ver != 1 and "PLATFORM_" in filename:
 				os.remove("files/cache/internal/" + filename)
 				break
 
-	if os.path.isdir("files/cache/external") :
-		for filename in os.listdir("files/cache/external/") :
-			if globalvars.record_ver == 1 and "SteamUI_" in filename :
+	if os.path.isdir("files/cache/external"):
+		for filename in os.listdir("files/cache/external/"):
+			if globalvars.record_ver == 1 and "SteamUI_" in filename:
 				os.remove("files/cache/external/" + filename)
 				break
-			elif globalvars.record_ver != 1 and "PLATFORM_" in filename :
+			elif globalvars.record_ver != 1 and "PLATFORM_" in filename:
 				os.remove("files/cache/external/" + filename)
 				break
 
@@ -467,7 +466,7 @@ def initialize(log):
 		print(config["http_port"])
 		linenum = 0
 		with open("emulator.ini", "r") as f:
-			data = f.readlines( )
+			data = f.readlines()
 		for line in data:
 			if line.startswith("http_port"):
 				break
@@ -486,7 +485,7 @@ def initialize(log):
 		shutil.rmtree("files/cache")
 		os.mkdir("files/cache")
 		shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
-		print( )
+		print()
 	else:
 		try:
 			if filecmp.cmp("emulator.ini", "files/cache/emulator.ini.cache"):  # false = different, true = same
@@ -496,19 +495,19 @@ def initialize(log):
 				shutil.rmtree("files/cache")
 				os.mkdir("files/cache")
 				shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
-				print( )
+				print()
 		except:
 			print("Config change detected, flushing cache...")
 			shutil.rmtree("files/cache")
 			os.mkdir("files/cache")
 			shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
-			print( )
+			print()
 	if config["auto_public_ip"] == "true":
-		globalvars.public_ip = get_external_ip( )
+		globalvars.public_ip = get_external_ip()
 		globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
 	else:
-		checkip( )
-		setserverip( )
+		checkip()
+		setserverip()
 
 
 def finalinitialize(log):
@@ -520,8 +519,8 @@ def finalinitialize(log):
 		f = open(config["packagedir"] + "betav2/Steam_" + str(globalvars.steam_ver) + ".pkg", "rb")
 	else:
 		f = open(config["packagedir"] + "Steam_" + str(globalvars.steam_ver) + ".pkg", "rb")
-	pkg = Package(f.read( ))
-	f.close( )
+	pkg = Package(f.read())
+	f.close()
 
 	if config["reset_clears_client"].lower() == "true":
 		if config["public_ip"] != "0.0.0.0" and not os.path.isdir("client/wan"):
@@ -539,7 +538,6 @@ def finalinitialize(log):
 	file = pkg.get_file(b"SteamNew.exe")
 	file2 = pkg.get_file(b"SteamNew.exe")
 
-
 	if config["public_ip"] != "0.0.0.0":
 
 		if not os.path.isdir("client/lan"):
@@ -556,8 +554,8 @@ def finalinitialize(log):
 		f.write(file)
 		g.write(file2)
 
-		f.close( )
-		g.close( )
+		f.close()
+		g.close()
 	else:
 
 		file = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"SteamNew.exe", True)
@@ -569,16 +567,16 @@ def finalinitialize(log):
 		f.write(file)
 		# g.write(file2)
 
-		f.close( )
-		# g.close( )
+		f.close()
+		# g.close()
 
 	if globalvars.record_ver != 0 and config["hldsupkg"] != "":
-		if globalvars.record_ver == 1 :
+		if globalvars.record_ver == 1:
 			g = open(config["packagedir"] + "betav2/" + config["hldsupkg"], "rb")
 		else:
 			g = open(config["packagedir"] + config["hldsupkg"], "rb")
-		pkg = Package(g.read( ))
-		g.close( )
+		pkg = Package(g.read())
+		g.close()
 		file = pkg.get_file(b"HldsUpdateToolNew.exe")
 		file = neuter.neuter_file(file, config["public_ip"], config["dir_server_port"], b"HldsUpdateToolNew.exe", False)
 		file2 = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"HldsUpdateToolNew.exe", True)
@@ -589,8 +587,8 @@ def finalinitialize(log):
 		g.write(file)
 		f.write(file2)
 
-		g.close( )
-		f.close( )
+		g.close()
+		f.close()
 
 	# TODO NEED TO DEPRECATE THIS IN FAVOR OF PROTOCOL VERSIONING
 	if globalvars.steamui_ver < 61:  # guessing steamui version when steam client interface v2 changed to v3
@@ -642,19 +640,19 @@ def finalinitialize(log):
 		os.remove("Steam.cfg")
 	if os.path.isfile("w9xpopen.exe"):
 		os.remove("w9xpopen.exe")
-	# if os.path.isfile("submanager.exe") :
+	# if os.path.isfile("submanager.exe"):
 	#    os.remove("submanager.exe")
 
 	if os.path.isfile("files/users.txt"):
 		users = {}  # REMOVE LEGACY USERS
 		f = open("files/users.txt")
-		for line in f.readlines( ):
+		for line in f.readlines():
 			if line[-1:] == "\n":
 				line = line[:-1]
 			if line.find(":") != -1:
 				(user, password) = line.split(":")
 				users[user] = user
-		f.close( )
+		f.close()
 		for user in users:
 			if os.path.isfile("files/users/" + user + ".py"):
 				os.rename("files/users/" + user + ".py", "files/users/" + user + ".legacy")
@@ -684,7 +682,7 @@ def check_peerpassword():
 		else:
 			# The peer_password is missing or empty
 			# Generate a new password
-			globalvars.peer_password = generate_password( )
+			globalvars.peer_password = generate_password()
 
 			# Save the new password to the config file
 			config.save_config_value("peer_password", globalvars.peer_password)
@@ -715,14 +713,13 @@ def flush_cache():
 def parent_initializer():
 	log.info("---Starting Initialization---")
 
-
 	globalvars.cs_region = config["cs_region"]
 	globalvars.dir_ismaster = config["dir_ismaster"]
 	globalvars.server_ip = config["server_ip"]
 	globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
 	globalvars.public_ip = config["public_ip"]
 
-	initialize(log)
+	initialize()
 
 	if not globalvars.update_exception1 == "":
 		log.debug("Update1 error: " + str(globalvars.update_exception1))

@@ -4,7 +4,6 @@ import subprocess
 import threading
 import time
 
-
 # from scalene import scalene_profiler
 import dirs
 import logger

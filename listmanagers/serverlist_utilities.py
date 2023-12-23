@@ -87,6 +87,8 @@ def unpack_server_info(encrypted_data):
 
 	print(timestamp)
 	return wan_ip_str, lan_ip_str, port, server_type_str, timestamp
+
+
 # TODO Add lan_ip!
 def forward_heartbeat(ip_address, port, encrypted_buffer):
 	while True:
@@ -142,15 +144,17 @@ def send_listrequest():
 	log.info("Recieved Server List From Master Directory Server.")
 	return recieved_list
 
-# TODO Add Lan IP!
-def send_removal(ip_address, port, server_type):
-	ipaddr = ip_address.encode('utf-8')
-	#lan_ip = ip_address.encode('utf-8')
-	type = server_type.encode('utf-8')
 
-	packed_info = struct.pack('!16s I 16s', ipaddr, port, type)
+# TODO Add Lan IP!
+def send_removal(ip_address, port, in_server_type):
+	ipaddr = ip_address.encode('latin-1')
+	# lan_ip = ip_address.encode('latin-1')
+	server_type = in_server_type.encode('latin-1')
+
+	packed_info = struct.pack('!16s I 16s', ipaddr, port, server_type)
 
 	return remove_from_dir("\x1d" + encryption.encrypt(packed_info, globalvars.peer_password))
+
 
 # TODO Add Lan IP
 def unpack_removal_info(encrypted_data):

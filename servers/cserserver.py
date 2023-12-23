@@ -434,9 +434,9 @@ class CSERServer(UDPNetworkHandler) :
             f = open(filename, "w")
             f.write(str(binascii.a2b_hex(message[6:24])))
             f.write("\n")
-            f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6])#+ "," + keylist[7])
+            f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6])  # + "," + keylist[7])
             f.write("\n")
-            f.write(vallist[0] + "," + vallist[1] + "," + vallist[2] + "," + vallist[3] + "," + vallist[4] + "," + vallist[5] + "," + vallist[6])#+ "," + vallist[7])
+            f.write(vallist[0] + "," + vallist[1] + "," + vallist[2] + "," + vallist[3] + "," + vallist[4] + "," + vallist[5] + "," + vallist[6])  # + "," + vallist[7])
             f.close()
 
         self.serversocket.sendto(b"\xFF\xFF\xFF\xFFf", address)
