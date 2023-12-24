@@ -536,15 +536,9 @@ def finalinitialize(log):
 		pass
 
 	file = pkg.get_file(b"SteamNew.exe")
-	file2 = pkg.get_file(b"SteamNew.exe")
 
 	if config["public_ip"] != "0.0.0.0":
-
-		if not os.path.isdir("client/lan"):
-			os.mkdir("client/lan")
-		if not os.path.isdir("client/wan"):
-			os.mkdir("client/wan")
-
+		file2 = pkg.get_file(b"SteamNew.exe")
 		file = neuter.neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
 		file2 = neuter.neuter_file(file2, config["server_ip"], config["dir_server_port"], b"SteamNewLAN.exe", True)
 
@@ -561,7 +555,7 @@ def finalinitialize(log):
 		file = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"SteamNew.exe", True)
 		# file2 = neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
 
-		f = open("client/Steam.exe", "wb")
+		f = open("client/lan/Steam.exe", "wb")
 		# g = open("client/lan/Steam.exe", "wb")
 
 		f.write(file)
