@@ -29,6 +29,7 @@ from servers.trackerserver_beta2 import TrackerServer
 from steamweb.ftp import create_ftp_server
 from steamweb.steamweb import check_child_pid
 from steamweb.steamweb import steamweb
+from servers.valve_anticheat1 import VAC1Server
 from utilities.filesystem_monitor import DirectoryMonitor, GCFFileHandler
 from utilities.inputmanager import start_watchescape_thread
 from utils import flush_cache, parent_initializer
@@ -154,6 +155,12 @@ else:
 		log.info("Made by ymgve")
 	else:
 		log.info("TRACKER unsupported on release client, not started")
+
+	if int(globalvars.steam_ver) <= 14:
+		vacserver = VAC1Server(int(config["vac_server_port"]), config)
+		vacserver.daemon = True
+		vacserver.start()
+		log.info(f"Steam2 Valve Anti-Cheat Server listening on port {str(config['content_server_port'])}")
 
 
 if config["use_webserver"].lower() == "true" and os.path.isdir(config["apache_root"]):

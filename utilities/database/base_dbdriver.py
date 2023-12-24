@@ -9,10 +9,10 @@ class BaseDatabaseDriver :
 	# Tracker 2003 beta2 table
 	class User(Base):
 		__tablename__ = 'users'
-		email = Column(String(64), primary_key=True)
-		username = Column(String(32))
-		firstname = Column(String(32))
-		lastname = Column(String(32))
+		email = Column(BLOB, primary_key=True)
+		username = Column(BLOB)
+		firstname = Column(BLOB)
+		lastname = Column(BLOB)
 
 	class Friend(Base):
 		__tablename__ = 'friend'

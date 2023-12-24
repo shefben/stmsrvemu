@@ -1,5 +1,3 @@
-
-
 import binascii
 import logging
 import os
@@ -22,12 +20,7 @@ def convertgcf() :
     else:
         server_ip = config["server_ip"]
     server_ip = server_ip.encode("latin-1")
-    makeenc = Manifest( )
-    # makeenc.make_encrypted("files/convert/206_1.manifest")
-    # makeenc.make_encrypted("files/convert/207_1.manifest")
-    # makeenc.make_encrypted("files/convert/208_1.manifest")
-    # makeenc.make_encrypted("files/convert/221_0.manifest")
-    # makeenc.make_encrypted("files/convert/281_0.manifest")
+
     for filename in os.listdir("files/convert/") :
         if str(filename.endswith(".gcf")) :
             # dirname = filename[0:-4]

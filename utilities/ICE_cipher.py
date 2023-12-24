@@ -279,4 +279,3 @@ class IceKey(object):
         if bytesleft > 0:
             out.extend(data[datalen - bytesleft:datalen])
         return bytes(out)
-

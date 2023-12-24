@@ -11,3 +11,5 @@ beautifulsoup4~=4.12.2
 configparser~=6.0.0
 CryptICE~=2.0
 ipcalc~=1.99.0
+watchdog
+six

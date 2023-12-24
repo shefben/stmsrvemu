@@ -102,7 +102,7 @@ class Message:
 		self.kv[key] = (mode, value)
 
 		self.msg += bytes([mode])
-		self.msg += bytes(key, "latin-1") + b"\x00"
+		self.msg += bytes(key, "utf8") + b"\x00"
 		self.msg += struct.pack("<H", len(value))
 		self.msg += value
 
@@ -113,9 +113,12 @@ class Message:
 		self.add_kv(5, key, ei(n))
 
 	def add_str(self, key, s):
+		if isinstance(s, str):
+			s.encode('utf-8')
 		try:
 			self.add_kv(1, key, s + b"\x00")
 		except:
+			print("Error adding string to packet!")
 			pass
 
 	def getpacket(self):
@@ -505,15 +508,12 @@ class TrackerServer(UDPNetworkHandler):
 			nsent = 0
 			for row in self.usermgr.search_users():
 				if client.uid != row[0]:
-					user_name = row[1].encode('latin-1') if row[1] else b''
-					first_name = row[2].encode('latin-1') if row[2] else b''
-					last_name = row[3].encode('latin-1') if row[3] else b''
 
 					msg = Message(client, 1011)  # search result
 					msg.add_int("uid", row[0])
-					msg.add_str("UserName", user_name)
-					msg.add_str("FirstName", first_name)
-					msg.add_str("LastName", last_name)
+					msg.add_str("UserName", row[1])
+					msg.add_str("FirstName", row[2])
+					msg.add_str("LastName", row[3])
 
 					self.enqueue(msg)
 					nsent += 1
@@ -837,9 +837,9 @@ class TrackerServer(UDPNetworkHandler):
 
 		msg = Message(client, 1015)  # friend user request
 		msg.add_int("uid", friendid)
-		msg.add_str("UserName", username.decode('latin-1'))
-		msg.add_str("FirstName", firstname.decode('latin-1'))
-		msg.add_str("LastName", lastname.decode('latin-1'))
+		msg.add_str("UserName", username)
+		msg.add_str("FirstName", firstname)
+		msg.add_str("LastName", lastname)
 
 		self.enqueue(msg)
 
@@ -853,9 +853,9 @@ class TrackerServer(UDPNetworkHandler):
 
 		msg = Message(client, 1009)
 		msg.add_int("uid", uid)
-		msg.add_str("UserName", username.decode('latin-1'))
-		msg.add_str("FirstName", firstname.decode('latin-1'))
-		msg.add_str("LastName", lastname.decode('latin-1'))
-		msg.add_str("Email", email.decode('latin-1'))
+		msg.add_str("UserName", username)
+		msg.add_str("FirstName", firstname)
+		msg.add_str("LastName", lastname)
+		msg.add_str("Email", email)
 
 		self.enqueue(msg)

@@ -49,16 +49,8 @@ class DatabaseDriver(BaseDatabaseDriver) :
 						result = connection.execute(query, params or {}).fetchall()
 					except Exception as e:
 						# Log the exception for debugging
-						log.error(f"Query execution failed: {e}")
-						raise e
-				elif isinstance(query, str) :
-					query = text(query)  # Handle raw SQL string
-					try:
-						result = connection.execute(query, params or {}).fetchall( )
-					except Exception as e:
-						# Log the exception for debugging
-						TypeError(f"Query execution failed: {e}")
-						pass
+						raise TypeError(f"Query execution failed: {e}")
+
 				elif isinstance(query, Select):
 					result = connection.execute(query).fetchall()  # Handle SELECT queries
 				elif isinstance(query, (Insert, Update, Delete)):

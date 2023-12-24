@@ -543,6 +543,10 @@ def finalinitialize(log):
 		file2 = neuter.neuter_file(file2, config["server_ip"], config["dir_server_port"], b"SteamNewLAN.exe", True)
 
 		f = open("client/wan/Steam.exe", "wb")
+		try:
+			os.mkdir("client/lan")
+		except:
+			pass
 		g = open("client/lan/Steam.exe", "wb")
 
 		f.write(file)
@@ -554,7 +558,10 @@ def finalinitialize(log):
 
 		file = neuter.neuter_file(file, config["server_ip"], config["dir_server_port"], b"SteamNew.exe", True)
 		# file2 = neuter_file(file, config["public_ip"], config["dir_server_port"], b"SteamNew.exe", False)
-
+		try:
+			os.mkdir("client/lan")
+		except:
+			pass
 		f = open("client/lan/Steam.exe", "wb")
 		# g = open("client/lan/Steam.exe", "wb")
 

@@ -35,7 +35,7 @@ class beta2_dbdriver:
 	def search_users(self):
 		query = text("SELECT ROWID + 0x10000, username, firstname, lastname FROM users")
 		result = self.db_driver.execute_query(query)
-		print(repr(result))
+
 		return result if result else []
 
 	def auth(self, email, username):

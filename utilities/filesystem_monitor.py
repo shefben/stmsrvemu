@@ -1,3 +1,6 @@
+import os
+import time
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from utilities import converter
@@ -19,7 +22,24 @@ class GCFFileHandler(BaseFileEventHandler):
 
     def neutergcf(self, file_path):
         print(f"Neutering GCF file: {file_path}")
-        converter.convertgcf()
+        if self.wait_until_file_is_ready(file_path):
+            converter.convertgcf(file_path)  # Assuming convertgcf accepts the file path as an argument
+        else:
+            print(f"File {file_path} was not ready for processing.")
+
+    @staticmethod
+    def wait_until_file_is_ready(file_path, retries=3, delay=2):
+        """Wait for the file to be fully copied or written."""
+        for _ in range(retries):
+            if not os.path.isfile(file_path):
+                return False  # File does not exist
+
+            try:
+                with open(file_path, 'rb') as file:
+                    return True  # Successfully opened the file
+            except IOError:
+                time.sleep(delay)  # Wait for a while before retrying
+        return False
 
 class DirectoryMonitor:
     def __init__(self, directory, event_handler):
