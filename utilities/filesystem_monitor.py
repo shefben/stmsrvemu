@@ -20,26 +20,33 @@ class GCFFileHandler(BaseFileEventHandler):
         if file_path.endswith('.gcf'):
             self.neutergcf(file_path)
 
-    def neutergcf(self, file_path):
-        print(f"Neutering GCF file: {file_path}")
-        if self.wait_until_file_is_ready(file_path):
-            converter.convertgcf(file_path)  # Assuming convertgcf accepts the file path as an argument
-        else:
-            print(f"File {file_path} was not ready for processing.")
-
     @staticmethod
     def wait_until_file_is_ready(file_path, retries=3, delay=2):
         """Wait for the file to be fully copied or written."""
-        for _ in range(retries):
-            if not os.path.isfile(file_path):
-                return False  # File does not exist
+        last_size = -1
 
+        for _ in range(retries):
             try:
-                with open(file_path, 'rb') as file:
-                    return True  # Successfully opened the file
+                if not os.path.isfile(file_path):
+                    return False  # File does not exist
+
+                current_size = os.path.getsize(file_path)
+                if current_size == last_size:
+                    return True  # File size hasn't changed, assuming it's fully copied
+                else:
+                    last_size = current_size
+                    time.sleep(delay)  # Wait for a while before retrying
             except IOError:
-                time.sleep(delay)  # Wait for a while before retrying
-        return False
+                time.sleep(delay)  # Wait if the file is still being written or copied
+
+        return False  # File was not ready after retries
+
+    def neutergcf(self, file_path):
+        print(f"Neutering GCF file: {file_path}")
+        if self.wait_until_file_is_ready(file_path):
+            converter.convertgcf()  # Proceed with conversion
+        else:
+            print(f"File {file_path} was not ready for processing.")
 
 class DirectoryMonitor:
     def __init__(self, directory, event_handler):
@@ -49,6 +56,7 @@ class DirectoryMonitor:
 
     def start(self):
         self.observer.schedule(self.event_handler, self.directory, recursive=False)
+        self.observer.daemon = True
         self.observer.start()
 
     def stop(self):

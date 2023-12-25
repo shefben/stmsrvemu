@@ -1,0 +1,3 @@
+valve\sprites\shellchrome.spr
+valve\woncomm.lst
+hw.dll

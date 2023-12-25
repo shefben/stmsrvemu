@@ -3,8 +3,6 @@ import os
 import subprocess
 import threading
 import time
-
-# from scalene import scalene_profiler
 import dirs
 import logger
 import globalvars
@@ -33,6 +31,7 @@ from servers.valve_anticheat1 import VAC1Server
 from utilities.filesystem_monitor import DirectoryMonitor, GCFFileHandler
 from utilities.inputmanager import start_watchescape_thread
 from utils import flush_cache, parent_initializer
+
 
 globalvars.aio_server = True
 

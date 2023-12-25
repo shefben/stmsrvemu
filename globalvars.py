@@ -1,11 +1,9 @@
-
 import ipaddress
 
 from config import get_config
 
 
 config = get_config()
-
 
 local_ver = "0.73.RC4.4"
 emu_ver = "0"
@@ -18,7 +16,6 @@ checksum_temp_file = 0
 # NOTE: Ben's added vars
 cs_region = "US"
 cellid = 1
-
 aio_server = False
 db_type = ""
 peer_password = ""
@@ -30,21 +27,23 @@ public_ip = ""
 public_ip_b = b""
 hide_convert_prints = False
 
+
 def startcser_sessionidtracker():
 	from utilities import sessionid_manager
 	return sessionid_manager.SessionIDManager()
 
+
 session_id_manager = startcser_sessionidtracker()  # used by cser and harvest server to prevent fake report uploads
 
-hl1serverlist = list(range(10000))
-hl1challengenum = 0
-hl2serverlist = list(range(10000))
-hl2challengenum = 0
-rdkfserverlist = list(range(10000))
-rdkfchallengenum = 0
+# hl1serverlist = list(range(10000))
+# hl1challengenum = 0
+# hl2serverlist = list(range(10000))
+# hl2challengenum = 0
+# rdkfserverlist = list(range(10000))
+# rdkfchallengenum = 0
 tracker = 0
 tgt_version = "2"
-steam1_blob_sent = 0
+# steam1_blob_sent = 0
 record_ver = 0
 steam_ver = 0
 steamui_ver = 0
@@ -747,7 +746,7 @@ replacestringsCDR = (
 	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
 	 b"Messages URL 6"),
 	(b'http://www.steampowered.com/index.php?area=news',
-	 b"http://" + octal_ip.encode('latin-1')+ http_port_neuter.encode('latin-1') + b"/index.php?area=news",
+	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/index.php?area=test",
 	 b"News URL"),
 	(b'http://storefront.steampowered.com/v/?client=1',
 	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v/?client=1",
@@ -863,12 +862,12 @@ def replace_string_name_space(islan):
 		(b'http://www.steampowered.com/platform/update_history/"',
 		 b"http://" + octal_ip + http_port_neuter + b'/platform/update_history/"',
 		 b"Platform1 News URL"),
-		# (b'http://steampowered.custhelp.com/cgi-bin/steampowered.cfg',
-		# b"http://" + octal_ip + http_port_neuter + b"/custhelp",
-		# b"Steam Customer Help URL"),
-		#(b'Please visit www.steampowered.com for details',
-		# b'Please visit ' + octal_ip + b'for details',
-		# b"Steam Visit for details string"),
+		(b'http://steampowered.custhelp.com/cgi-bin/steampowered.cfg',
+		 b"http://" + octal_ip + http_port_neuter + b"/custhelp",
+		 b"Steam Customer Help URL"),
+		(b'Please visit www.steampowered.com',
+		 b'Please visit ' + octal_ip,
+		 b"Steam Visit for details string"),
 		(b'"207.173.178.42:1200"',
 		 b'"' + trk_ip + b':1200"',
 		 b"Tracker IP 1"),
@@ -1005,9 +1004,6 @@ def replace_string_name(islan):
 		(b"http://steampowered.com/troubleshooter/",
 		 b"http://" + octal_ip + http_port_neuter + b"/troubleshooter/",
 		 b"Troubleshooter"),
-		(b'http://steampowered.com',
-		 b"http://" + octal_ip + http_port_neuter,
-		 b"SteamPowered URL 2"),
 		(b'http://steamsupport.valvesoftware.com',
 		 b"http://" + octal_ip + http_port_neuter + b"/steamsupport/",
 		 b"Steam Beta 1 SteamSupport URL"),
@@ -1017,6 +1013,9 @@ def replace_string_name(islan):
 		(b'\x67\x00\x72\x00\x69\x00\x64\x00\x64\x00\x65\x00\x76\x00\x2E\x00\x76\x00\x61\x00\x6C\x00\x76\x00\x65\x00\x73\x00\x6F\x00\x66\x00\x74\x00\x77\x00\x61\x00\x72\x00\x65\x00\x2E\x00\x63\x00\x6F\x00\x6D',
 		 octal_ip,
 		 b"Steam Beta 1 GridDev FTP"),
+		(b'http://steampowered.com',
+		 b"http://" + octal_ip + http_port_neuter,
+		 b"SteamPowered URL 2"),
 	)
 
 	return replace_string_name
@@ -1044,7 +1043,7 @@ def replace_string(islan):
 	net_key_n = config["net_key_n"][2 :].encode('latin-1')
 	dir_server_port = config["dir_server_port"].encode('latin-1')
 	community_ip = config["community_ip"].encode('latin-1')
-	
+
 	replace_string = (
 		(b"30820120300d06092a864886f70d01010105000382010d00308201080282010100d1543176ee6741270dc1a32f4b04c3a304d499ad0570777dba31483d01eb5e639a05eb284f93cf9260b1ef9e159403ae5f7d3997e789646cfc70f26815169a9b4ba4dc5700ea4480f78466eae6d2bdf5e4181da076ca2e95b32b79c016eb91b5f158e8448d2dd5a42f883976a935dcccbbc611dc2bdf0ea3b88ca72fba919501fb8c6187b4ecddbbb6623d640e819302a6be35be74460cbad9bff0ab7dff0c5b4b8f4aff8252815989ec5fffb460166c5a75b81dd99d79b05f23d97476eb3a5d44c74dcd1136e776f5d2bb52e77f530fa2a5ad75f16c1fb5d8218d71b93073bddad930b3b4217989aa58b30566f1887907ca431e02defe51d19489486caf033d020111",
 		 b"30820120300d06092a864886f70d01010105000382010d00308201080282010100" + main_key_n + b"020111",

@@ -737,10 +737,6 @@ def parent_initializer():
 
 	globalvars.hide_convert_prints = False
 
-	# TODO BEN, FINISH BETA 1 NEUTERING
-	# neuter.replace_bytes_in_file("steam_v0.exe")
-	# neuter.replace_bytes_in_file("steam_v1.exe")
-
 	log.info("---Initialization Complete---")
 	print()
 
