@@ -1,11 +1,9 @@
-import binascii
-import logging
-import os
-import struct
-
+import os, configparser, threading, logging, socket, time, binascii, struct
 import globalvars
-from config import read_config
 from gcf_to_storage import gcf2storage
+from utilities.manifests import Manifest
+from utilities.neuter import neuter_file
+from config import read_config
 
 config = read_config()
 
@@ -75,20 +73,10 @@ def convertgcf() :
 				]
 
 				for search, ip, message in searchip_2:
-					search_length = len(search)
-					replace_length = len(ip)
-
-					# Calculate how many bytes need to be added to make the lengths match
-					padding_length = search_length - replace_length
-
-					# If padding is required, add \x00 bytes to the replacement string
-					if padding_length > 0:
-						replace = ip + (b'\x00' * padding_length)
-					else:
-						replace = ip
-
-					# Perform the replacement
-					if file.find(search) != -1:
+					searchlength = len(search)
+					ips = ip * (searchlength // len(ip))
+					replace = ips.ljust(searchlength, b'\x00')
+					if file.find(search) != -1 :
 						file = file.replace(search, replace)
 						log.debug(message)
 
@@ -123,38 +111,20 @@ def convertgcf() :
 				log.debug("****************************************")
 def ip_replacer(file, filename, ip, log, server_ip):
 	loc = file.find(ip)
-	if loc != -1:
-		# Calculate the number of padding bytes needed
-		padding_needed = len(ip) - len(server_ip)
-		if padding_needed > 0:
-			# Pad the replacement IP with '\x00' only if padding is needed
-			replace_ip = server_ip + (b'\x00' * padding_needed)
-		else:
-			# No padding needed, use server_ip as is
-			replace_ip = server_ip
-
-		# Replace the IP in the file
-		file = file[:loc] + replace_ip + file[loc + len(ip):]
-		log.debug(f"{filename}: Found and replaced IP {ip} at location {loc:08x}")
-
+	if loc != -1 :
+		replace_ip = server_ip.ljust(16, b"\x00")
+		file = file[:loc] + replace_ip + file[loc+16:]
+		log.debug(f"{filename}: Found and replaced IP {ip} at location {loc:08x}" )
 	return file
-
-
-def find_replace(file, info, log, replace, search, null_padded=False):
-	search_length = len(search)
-	replace_length = len(replace)
-
-	# Decide the padding character based on the 'null_padded' flag
-	padding_char = b'\x00' if null_padded else b'\x20'
-
-	# Use 'ljust' to ensure 'replace' is of the same length as 'search'
-	# This adds the right padding character to match the lengths
-	padded_replace = replace.ljust(search_length, padding_char)
-
-	if replace_length > search_length:
+def find_replace(file, info, log, replace, search, null_padded = False):
+	missinglength = len(search) - len(replace)
+	padding = (b'\x00' * missinglength) if null_padded == False else (b'\x20' * missinglength)
+	if missinglength < 0 :
 		log.debug(f"WARNING: Cannot replace {info} {search} with {replace} as it's too long")
-	else:
-		file = file.replace(search, padded_replace)
-		log.debug(f"Replaced {info} {search} with {padded_replace}")
-
+	elif missinglength == 0 :
+		file = file.replace(search, replace)
+		log.debug(f"Replaced  {info} {search} with {replace}")
+	else :
+		file = file.replace(search, replace + padding)
+		log.debug(f"Replaced  {info} {search} with {replace}")
 	return file

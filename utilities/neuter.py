@@ -145,7 +145,7 @@ def replace_dirip_in_file(file, filename, search, server_ip, server_port, dirgro
 
 def get_filenames():
 	if globalvars.steamui_ver < 1003: #last 2009 for now
-		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll", b"steamclient.dll", b"steam\SteamUIConfig.vdf")
+		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll", b"steamclient.dll", b"steam\SteamUIConfig.vdf", b"Public\SubPanelWelcomeCreateNewAccount.res")
 	else:
 		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll")  # b"steamclient.dll", b"GameOverlayUI.exe", b"serverbrowser.dll", b"gamoverlayui.dll", b"steamclient64.dll", b"AppOverlay.dll", b"AppOverlay64.dll", b"SteamService.exe", b"friendsUI.dll", b"SteamService.dll")
 

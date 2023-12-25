@@ -785,13 +785,13 @@ def replace_string_name_space(islan):
 	conn_ip = conn_ip.encode('latin-1')
 	trk_ip = trk_ip.encode('latin-1')
 	main_key_n = config["main_key_n"][2 :].encode('latin-1')
-	net_key_n = config["net_key_n"][2 :].encode('latin-1')       
+	net_key_n = config["net_key_n"][2 :].encode('latin-1')
 	http_port_neuter = http_port_neuter.encode('latin-1')
 	dir_server_port = config["dir_server_port"].encode('latin-1')
 	community_ip = config["community_ip"].encode('latin-1')
 	store_url_new = config["store_url_new"].encode('latin-1')
 	support_url_net = config["support_url_new"].encode('latin-1')
-	
+
 	replace_string_space = (
 		(b'<h1><img src="http://steampowered.com/img/steam_logo_onwhite.gif" height="36" width="67" alt="STEAM" align="absmiddle"> Steam Account Information</h1>',
 		 b'<h1><img src="http://' + octal_ip + http_port_neuter + b'/img/steam_logo_onwhite.gif" height="36" width="67" alt="STEAM" align="absmiddle"> Steam Account Information</h1>',
@@ -862,12 +862,12 @@ def replace_string_name_space(islan):
 		(b'http://www.steampowered.com/platform/update_history/"',
 		 b"http://" + octal_ip + http_port_neuter + b'/platform/update_history/"',
 		 b"Platform1 News URL"),
-		(b'http://steampowered.custhelp.com/cgi-bin/steampowered.cfg',
-		 b"http://" + octal_ip + http_port_neuter + b"/custhelp",
-		 b"Steam Customer Help URL"),
-		(b'Please visit www.steampowered.com',
-		 b'Please visit ' + octal_ip,
-		 b"Steam Visit for details string"),
+		# (b'http://steampowered.custhelp.com/cgi-bin/steampowered.cfg',
+		# b"http://" + octal_ip + http_port_neuter + b"/custhelp",
+		# b"Steam Customer Help URL"),
+		#(b'Please visit www.steampowered.com for details',
+		# b'Please visit ' + octal_ip + b'for details',
+		# b"Steam Visit for details string"),
 		(b'"207.173.178.42:1200"',
 		 b'"' + trk_ip + b':1200"',
 		 b"Tracker IP 1"),
@@ -927,13 +927,13 @@ def replace_string_name(islan):
 	conn_ip = conn_ip.encode('latin-1')
 	trk_ip = trk_ip.encode('latin-1')
 	main_key_n = config["main_key_n"][2 :].encode('latin-1')
-	net_key_n = config["net_key_n"][2 :].encode('latin-1')       
+	net_key_n = config["net_key_n"][2 :].encode('latin-1')
 	http_port_neuter = http_port_neuter.encode('latin-1')
 	dir_server_port = config["dir_server_port"].encode('latin-1')
 	community_ip = config["community_ip"].encode('latin-1')
 	store_url_new = config["store_url_new"].encode('latin-1')
 	support_url_net = config["support_url_new"].encode('latin-1')
-	
+
 	replace_string_name = (
 		(b"http://www.steampowered.com/platform/banner/random.php",
 		 b"http://" + octal_ip + http_port_neuter + b"/platform/banner/random.php",
