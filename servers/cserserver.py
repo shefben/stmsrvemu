@@ -35,7 +35,7 @@ def read_string_until_null(byte_stream):
 		if byte == b'\x00' or byte == b'':  # Check for null byte or end of stream
 			break
 		string_bytes.extend(byte)
-	return string_bytes.decode('utf-8')  # Decode bytes to string (assuming UTF-8 encoding)
+	return string_bytes
 
 class CSERServer(UDPNetworkHandler) :
 
@@ -71,8 +71,8 @@ class CSERServer(UDPNetworkHandler) :
 		log.info(f"{clientid}Received app download stats")
 		reply = b"\xFF\xFF\xFF\xFFb"
 		unknown1 = data[0:1]
-		appId = struct.unpack('I', data[1:5])[0]
-		duration = struct.unpack('I', data[5:9])[0]
+		appId = struct.unpack('<I', data[1:5])[0]
+		duration = struct.unpack('<I', data[5:9])[0]
 		isDownload = data[9:10]
 		nbGcf = data[10:11]
 
@@ -92,10 +92,10 @@ class CSERServer(UDPNetworkHandler) :
 		print(debug)
 		downloaded_from_content_server = False
 
-		nbGcf= int(nbGcf.decode('latin-1')) # Decode bytes to string
+		nbGcf = struct.unpack('B', nbGcf)[0]
 
 		for ind in range(nbGcf):
-			ip = struct.unpack('I', data[11+ind*4:15+ind*4])[0]
+			ip = struct.unpack('<I', data[11+ind*4:15+ind*4])[0]
 			if ip != -1:
 				debug += f" downloaded from content server :"
 				downloaded_from_content_server = True
@@ -206,7 +206,7 @@ class CSERServer(UDPNetworkHandler) :
 			log.warning(f"{clientid}Sent Bug Report with invalid protocal version! Version: {reportver}")
 			self.serversocket.sendto(reply + b"\x00\x00") #\x00 = bad version, 2nd \x00 = no file upload
 		else:
-			ice = IceKey(1, [200,145,10,149,195,190,108,243 ])
+			ice = IceKey(1, [200,145,10,149,195,190,108,243])
 			reply += b"\x01" # Good protocol version
 			# Decrypt the remainder of the data
 			decrypted = ice.Decrypt(buffer.get_buffer_from_cursor())
@@ -365,42 +365,46 @@ class CSERServer(UDPNetworkHandler) :
 		#     for each value:
 		#         string(fieldname 32)
 		#         string(value 128)
-		ice = IceKey(1, [0x36, 0xAF, 0xA5, 0x05, 0x4C, 0xFB, 0x1D, 0x71])
-		data_bin = bytes.fromhex(data[3:].hex())
+		data_bin = bytes.fromhex(data)
 		data_length = len(data_bin)
-		# Create a NetworkBuffer instance with the decrypted data
 		buffer = io.BytesIO(data_bin)
-
-		# Extract information
-		#protocol_version,  = struct.unpack("B", buffer.read(1))
-		#print("protocol version: ", protocol_version)
-		#encrypted_length,  = struct.unpack(">H", buffer.read(2))
+		protocol_version,  = struct.unpack("B", buffer.read(1))
+		print("protocol version: ", protocol_version)
+		encrypted_length,  = struct.unpack("<H", buffer.read(2))
 		# Decrypt the remainder of the data
-		#print("encrypted length: ", encrypted_length)
-		decrypted = ice.Decrypt(buffer.read(data_length))
-		# Create a new NetworkBuffer instance for the decrypted data
+		print("encrypted length: ", encrypted_length)
+		# Initialize the IceKey with the specific key
+		ice = IceKey(1, [54, 175, 165, 5, 76, 251, 29, 113])
+
+
+		# Decrypt the data
+		decrypted = ice.Decrypt(data_bin[3:])
+		print(decrypted)
+		# Process the decrypted data
 		buffer = io.BytesIO(decrypted)
-		# Create a dictionary to store the extracted information
 		info = {
-			"encrypted_length" : data_length,
+			"encrypted_length": data_length,
 		}
-		# Extract encrypted payload
-		corruption_id,  = struct.unpack("B", buffer.read(1))
-		protocol_id,  = struct.unpack("B", buffer.read(1))
+
+		# Extract information from the buffer
+		corruption_id, = struct.unpack("B", buffer.read(1))
+		protocol_id, = struct.unpack("B", buffer.read(1))
 		tablename = read_string_until_null(buffer)
-		num_values,  = struct.unpack("B", buffer.read(1))
+		num_values, = struct.unpack("B", buffer.read(1))
 		values = []
 		print(tablename)
-		for _ in range(num_values) :
+		for _ in range(num_values):
 			fieldname = read_string_until_null(buffer)
 			value = read_string_until_null(buffer)
 			values.append((fieldname, value))
-		# Add the extracted values to the dictionary
-		info["corruption_id"] = corruption_id
-		info["protocol_id"] = protocol_id
-		info["tablename"] = tablename
-		info["num_values"] = num_values
-		info["values"] = values
+
+			# Add extracted values to the dictionary
+			info["corruption_id"] = corruption_id
+			info["protocol_id"] = protocol_id
+			info["tablename"] = tablename
+			info["num_values"] = num_values
+			info["values"] = values
+
 
 		timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
 		filename = f"clientstats/bugreports/{address}.{timestamp}.br{str(decrypted[0:1])}.csv"

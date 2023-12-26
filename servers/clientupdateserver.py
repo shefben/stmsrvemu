@@ -382,7 +382,7 @@ class clientupdateserver(TCPNetworkHandler):
 					print("WARNING: Replacement text " + replace.decode() + " is too long! Not replaced!")
 				else:
 					fileold = file
-					file = file.replace(search, replace)
+					file = file.replace(search.decode('latin-1'), replacedecode('latin-1'))
 					if (search in fileold) and (replace in file):
 						print("Replaced " + info.decode() + " " + search.decode() + " with " + replace.decode())
 			# h = open("files/2ndcdr.py", "w")
@@ -490,7 +490,7 @@ class clientupdateserver(TCPNetworkHandler):
 				if missinglength < 0:
 					print("WARNING: Replacement text " + replace.decode() + " is too long! Not replaced!")
 				else:
-					file = file.replace(search, replace)
+					file = file.replace(search.decode('latin-1'), replace.decode('latin-1'))
 					print("Replaced " + info.decode() + " " + search.decode() + " with " + replace.decode())
 
 			execdict = {}
