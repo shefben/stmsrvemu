@@ -365,7 +365,7 @@ class CSERServer(UDPNetworkHandler) :
 		#     for each value:
 		#         string(fieldname 32)
 		#         string(value 128)
-		data_bin = bytes.fromhex(data)
+		data_bin = bytes.fromhex(data.hex())
 		data_length = len(data_bin)
 		buffer = io.BytesIO(data_bin)
 		protocol_version,  = struct.unpack("B", buffer.read(1))
@@ -398,13 +398,12 @@ class CSERServer(UDPNetworkHandler) :
 			value = read_string_until_null(buffer)
 			values.append((fieldname, value))
 
-			# Add extracted values to the dictionary
-			info["corruption_id"] = corruption_id
-			info["protocol_id"] = protocol_id
-			info["tablename"] = tablename
-			info["num_values"] = num_values
-			info["values"] = values
-
+		# Add extracted values to the dictionary
+		info["corruption_id"] = corruption_id
+		info["protocol_id"] = protocol_id
+		info["tablename"] = tablename
+		info["num_values"] = num_values
+		info["values"] = values
 
 		timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
 		filename = f"clientstats/bugreports/{address}.{timestamp}.br{str(decrypted[0:1])}.csv"

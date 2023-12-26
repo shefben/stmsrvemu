@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 
 import globalvars
 
-from config import get_config as read_config
+from config import get_config as read_config, save_config_value
 from utilities import cafe_neutering, neuter, packages
 from utilities.converter import convertgcf
 from utilities.database import ccdb
@@ -345,7 +345,7 @@ def get_internal_ip():
 		with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
 			s.connect(("8.8.8.8", 80))  # Google's DNS, used just to get the socket's name
 			server_ip = s.getsockname()[0]
-			config.save_config_value("server_ip", server_ip)
+			save_config_value("server_ip", server_ip)
 			return server_ip
 	except Exception as e:
 		print(f"Error obtaining IP address: {e}")
@@ -447,6 +447,8 @@ def setserverip():
 
 
 def initialize():
+	autoupdate(None)
+
 	# Initial loading for ccdb for steam.exe neutering and palcement.
 	globalvars.firstblob_eval = ccdb.load_ccdb()
 
