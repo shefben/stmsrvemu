@@ -33,7 +33,8 @@ def read_config():
                   'apache_root': "files/webserver/apache24", 'web_root': "files/webserver/webroot", 'reset_clears_client': "false",
                   'use_webserver': "true", 'http_name': "", 'emu_auto_update': "true", 'clupd_server_port': "27031",
                   'betamanifestdir': "", 'betastoragedir': "", 'server_sm': "255.255.255.0", 'server_ip': "127.0.0.1",
-                  'steam_date': "", 'steam_time': "23:59:00", 'enable_steam3_servers': "false", 'auto_public_ip': "false", 'use_py_firstblob': "false"}
+                  'steam_date': "", 'steam_time': "23:59:00", 'enable_steam3_servers': "false", 'auto_public_ip': "True", 'use_file_blobs': "true",
+                  'auto_server_ip': "True", 'harvest_ip': "0.0.0.0", 'allow_harvest_upload': "True"}
 
     c = configparser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")
@@ -51,18 +52,18 @@ def read_config():
 config_data = read_config()
 
 
-def save_config_value(key, value):
+def save_config_value(key, value, old_key=None):
     file_path = 'emulator.ini'
 
     # Read the existing content of the file
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    # Check if the key already exists
+    # Check if the old_key or key already exists
     key_exists = False
     for i, line in enumerate(lines):
-        if line.startswith(key + '='):
-            # Key exists, replace the value
+        if (old_key and line.startswith(old_key + '=')) or line.startswith(key + '='):
+            # Old key or key exists, replace the line with new key and value
             lines[i] = key + '=' + value + '\n'
             key_exists = True
             break

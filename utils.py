@@ -338,6 +338,20 @@ def autoupdate(arguments):
 		print("Skipping checking for updates (ini override)")
 		return
 
+def get_internal_ip():
+	"""Get the server's IP address."""
+	try:
+		# Connect to an external address (doesn't actually establish a connection)
+		with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+			s.connect(("8.8.8.8", 80))  # Google's DNS, used just to get the socket's name
+			server_ip = s.getsockname()[0]
+			config.save_config_value("server_ip", server_ip)
+			return server_ip
+	except Exception as e:
+		print(f"Error obtaining IP address: {e}")
+
+		return None
+
 def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478):
 	# STUN server request
 	stun_request = b'\x00\x01' + b'\x00\x00' + b'\x21\x12\xA4\x42' + b'\x00' * 12
@@ -502,12 +516,18 @@ def initialize():
 			os.mkdir("files/cache")
 			shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
 			print()
-	if config["auto_public_ip"] == "true":
-		globalvars.public_ip = get_external_ip()
-		globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
+	if config["auto_public_ip"].lower() == "true" or config["auto_server_ip"].lower() == "true":
+		if config["auto_public_ip"].lower() == "true":
+			globalvars.public_ip = get_external_ip()
+			globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
+		if config["auto_server_ip"].lower() == "true":
+			globalvars.server_ip = get_internal_ip()
+			globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
 	else:
 		checkip()
 		setserverip()
+
+
 
 
 def finalinitialize(log):

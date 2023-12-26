@@ -1,6 +1,7 @@
 import binascii
 import csv
 import datetime
+import io
 import logging
 import os
 import os.path
@@ -26,6 +27,15 @@ def int_wrapper(value) :
 	except (ValueError, TypeError) :
 		return 0
 
+
+def read_string_until_null(byte_stream):
+	string_bytes = bytearray()
+	while True:
+		byte = byte_stream.read(1)
+		if byte == b'\x00' or byte == b'':  # Check for null byte or end of stream
+			break
+		string_bytes.extend(byte)
+	return string_bytes.decode('utf-8')  # Decode bytes to string (assuming UTF-8 encoding)
 
 class CSERServer(UDPNetworkHandler) :
 
@@ -79,8 +89,11 @@ class CSERServer(UDPNetworkHandler) :
 		else:
 			keys[1] = f'UnknownDuration_{isDownload}'
 			debug += f"\r\n appId: {appId}\r\n unknown duration({isDownload}): {duration}s\r\n"
-
+		print(debug)
 		downloaded_from_content_server = False
+
+		nbGcf= int(nbGcf.decode('latin-1')) # Decode bytes to string
+
 		for ind in range(nbGcf):
 			ip = struct.unpack('I', data[11+ind*4:15+ind*4])[0]
 			if ip != -1:
@@ -118,7 +131,7 @@ class CSERServer(UDPNetworkHandler) :
 		reply += b"\x01" + allowupload
 		if allowupload == b"\x02":
 			# TODO BEN, GRAB FROM DIR SERVER & SEND HARVEST SERVER NEWLY GENERATED CONTEXT ID'S FOR ITS LIST IF NOT AIO SERVER
-			bin_ip = utils.encodeIP((self.config['harvest_server_ip'], int(self.config['harvest_server_port'])))
+			bin_ip = utils.encodeIP((self.config['harvest_ip'], int(self.config['harvest_server_port'])))
 			contextid = globalvars.session_id_manager.add_new_context_id()
 			reply += bin_ip + contextid
 		return reply
@@ -352,32 +365,35 @@ class CSERServer(UDPNetworkHandler) :
 		#     for each value:
 		#         string(fieldname 32)
 		#         string(value 128)
-		ice = IceKey(1, [27, 200, 13, 14, 83, 45, 184, 54])
+		ice = IceKey(1, [0x36, 0xAF, 0xA5, 0x05, 0x4C, 0xFB, 0x1D, 0x71])
 		data_bin = bytes.fromhex(data[3:].hex())
 		data_length = len(data_bin)
 		# Create a NetworkBuffer instance with the decrypted data
-		buffer = NetworkBuffer(data_bin)
+		buffer = io.BytesIO(data_bin)
+
 		# Extract information
-		protocol_version = buffer.extract_u8()
-		encrypted_length = buffer.extract_u16()
+		#protocol_version,  = struct.unpack("B", buffer.read(1))
+		#print("protocol version: ", protocol_version)
+		#encrypted_length,  = struct.unpack(">H", buffer.read(2))
 		# Decrypt the remainder of the data
-		decrypted = ice.Decrypt(buffer.extract_buffer(encrypted_length))
+		#print("encrypted length: ", encrypted_length)
+		decrypted = ice.Decrypt(buffer.read(data_length))
 		# Create a new NetworkBuffer instance for the decrypted data
-		buffer = NetworkBuffer(decrypted)
+		buffer = io.BytesIO(decrypted)
 		# Create a dictionary to store the extracted information
 		info = {
-			"protocol_version" : protocol_version,
-			"encrypted_length" : encrypted_length,
+			"encrypted_length" : data_length,
 		}
 		# Extract encrypted payload
-		corruption_id = buffer.extract_u8( )
-		protocol_id = buffer.extract_u8( )
-		tablename = buffer.extract_string().rstrip(b'\x00')
-		num_values = buffer.extract_u8( )
+		corruption_id,  = struct.unpack("B", buffer.read(1))
+		protocol_id,  = struct.unpack("B", buffer.read(1))
+		tablename = read_string_until_null(buffer)
+		num_values,  = struct.unpack("B", buffer.read(1))
 		values = []
+		print(tablename)
 		for _ in range(num_values) :
-			fieldname = buffer.extract_string().rstrip(b'\x00')
-			value = buffer.extract_string().rstrip(b'\x00')
+			fieldname = read_string_until_null(buffer)
+			value = read_string_until_null(buffer)
 			values.append((fieldname, value))
 		# Add the extracted values to the dictionary
 		info["corruption_id"] = corruption_id
@@ -495,10 +511,10 @@ class CSERServer(UDPNetworkHandler) :
 
 			# Extract the remaining information
 			corruption_id = buffer.extract_u8( )
-			unique_id = buffer.extract_string().rstrip(b'\x00')
-			computer_name = buffer.extract_string().rstrip(b'\x00')
-			username = buffer.extract_string().rstrip(b'\x00')
-			game_dir = buffer.extract_string().rstrip(b'\x00')
+			unique_id = buffer.extract_string()
+			computer_name = buffer.extract_string()
+			username = buffer.extract_string()
+			game_dir = buffer.extract_string()
 			engine_timestamp = struct.unpack('f', buffer.extract_buffer(4))[0]
 			message_type = buffer.extract_u8( )
 
