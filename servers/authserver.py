@@ -35,7 +35,7 @@ class authserver(TCPNetworkHandler):
 	def __init__(self, port, config):
 		self.server_type = "AuthServer"
 		self.innerkey = binascii.a2b_hex("10231230211281239191238542314233")
-		manager = validationcode_manager.VerificationCodeManager()
+		self.manager = validationcode_manager.VerificationCodeManager()
 		# Create an instance of NetworkHandler
 		super(authserver, self).__init__(config, port, self.server_type)
 
@@ -908,7 +908,7 @@ class authserver(TCPNetworkHandler):
 					unser_blob = blobs.blob_unserialize(dec_blob[:-padding_byte])
 					while True:
 						if self.config["smtp_enable"].lower == "true":
-							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 								pass
 							else:
 								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
@@ -1912,7 +1912,8 @@ class authserver(TCPNetworkHandler):
 					pprint.pprint(unser_blob)
 					while True:
 						if self.config["smtp_enable"].lower == "true":
-							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+
 								pass
 							else:
 								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
@@ -2659,7 +2660,7 @@ class authserver(TCPNetworkHandler):
 				client_ticket += utils.unixtime_to_steamtime(currtime + 86400)  # TicketValidUntilTime
 				client_ticket += os.urandom(4)  # struct.pack("<I", 1)
 				client_ticket += os.urandom(8)  # struct.pack("<II", 1, 2)
-				
+
 				# TODO BEN GRAB ON DIR SERVER
 
 				if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
@@ -2911,7 +2912,7 @@ class authserver(TCPNetworkHandler):
 					unser_blob = blobs.blob_unserialize(dec_blob[:-dec_blob[-1]])
 					while True:
 						if self.config["smtp_enable"].lower == "true":
-							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 								pass
 							else:
 								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
@@ -3913,7 +3914,7 @@ class authserver(TCPNetworkHandler):
 				unser_blob = blobs.blob_unserialize(dec_blob[:-padding_int[0]])
 				while True:
 					if self.config["smtp_enable"].lower == "true":
-						if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+						if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 							pass
 						else:
 							log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")

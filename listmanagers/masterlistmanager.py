@@ -11,7 +11,7 @@ from utilities.master_packethandler import PacketHandler
 class Server:
 	def __init__(self, address, isoldserver, islan, _time, uniqueid, isproxy, isProxyTarget, proxyTarget,
 				 players, maxplayers, bots, gamedir, sv_map, os, password, dedicated, secure, info, info_length):
-		self.time = 0
+		self.time = int(0)
 		self.address = address
 		self.isoldserver = isoldserver
 		self.islan = islan
