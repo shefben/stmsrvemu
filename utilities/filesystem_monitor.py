@@ -45,6 +45,7 @@ class GCFFileHandler(BaseFileEventHandler):
         print(f"Neutering GCF file: {file_path}")
         if self.wait_until_file_is_ready(file_path):
             converter.convertgcf()  # Proceed with conversion
+            print("Conversion Complete")
         else:
             print(f"File {file_path} was not ready for processing.")
 

@@ -38,12 +38,12 @@ class MasterServerManager:
 		self.servers = []
 		self.indexes = {
 			'address': {},
-			#'isoldserver': {},
+			# 'isoldserver': {},
 			'islan': {},
-			#'time': {},
+			# 'time': {},
 			'isproxy': {},
-			#'isProxyTarget': {},
-			#'proxyTarget': {},
+			# 'isProxyTarget': {},
+			# 'proxyTarget': {},
 			'players': {},
 			'max': {},
 			'gamedir': {},
@@ -155,7 +155,7 @@ class MasterServerManager:
 					criteria[key] = int(value)
 				else:  # 'string' or any other types
 					criteria[key] = value
-		#print(criteria['proxy'])
+		# print(criteria['proxy'])
 		return criteria
 
 	def is_server_in_list(self, address) :
@@ -211,32 +211,36 @@ class Challenge:
 
 class ChallengeManager:
 	def __init__(self):
-		self.challenges = {}
+		self.challenges = []
 		self.lock = threading.Lock()
-		self._start_cleanup_timer()
+		self.cleanup_thread = threading.Thread(target=self._cleanup_old_challenges).start()
+
 	def check_challenge(self, address):
 		with self.lock:
-			challenge = self.challenges.get(address)
-			if challenge and int(time.time()) - challenge.time <= 15 * 60:
-				return challenge.challenge
+			current_time = int(time.time())
+			for challenge in self.challenges:
+				if challenge.address == address and current_time - challenge.time <= 15 * 60:
+					return challenge.challenge
 			return None
+
 	def validate_challenge(self, address, challenge_value):
-		return self.check_challenge(address) == challenge_value
+		challenge = self.check_challenge(address)
+		return challenge is not None and challenge == challenge_value
+
 	def create_challenge(self, address):
 		with self.lock:
-			new_challenge_value = uuid.uuid4().int & (1<<64) - 1
-			self.challenges[address] = Challenge(address, new_challenge_value, int(time.time()))
+			current_time = int(time.time())
+			new_challenge_value = (random.randint(0, 0xFFFF) << 16 | random.randint(0, 0xFFFF)) & ~(1 << 31)
+			new_challenge = Challenge(address, new_challenge_value, current_time)
+			self.challenges.append(new_challenge)
 			return new_challenge_value
+
 	def _cleanup_old_challenges(self):
-		current_time = int(time.time())
-		with self.lock:
-			addresses_to_delete = [address for address, challenge in self.challenges.items() if current_time - challenge.time > 15 * 60]
-			for address in addresses_to_delete:
-				del self.challenges[address]
-		self._start_cleanup_timer()
-	def _start_cleanup_timer(self):
-		self.cleanup_timer = threading.Timer(180, self._cleanup_old_challenges)
-		self.cleanup_timer.start()
+		while True:
+			time.sleep(180)  # Cleanup every 180 seconds
+			current_time = int(time.time())
+			with self.lock:
+				self.challenges = [c for c in self.challenges if current_time - c.time <= 15 * 60]
 
 challenge_manager = ChallengeManager()
 server_manager = MasterServerManager()

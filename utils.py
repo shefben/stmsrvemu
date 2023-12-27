@@ -345,7 +345,7 @@ def get_internal_ip():
 		with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
 			s.connect(("8.8.8.8", 80))  # Google's DNS, used just to get the socket's name
 			server_ip = s.getsockname()[0]
-			save_config_value("server_ip", server_ip)
+			save_config_value("server_ip", server_ip + "	 				; IP Address For Server to Bind/Listen On")
 			return server_ip
 	except Exception as e:
 		print(f"Error obtaining IP address: {e}")
@@ -386,7 +386,7 @@ def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478):
 						# Unpack IP and convert to dotted-decimal notation
 						port, ip = struct.unpack_from('!xH4s', data[1:], index + 4)
 						ip = socket.inet_ntoa(ip)
-						print(f"Public IP: {ip}")
+						save_config_value("public_ip", ip + "					; External IP for allowing users to connect over the internet")
 						return ip
 					index += 4 + attr_len
 		except socket.error:

@@ -406,7 +406,7 @@ class CSERServer(UDPNetworkHandler) :
 		info["values"] = values
 
 		timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-		filename = f"clientstats/bugreports/{address}.{timestamp}.br{str(decrypted[0:1])}.csv"
+		filename = f"clientstats/bugreports/{address[0]}.{timestamp}.csv"
 
 		# Save the information to a CSV file
 		with open(filename, 'w', newline='') as csv_file:
@@ -416,7 +416,8 @@ class CSERServer(UDPNetworkHandler) :
 
 		"""//M2C_ACKUPLOADDATA details
 		u8(protocol okay (bool))"""
-		self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x72\x01",address)  # 72 = r command and the next byte is a bool, ok = 1, bad = 0
+		self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x72\x01", address)  # 72 = r command and the next byte is a bool, ok = 1, bad = 0
+
 	def parse_steamstats(self, address, data, clientid, log):
 		log.info(f"{clientid}Received steam stats")
 
