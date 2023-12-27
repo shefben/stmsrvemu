@@ -24,7 +24,7 @@ import globalvars
 import utilities.encryption as encryption
 import utils
 
-from utilities import cdr_manipulator
+from utilities import cdr_manipulator, sendmail, validationcode_manager
 from utilities import blobs
 from utilities.database import ccdb
 from utilities.networkhandler import TCPNetworkHandler
@@ -35,6 +35,7 @@ class authserver(TCPNetworkHandler):
 	def __init__(self, port, config):
 		self.server_type = "AuthServer"
 		self.innerkey = binascii.a2b_hex("10231230211281239191238542314233")
+		manager = validationcode_manager.VerificationCodeManager()
 		# Create an instance of NetworkHandler
 		super(authserver, self).__init__(config, port, self.server_type)
 
@@ -851,10 +852,14 @@ class authserver(TCPNetworkHandler):
 				# print(blobdict)
 				usernamechk = blobdict[b'\x01\x00\x00\x00']
 				username_str = usernamechk.rstrip(b'\x00')
+
 				if os.path.isfile("files/users/" + username_str.decode() + ".py"):  # NEED TO FIX
 					client_socket.send(b"\x01")
+					if self.config["smtp_enabled"].lower == "true":
+						self.send_validation_email(username_str.decode('latin-1'))
 				else:
 					client_socket.send(b"\x00")
+
 			elif command[0:1] == b"\x0f":  # Reset password
 				log.info(f"{clientid}Password reset by client")
 				self.send_mainkey(client_socket)
@@ -885,7 +890,7 @@ class authserver(TCPNetworkHandler):
 					with open("files/users/" + username_str.decode() + ".py", 'r') as userblobfile:
 						userblobstr = userblobfile.read()
 						userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
-					# print(userblob)
+					print(userblob)
 					questionsalt = userblob[b'\x05\x00\x00\x00'][username_str][b'\x05\x00\x00\x00']
 					# print(questionsalt)
 					client_socket.send(questionsalt)  # USER'S QUESTION SALT
@@ -901,22 +906,34 @@ class authserver(TCPNetworkHandler):
 					dec_blob = encryption.aes_decrypt(key, innerIV, enc_blob)
 					padding_byte = dec_blob[-1]
 					unser_blob = blobs.blob_unserialize(dec_blob[:-padding_byte])
+					while True:
+						if self.config["smtp_enabled"].lower == "true":
+							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+								pass
+							else:
+								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
+								client_socket.send(b"\x00")
+								break
 
-					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-						if (os.path.isfile("files/users/" + username_str.decode() + ".py")):
-							with open("files/users/" + username_str.decode() + ".py", 'w') as userblobfile:
-								userblobfile.write("user_registry = ")
-								userblobfile.write(str(userblob))
-							log.info(f"{clientid}Password changed for: {username_str}")
-							client_socket.send(b"\x01")
+						if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
+							if (os.path.isfile("files/users/" + username_str.decode() + ".py")):
+								with open("files/users/" + username_str.decode() + ".py", 'w') as userblobfile:
+									userblobfile.write("user_registry = ")
+									userblobfile.write(str(userblob))
+								log.info(f"{clientid}Password changed for: {username_str}")
+								client_socket.send(b"\x01")
+								break
+							else:
+								log.warning(f"{clientid}SADB file error for: {username_str}")
+								client_socket.send(b"\x00")
+								break
 						else:
-							log.warning(f"{clientid}SADB file error for: {username_str}")
+							log.warning(f"{clientid}Password change failed for: {username_str}")
 							client_socket.send(b"\x00")
-					else:
-						log.warning(f"{clientid}Password change failed for: {username_str}")
-						client_socket.send(b"\x00")
+							break
+
 				else:
 					log.warning(f"{clientid}Password change message could not be decrypted")
 					client_socket.send(b"\x00")
@@ -961,8 +978,11 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x01")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x00")
+
 			elif command[0:1] == b"\x21":  # Check key - password reset
 				log.info(f"{clientid}Password reset by CD key")
 				self.send_mainkey(client_socket)
@@ -1003,6 +1023,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x01")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x00")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -1839,6 +1861,8 @@ class authserver(TCPNetworkHandler):
 				username_str = usernamechk.rstrip(b'\x00')
 				if os.path.isfile("files/users/" + username_str.decode() + ".py"):
 					client_socket.send(b"\x00")
+					if self.config["smtp_enabled"].lower == "true":
+						self.send_validation_email(username_str.decode('latin-1'))
 				else:
 					client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0f":  # Reset password
@@ -1885,22 +1909,33 @@ class authserver(TCPNetworkHandler):
 					dec_blob = encryption.aes_decrypt(key, innerIV, enc_blob)
 					pad_size = dec_blob[-1]
 					unser_blob = blobs.blob_unserialize(dec_blob[:-pad_size])
+					while True:
+						if self.config["smtp_enabled"].lower == "true":
+							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+								pass
+							else:
+								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
+								client_socket.send(b"\x01")
+								break
 
-					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-						if (os.path.isfile("files/users/" + username_str.decode() + ".py")):
-							with open("files/users/" + username_str.decode() + ".py", 'w') as userblobfile:
-								userblobfile.write("user_registry = ")
-								userblobfile.write(str(userblob))
-							log.info(f"{clientid}Password changed for: {username_str}")
-							client_socket.send(b"\x00")
+						if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
+							if (os.path.isfile("files/users/" + username_str.decode() + ".py")):
+								with open("files/users/" + username_str.decode() + ".py", 'w') as userblobfile:
+									userblobfile.write("user_registry = ")
+									userblobfile.write(str(userblob))
+								log.info(f"{clientid}Password changed for: {username_str}")
+								client_socket.send(b"\x00")
+								break
+							else:
+								log.warning(f"{clientid}SADB file error for: {username_str}")
+								client_socket.send(b"\x01")
+								break
 						else:
-							log.warning(f"{clientid}SADB file error for: {username_str}")
+							log.warning(f"{clientid}Password change failed for: {username_str}")
 							client_socket.send(b"\x01")
-					else:
-						log.warning(f"{clientid}Password change failed for: {username_str}")
-						client_socket.send(b"\x01")
+							break
 				else:
 					log.warning(f"{clientid}Password change message could not be decrypted")
 					client_socket.send(b"\x01")
@@ -1944,6 +1979,8 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x00")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x21":  # Check key - password reset
@@ -1986,6 +2023,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x00")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -2821,6 +2860,8 @@ class authserver(TCPNetworkHandler):
 				username_str = usernamechk.rstrip(b'\x00')
 				if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 					client_socket.send(b"\x00")
+					if self.config["smtp_enabled"].lower == "true":
+						self.send_validation_email(username_str.decode('latin-1'))
 				else:
 					client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0f":  # Reset password
@@ -2867,22 +2908,33 @@ class authserver(TCPNetworkHandler):
 					sig = reply2[-20:]
 					dec_blob = encryption.aes_decrypt(key, innerIV, enc_blob)
 					unser_blob = blobs.blob_unserialize(dec_blob[:-dec_blob[-1]])
+					while True:
+						if self.config["smtp_enabled"].lower == "true":
+							if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+								pass
+							else:
+								log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
+								client_socket.send(b"\x01")
+								break
 
-					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
-						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-						if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
-							with open("files/users/" + username_str + ".py", 'w') as userblobfile:
-								userblobfile.write("user_registry = ")
-								userblobfile.write(str(userblob))
-							log.info(f"{clientid}Password changed for: {username_str}")
-							client_socket.send(b"\x00")
+						if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
+							userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
+							if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
+								with open("files/users/" + username_str + ".py", 'w') as userblobfile:
+									userblobfile.write("user_registry = ")
+									userblobfile.write(str(userblob))
+								log.info(f"{clientid}Password changed for: {username_str}")
+								client_socket.send(b"\x00")
+								break
+							else:
+								log.warning(f"{clientid}SADB file error for: {username_str}")
+								client_socket.send(b"\x01")
+								break
 						else:
-							log.warning(f"{clientid}SADB file error for: {username_str}")
+							log.warning(f"{clientid}Password change failed for: {username_str}")
 							client_socket.send(b"\x01")
-					else:
-						log.warning(f"{clientid}Password change failed for: {username_str}")
-						client_socket.send(b"\x01")
+							break
 				else:
 					log.warning(f"{clientid}Password change message could not be decrypted")
 					client_socket.send(b"\x01")
@@ -2927,6 +2979,8 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x00")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x21":  # Check key - password reset
@@ -2970,6 +3024,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x00")
+						if self.config["smtp_enabled"].lower == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -2998,6 +3054,15 @@ class authserver(TCPNetworkHandler):
 
 		client_socket.close()
 		log.info(f"{clientid}Disconnected from Auth Server")
+	def send_validation_email(self, username_str):
+		# Send Email Verification Code and Password Recoveru Qiuestion
+		if self.config["smtp_enabled"].lower == "true":
+			with open("files/users/" + username_str.decode() + ".py", 'r') as userblobfile:
+				userblobstr = userblobfile.read()
+				userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
+
+			new_code = self.manager.generate_code(username_str.decode('latin-1'))
+			sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str][b'\x03\x00\x00\x00'])
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")
@@ -3793,6 +3858,8 @@ class authserver(TCPNetworkHandler):
 			username_str = usernamechk.rstrip(b'\x00')
 			if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 				client_socket.send(b"\x00")
+				if self.config["smtp_enabled"].lower == "true":
+					self.send_validation_email(username_str.decode('latin-1'))
 			else:
 				client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0f":  # Reset password
@@ -3843,22 +3910,33 @@ class authserver(TCPNetworkHandler):
 				padding_byte = dec_blob[-1:]
 				padding_int = struct.unpack(">B", padding_byte)
 				unser_blob = blobs.blob_unserialize(dec_blob[:-padding_int[0]])
+				while True:
+					if self.config["smtp_enabled"].lower == "true":
+						if self.manager.validate_code(unser_blob[b"\x05\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
+							pass
+						else:
+							log.warning(f"{clientid}Validation Code Incorrect for: {username_str}")
+							client_socket.send(b"\x01")
+							break
 
-				if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
-					userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
-					userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
-					if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
-						with open("files/users/" + username_str + ".py", 'w') as userblobfile:
-							userblobfile.write("user_registry = ")
-							userblobfile.write(str(userblob))
-						log.info(f"{clientid}Password changed for: {username_str}")
-						client_socket.send(b"\x00")
+					if unser_blob[b'\x01\x00\x00\x00'] == userblob[b'\x05\x00\x00\x00'][username_str][b'\x04\x00\x00\x00']:
+						userblob[b'\x05\x00\x00\x00'][username_str][b'\x01\x00\x00\x00'] = unser_blob[b'\x03\x00\x00\x00']
+						userblob[b'\x05\x00\x00\x00'][username_str][b'\x02\x00\x00\x00'] = unser_blob[b'\x02\x00\x00\x00']
+						if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
+							with open("files/users/" + username_str + ".py", 'w') as userblobfile:
+								userblobfile.write("user_registry = ")
+								userblobfile.write(str(userblob))
+							log.info(f"{clientid}Password changed for: {username_str}")
+							client_socket.send(b"\x00")
+							break
+						else:
+							log.warning(f"{clientid}SADB file error for: {username_str}")
+							client_socket.send(b"\x01")
+							break
 					else:
-						log.warning(f"{clientid}SADB file error for: {username_str}")
+						log.warning(f"{clientid}Password change failed for: {username_str}")
 						client_socket.send(b"\x01")
-				else:
-					log.warning(f"{clientid}Password change failed for: {username_str}")
-					client_socket.send(b"\x01")
+						break
 			else:
 				log.warning(f"{clientid}Password change message could not be decrypted")
 				client_socket.send(b"\x01")
@@ -3905,6 +3983,8 @@ class authserver(TCPNetworkHandler):
 							break
 				if email_found:
 					client_socket.send(b"\x00")
+					if self.config["smtp_enabled"].lower == "true":
+						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 				else:
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x21":  # Check key - password reset
@@ -3950,6 +4030,8 @@ class authserver(TCPNetworkHandler):
 										break
 				if key_found:
 					client_socket.send(b"\x00")
+					if self.config["smtp_enabled"].lower == "true":
+						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
 				else:
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0b":  # Send CDR for v2 beta

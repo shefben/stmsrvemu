@@ -74,7 +74,7 @@ def load_ccdb():
     # Initialize the database driver
     db_driver = dbengine.create_database_driver(config['database_type'])
     db_driver.connect()
-    if config["use_py_firstblob"].lower() != "true" and str(config["steam_date"]) != "" and str(config["steam_time"]) != "":
+    if config["use_file_blobs"].lower() != "true" and str(config["steam_date"]) != "" and str(config["steam_time"]) != "":
         if db_driver.check_table_exists('firstblob'):
             logging.debug("Reading CCDB")
 
