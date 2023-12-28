@@ -33,6 +33,7 @@ dirs_to_create = [
     "files/convert",
     "files/cache",
     "files/beta1_ftp",
+    "files/email_tpl",
 ]
 
 def create_dirs() :

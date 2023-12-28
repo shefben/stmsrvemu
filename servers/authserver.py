@@ -28,6 +28,7 @@ from utilities import cdr_manipulator, sendmail, validationcode_manager
 from utilities import blobs
 from utilities.database import ccdb
 from utilities.networkhandler import TCPNetworkHandler
+from utilities.sendmail import send_password_changed_email
 
 
 # noinspection ProblematicWhitespace
@@ -256,6 +257,8 @@ class authserver(TCPNetworkHandler):
 								userblobfile.write(str(userblob))
 							log.info(f"{clientid}Password changed for: {username}")
 							client_socket.send(b"\x01")
+							if self.config["smtp_enabled"].lower() == "true":
+								send_password_changed_email(userblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 						else:
 							log.warning(f"{clientid}SADB file error for: {username}")
 							client_socket.send(b"\x00")
@@ -828,6 +831,8 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob))
 
 				client_socket.send(b"\x01")
+				if self.config['smtp_enabled'].lower() == "true":
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -855,8 +860,8 @@ class authserver(TCPNetworkHandler):
 
 				if os.path.isfile("files/users/" + username_str.decode() + ".py"):  # NEED TO FIX
 					client_socket.send(b"\x01")
-					if self.config["smtp_enable"].lower == "true":
-						self.send_validation_email(username_str.decode('latin-1'))
+					if self.config["smtp_enabled"].lower() == "true":
+						self.send_validation_email(username_str.decode('latin-1'), client_address)
 				else:
 					client_socket.send(b"\x00")
 
@@ -907,7 +912,7 @@ class authserver(TCPNetworkHandler):
 					padding_byte = dec_blob[-1]
 					unser_blob = blobs.blob_unserialize(dec_blob[:-padding_byte])
 					while True:
-						if self.config["smtp_enable"].lower == "true":
+						if self.config["smtp_enabled"].lower() == "true":
 							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 								pass
 							else:
@@ -978,8 +983,8 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x01")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x00")
 
@@ -1023,8 +1028,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x01")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x00")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -1281,6 +1286,8 @@ class authserver(TCPNetworkHandler):
 								userblobfile.write(str(userblob))
 							log.info(f"{clientid}Password changed for: {username}")
 							client_socket.send(b"\x00")
+							if self.config["smtp_enabled"].lower() == "true":
+								send_password_changed_email(userblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 						else:
 							log.warning(f"{clientid}SADB file error for: {username}")
 							client_socket.send(b"\x01")
@@ -1404,6 +1411,7 @@ class authserver(TCPNetworkHandler):
 				blob_encrypted = struct.pack(">L", blob_encrypted_len) + b"\x01\x45" + struct.pack("<LL", blob_encrypted_len, 0) + blob_encrypted
 				ticket = ticket + blob_encrypted
 				ticket_signed = ticket + encryption.sign_message(innerkey, ticket)
+				# TODO BEN, CHECK IF WE SHOULD SEND EMAIL ABOUT THIS!
 				client_socket.send(b"\x00" + blob_encrypted + blob_signature)
 			elif command[0:1] == b"\x13": # Verify email..?
 				log.info(f"{clientid}Verify Email - Not Operational")
@@ -1835,6 +1843,8 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob))
 
 				client_socket.send(b"\x00")
+				if self.config['smtp_enabled'].lower() == "true":
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -1861,8 +1871,8 @@ class authserver(TCPNetworkHandler):
 				username_str = usernamechk.rstrip(b'\x00')
 				if os.path.isfile("files/users/" + username_str.decode() + ".py"):
 					client_socket.send(b"\x00")
-					if self.config["smtp_enable"].lower == "true":
-						self.send_validation_email(username_str.decode('latin-1'))
+					if self.config["smtp_enabled"].lower() == "true":
+						self.send_validation_email(username_str.decode('latin-1'), client_address)
 				else:
 					client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0f":  # Reset password
@@ -1911,7 +1921,7 @@ class authserver(TCPNetworkHandler):
 					unser_blob = blobs.blob_unserialize(dec_blob[:-pad_size])
 					pprint.pprint(unser_blob)
 					while True:
-						if self.config["smtp_enable"].lower == "true":
+						if self.config["smtp_enabled"].lower() == "true":
 							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 
 								pass
@@ -1981,8 +1991,8 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x00")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x21":  # Check key - password reset
@@ -2025,8 +2035,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x00")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -2279,6 +2289,8 @@ class authserver(TCPNetworkHandler):
 								userblobfile.write(str(userblob))
 							log.info(f"{clientid}Password changed for: {username}")
 							client_socket.send(b"\x00")
+							if self.config["smtp_enabled"].lower() == "true":
+								send_password_changed_email(userblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 						else:
 							log.warning(f"{clientid}SADB file error for: {username}")
 							client_socket.send(b"\x01")
@@ -2835,6 +2847,8 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob_fixed))
 
 				client_socket.send(b"\x00")
+				if self.config['smtp_enabled'].lower() == "true":
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -2862,8 +2876,8 @@ class authserver(TCPNetworkHandler):
 				username_str = usernamechk.rstrip(b'\x00')
 				if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 					client_socket.send(b"\x00")
-					if self.config["smtp_enable"].lower == "true":
-						self.send_validation_email(username_str.decode('latin-1'))
+					if self.config["smtp_enabled"].lower() == "true":
+						self.send_validation_email(username_str.decode('latin-1'), client_address)
 				else:
 					client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0f":  # Reset password
@@ -2911,7 +2925,7 @@ class authserver(TCPNetworkHandler):
 					dec_blob = encryption.aes_decrypt(key, innerIV, enc_blob)
 					unser_blob = blobs.blob_unserialize(dec_blob[:-dec_blob[-1]])
 					while True:
-						if self.config["smtp_enable"].lower == "true":
+						if self.config["smtp_enabled"].lower() == "true":
 							if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 								pass
 							else:
@@ -2981,8 +2995,8 @@ class authserver(TCPNetworkHandler):
 								break
 					if email_found:
 						client_socket.send(b"\x00")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x21":  # Check key - password reset
@@ -3026,8 +3040,8 @@ class authserver(TCPNetworkHandler):
 											break
 					if key_found:
 						client_socket.send(b"\x00")
-						if self.config["smtp_enable"].lower == "true":
-							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+						if self.config["smtp_enabled"].lower() == "true":
+							self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
@@ -3056,15 +3070,14 @@ class authserver(TCPNetworkHandler):
 
 		client_socket.close()
 		log.info(f"{clientid}Disconnected from Auth Server")
-	def send_validation_email(self, username_str):
+	def send_validation_email(self, username_str, client_address):
 		# Send Email Verification Code and Password Recoveru Qiuestion
-		if self.config["smtp_enable"].lower == "true":
-			with open("files/users/" + username_str.decode() + ".py", 'r') as userblobfile:
-				userblobstr = userblobfile.read()
-				userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
+		with open("files/users/" + username_str.decode() + ".py", 'r') as userblobfile:
+			userblobstr = userblobfile.read()
+			userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
 
-			new_code = self.manager.generate_code(username_str.decode('latin-1'))
-			sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str][b'\x03\x00\x00\x00'])
+		new_code = self.manager.generate_code(username_str.decode('latin-1'))
+		sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str][b'\x03\x00\x00\x00'], client_address, username_str.decode('latin-1'))
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")
@@ -3253,6 +3266,8 @@ class authserver(TCPNetworkHandler):
 							userblobfile.write(str(userblob))
 						log.info(f"{clientid}Password changed for: {username}")
 						client_socket.send(b"\x00")
+					if self.config["smtp_enabled"].lower() == "true":
+						send_password_changed_email(userblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 					else:
 						log.warning(f"{clientid}SADB file error for: {username}")
 						client_socket.send(b"\x01")
@@ -3831,6 +3846,8 @@ class authserver(TCPNetworkHandler):
 				userblobfile.write(str(plainblob))
 
 			client_socket.send(b"\x01")  # TO DO SEND \x00 FOR EMAIL IN USE
+		if self.config['smtp_enabled'].lower() == "true":
+			sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 		elif command[0:1] == b"\x0e":  # Check username - password reset
 			log.info(f"{clientid}Password reset: check username exists")
 			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
@@ -3860,8 +3877,8 @@ class authserver(TCPNetworkHandler):
 			username_str = usernamechk.rstrip(b'\x00')
 			if os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py"):
 				client_socket.send(b"\x00")
-				if self.config["smtp_enable"].lower == "true":
-					self.send_validation_email(username_str.decode('latin-1'))
+				if self.config["smtp_enabled"].lower() == "true":
+					self.send_validation_email(username_str.decode('latin-1'), client_address)
 			else:
 				client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0f":  # Reset password
@@ -3913,7 +3930,7 @@ class authserver(TCPNetworkHandler):
 				padding_int = struct.unpack(">B", padding_byte)
 				unser_blob = blobs.blob_unserialize(dec_blob[:-padding_int[0]])
 				while True:
-					if self.config["smtp_enable"].lower == "true":
+					if self.config["smtp_enabled"].lower() == "true":
 						if self.manager.validate_code(unser_blob[b"\x04\x00\x00\x00"].rstrip(b'\x00').decode('latin-1'), username_str.decode('latin-1')):
 							pass
 						else:
@@ -3985,8 +4002,8 @@ class authserver(TCPNetworkHandler):
 							break
 				if email_found:
 					client_socket.send(b"\x00")
-					if self.config["smtp_enable"].lower == "true":
-						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+					if self.config["smtp_enabled"].lower() == "true":
+						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 				else:
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x21":  # Check key - password reset
@@ -4032,8 +4049,8 @@ class authserver(TCPNetworkHandler):
 										break
 				if key_found:
 					client_socket.send(b"\x00")
-					if self.config["smtp_enable"].lower == "true":
-						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'))
+					if self.config["smtp_enabled"].lower() == "true":
+						self.send_validation_email(userblob[b'\x01\x00\x00\x00'].rstrip(b'\x00').decode('latin-1'), client_address)
 				else:
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0b":  # Send CDR for v2 beta

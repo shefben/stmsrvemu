@@ -100,8 +100,8 @@ class MasterServer(UDPNetworkHandler):
                             num, maxplayers, bots, gamedir, map, os, password, dedicated, secure, info, len(info))
             server_manager.add_server(server)
         else:
-            server.time = time.time()
-            server.players = num
+			server.time = int(time.time())
+			server.players = int(num)
             server.max = maxplayers
             server.bots = bots
             server.gamedir = gamedir
@@ -169,7 +169,8 @@ class MasterServer(UDPNetworkHandler):
 
         for server in server_list :
             server_ip_int = struct.unpack('!I', real_socket.inet_aton(server.address[0]))[0]
-            if server_ip_int <= nextid :
+			if nextid_ip != "0.0.0.0":
+				if server_ip_int <= nextid :
                 continue  # Skip servers until reaching the one after nextid
             #if criteria is not None and not server_manager.server_passes_criteria(server, criteria) :
             #    continue

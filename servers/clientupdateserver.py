@@ -68,7 +68,7 @@ class clientupdateserver(TCPNetworkHandler):
 		if len(msg) == 0:
 			log.info(clientid + "Got simple handshake. Closing connection.")
 
-		elif msg == b"\x00\x00\x00\x00":  # \x00 for 2003 beta v2 client update
+		elif msg == b"\x00\x00\x00\x00":  # 2003 beta v2 client update
 			log.info(clientid + "Package mode entered")
 			client_socket.send(b"\x01")
 			while True:
@@ -117,31 +117,38 @@ class clientupdateserver(TCPNetworkHandler):
 							try:
 								os.mkdir("files/cache/external")
 							except OSError as error:
-								log.debug(clientid + "External pkg dir already exists")
+									log.debug(clientid + "External beta pkg dir already exists")
+								try :
+									os.mkdir("files/cache/external/betav2")
+								except OSError as error :
+									log.debug(clientid + "External beta pkg dir already exists")
 
 							try:
 								os.mkdir("files/cache/internal")
 							except OSError as error:
-								log.debug(clientid + "Internal pkg dir already exists")
+									log.debug(clientid + "Internal beta pkg dir already exists")
+								try :
+									os.mkdir("files/cache/internal/betav2")
+								except OSError as error :
+									log.debug(clientid + "Internal beta pkg dir already exists")
+
 
 							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-								if not os.path.isfile("files/cache/internal/" + newfilename.decode()):
-									neuter(self.config["packagedir"] + "betav2/" + newfilename.decode(),
-										   "files/cache/internal/" + newfilename.decode(), self.config["server_ip"],
-										   self.config["dir_server_port"], islan)
-								f = open('files/cache/internal/' + newfilename.decode(), 'rb')
+								if not os.path.isfile("files/cache/internal/betav2/" + newfilename) :
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/internal/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+								f = open('files/cache/internal/betav2/' + newfilename, 'rb')
 							else:
-								if not os.path.isfile("files/cache/external/" + newfilename.decode()):
-									neuter(self.config["packagedir"] + "betav2/" + newfilename.decode(),
-										   "files/cache/external/" + newfilename.decode(), self.config["public_ip"],
-										   self.config["dir_server_port"], islan)
-								f = open('files/cache/external/' + newfilename.decode(), 'rb')
+								if not os.path.isfile("files/cache/external/betav2/" + newfilename) :
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/external/betav2/" + newfilename, self.config["public_ip"], self.config["dir_server_port"], "wan")
+								f = open('files/cache/external/betav2/' + newfilename, 'rb')
 						else:
-							if not os.path.isfile("files/cache/" + newfilename.decode()):
-								neuter(self.config["packagedir"] + "betav2/" + newfilename.decode(),
-									   "files/cache/" + newfilename.decode(), self.config["server_ip"],
-									   self.config["dir_server_port"], islan)
-							f = open('files/cache/' + newfilename.decode(), 'rb')
+							try :
+								os.mkdir("files/cache/betav2")
+							except OSError as error :
+								log.debug(clientid + "Beta pkg dir already exists")
+							if not os.path.isfile("files/cache/betav2/" + newfilename) :
+								neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+							f = open('files/cache/betav2/' + newfilename, 'rb')
 
 						file = f.read()
 						f.close()
@@ -159,29 +166,38 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error:
 								log.debug(clientid + "External pkg dir already exists")
 
+							try :
+								os.mkdir("files/cache/external/betav2")
+							except OSError as error :
+								log.debug(clientid + "External beta pkg dir already exists")
+
 							try:
 								os.mkdir("files/cache/internal")
 							except OSError as error:
 								log.debug(clientid + "Internal pkg dir already exists")
 
+							try :
+								os.mkdir("files/cache/internal/betav2")
+							except OSError as error :
+								log.debug(clientid + "Internal beta pkg dir already exists")
+
 							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
-								if not os.path.isfile("files/cache/internal/" + filename.decode()):
-									#print(filename)
-									neuter(self.config["packagedir"] + "betav2/" + filename.decode(),
-										   "files/cache/internal/" + filename.decode(), self.config["server_ip"],
-										   self.config["dir_server_port"], islan)
-								f = open('files/cache/internal/' + filename.decode(), 'rb')
+								if not os.path.isfile("files/cache/internal/betav2/" + filename) :
+									neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/internal/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+								f = open('files/cache/internal/betav2/' + filename, 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/" + filename.decode()):
-									neuter(self.config["packagedir"] + "betav2/" + filename.decode(),
-										   "files/cache/external/" + filename.decode(), self.config["public_ip"],
-										   self.config["dir_server_port"], islan)
-								f = open('files/cache/external/' + filename.decode(), 'rb')
+									if not os.path.isfile("files/cache/external/betav2/" + filename) :
+										neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/external/betav2/" + filename, self.config["public_ip"], self.config["dir_server_port"], "wan")
+									f = open('files/cache/external/betav2/' + filename, 'rb')
 						else:
-							if not os.path.isfile("files/cache/" + filename.decode()):
-								neuter(self.config["packagedir"] + "betav2/" + filename.decode(), "files/cache/" + filename.decode(),
-									   self.config["server_ip"], self.config["dir_server_port"], islan)
-							f = open('files/cache/' + filename.decode(), 'rb')
+							try :
+								os.mkdir("files/cache/betav2")
+							except OSError as error :
+								log.debug(clientid + "Beta pkg dir already exists")
+							if not os.path.isfile("files/cache/betav2/" + filename) :
+								neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+							f = open('files/cache/betav2/' + filename, 'rb')
 
 						file = f.read()
 						f.close()
@@ -197,7 +213,7 @@ class clientupdateserver(TCPNetworkHandler):
 				else:
 					log.warning(clientid + "1 invalid Command")
 
-		elif msg == b"\x00\x00\x00\x02" or msg == b"\x00\x00\x00\x03":
+		elif msg == b"\x00\x00\x00\x02" or msg == b"\x00\x00\x00\x03":  # release client update
 			log.info(clientid + "Package mode entered")
 			client_socket.send(b"\x01")
 			while True:
@@ -316,7 +332,7 @@ class clientupdateserver(TCPNetworkHandler):
 				else:
 					log.warning(clientid + "2 Invalid Command: " + str(command))
 
-		elif msg == b"\x00\x00\x00\x07":
+		elif msg == b"\x00\x00\x00\x07":  # cdr download
 			log.info(clientid + "CDDB mode entered")
 			client_socket.send(b"\x01")
 			while True:

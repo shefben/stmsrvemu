@@ -47,7 +47,7 @@ class steamweb():
         log.debug(serverid + "Apache2 default config file: " + default_conf_file)
         log.debug(serverid + "Apache2 web root folder: " + web_root)
 
-        httpd.check_config(conf_file, http_ip, http_port, web_root, default_conf_file)
+        httpd.check_config(conf_file,http_port,web_root,default_conf_file)
         log.debug(serverid + "Apache2 config file created")
 
         proc = subprocess.Popen(apache_bin + " -f " + conf_file_short, cwd=apache_bin_dir)

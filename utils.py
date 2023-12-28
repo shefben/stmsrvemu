@@ -764,3 +764,19 @@ def parent_initializer():
 
 	# check for a peer_password, otherwise generate one
 	return check_peerpassword()
+
+def get_location(ip_address):
+	url = f'http://ip-api.com/json/{ip_address}'
+	try:
+		response = requests.get(url)
+		response.raise_for_status()
+		data = response.json()
+
+		if data['status'] == 'success':
+			country = data.get('country', 'Unknown')
+			region_name = data.get('regionName', 'Unknown')
+			return country, region_name
+		else:
+			return 'Failed to retrieve data', 'Failed to retrieve data'
+	except requests.RequestException as e:
+		return f'Error: {e}', f'Error: {e}'

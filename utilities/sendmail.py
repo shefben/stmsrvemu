@@ -1,6 +1,8 @@
 from builtins import str
 import smtplib
+import logger
 from email.mime.text import MIMEText
+import utils
 from config import get_config as read_config
 
 config = read_config()
@@ -33,39 +35,76 @@ def send_email_via_smtp(msg):
 	except Exception as e:
 		print("Error sending email:", str(e))
 
+def load_email_template(template_name, **kwargs):
+	template_path = os.path.join('/files/email_tpl/', template_name)
+	with open(template_path, 'r') as file:
+		template = file.read()
 
-def sendusername_email(to_email, username):
-	subject = 'Stmserver Username Retrieval'
-	body = 'Hello,\n\nYour username for Stmserver is: {}\n\nIf you did not request this information, please ignore ' \
-		   'this email.\n\nBest regards,\nYour Stmserver Team'.format(username)
+	kwargs['support_email'] = config['support_email']
+	kwargs['network_name'] = config['network_name']
+	kwargs['network_url'] = config['http_name']  # or http_ip??? TODO BEN, FIGURE THIS OUT
+	kwargs['logo_url'] = config['network_logo']
+
+	if config['email_includelocation'].lower() == "true":
+		country, region_name = utils.get_location(kwargs['ipaddress'])
+		kwargs['ip_location_msg'] = f" (Location: {country}, {region_name})"
+	else:
+		kwargs['ip_location_msg'] = ""
+
+	print(f'Country: {country}, Region: {region_name}')
+	return template.format(**kwargs)
+
+def send_username_email(to_email, username, ipaddress):
+	subject = f"{config['network_name']}: Username Retrieval"
+	body = load_email_template('username_retrieval.tpl', username=username, ipaddress=ipaddress)
 
 	msg = MIMEText(body)
 	msg['Subject'] = subject
-	msg['From'] = config['admin_email']
+	msg['From'] = config['support_email']
 	msg['To'] = to_email
 
 	send_email_via_smtp(msg)
 
-
-def send_reset_password_email(to_email, verification_code, question):
-	subject = 'Password Reset Request'
-	body = 'Hello,\n\nYou have requested a password reset for your account.\n\nVerification Code: ' + verification_code + '\nSecret Question: ' + question + '\n\nIf you did not request this reset, please ignore this email.\n\nBest regards,\nYour Stmserver Team'
+def send_reset_password_email(to_email, verification_code, question, ipaddress, username):
+	subject = f"{config['network_name']}: Password Reset Request"
+	body = load_email_template('password_reset_request.tpl', verification_code=verification_code, question=question, ipaddress=ipaddress, username=username)
 
 	msg = MIMEText(body)
 	msg['Subject'] = subject
-	msg['From'] = config['admin_email']
+	msg['From'] = config['support_email']
 	msg['To'] = to_email
 
 	send_email_via_smtp(msg)
 
-
-def send_verification_email(to_email, verification_token):
-	subject = 'Account Verification'
-	body = 'Hello,\n\nThank you for registering with Stmserver. To verify your account, please use the following verification token:\n\nVerification Token: ' + verification_token + '\n\nIf you did not create an account, please ignore this email.\n\nBest regards,\nYour Stmserver Team'
+def send_verification_email(to_email, verification_token, ipaddress, username):
+	subject = f"{config['network_name']}: Account Verification"
+	body = load_email_template('account_verification.tpl', verification_code=verification_token, ipaddress=ipaddress, username=username)
 
 	msg = MIMEText(body)
 	msg['Subject'] = subject
-	msg['From'] = config['admin_email']
+	msg['From'] = config['support_email']
+	msg['To'] = to_email
+
+	send_email_via_smtp(msg)
+
+def send_new_user_email(to_email, ipaddress, username):
+	subject = f"Welcome to {config['network_name']}!"
+	body = load_email_template('new_user_welcome.tpl', ipaddress=ipaddress, username=username)
+
+	msg = MIMEText(body)
+	msg['Subject'] = subject
+	msg['From'] = config['support_email']
+	msg['To'] = to_email
+
+	send_email_via_smtp(msg)
+
+def send_password_changed_email(to_email, ipaddress, username):
+	subject = f"{config['network_name']}: Password Change Notice"
+	body = load_email_template('password_changed.tpl', ipaddress=ipaddress, username=username)
+
+	msg = MIMEText(body)
+	msg['Subject'] = subject
+	msg['From'] = config['support_email']
 	msg['To'] = to_email
 
 	send_email_via_smtp(msg)
