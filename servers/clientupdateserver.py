@@ -118,19 +118,19 @@ class clientupdateserver(TCPNetworkHandler):
 								os.mkdir("files/cache/external")
 							except OSError as error:
 									log.debug(clientid + "External beta pkg dir already exists")
-								try :
-									os.mkdir("files/cache/external/betav2")
-								except OSError as error :
-									log.debug(clientid + "External beta pkg dir already exists")
+							try :
+								os.mkdir("files/cache/external/betav2")
+							except OSError as error :
+								log.debug(clientid + "External beta pkg dir already exists")
 
 							try:
 								os.mkdir("files/cache/internal")
 							except OSError as error:
 									log.debug(clientid + "Internal beta pkg dir already exists")
-								try :
-									os.mkdir("files/cache/internal/betav2")
-								except OSError as error :
-									log.debug(clientid + "Internal beta pkg dir already exists")
+							try :
+								os.mkdir("files/cache/internal/betav2")
+							except OSError as error :
+								log.debug(clientid + "Internal beta pkg dir already exists")
 
 
 							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
@@ -398,7 +398,7 @@ class clientupdateserver(TCPNetworkHandler):
 					print("WARNING: Replacement text " + replace.decode() + " is too long! Not replaced!")
 				else:
 					fileold = file
-					file = file.replace(search.decode('latin-1'), replacedecode('latin-1'))
+					file = file.replace(search.decode('latin-1'), replace.decode('latin-1'))
 					if (search in fileold) and (replace in file):
 						print("Replaced " + info.decode() + " " + search.decode() + " with " + replace.decode())
 			# h = open("files/2ndcdr.py", "w")
