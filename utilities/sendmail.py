@@ -1,8 +1,11 @@
-from builtins import str
 import smtplib
+import os
 import logger
+
 from email.mime.text import MIMEText
+
 import utils
+
 from config import get_config as read_config
 
 config = read_config()

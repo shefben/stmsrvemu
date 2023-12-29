@@ -37,6 +37,7 @@ class authserver(TCPNetworkHandler):
 		self.server_type = "AuthServer"
 		self.innerkey = binascii.a2b_hex("10231230211281239191238542314233")
 		self.manager = validationcode_manager.VerificationCodeManager()
+		self.suggestednames_amnt = int(config['amount_of_suggested_names'])
 		# Create an instance of NetworkHandler
 		super(authserver, self).__init__(config, port, self.server_type)
 
@@ -417,6 +418,25 @@ class authserver(TCPNetworkHandler):
 			elif command[0:1] == b"\x1f":
 				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
 				log.debug(command)
+				self.send_mainkey(client_socket)
+				reply = client_socket.recv_withlen()
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				pprint.pprint(plainblob)
 				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
@@ -686,7 +706,7 @@ class authserver(TCPNetworkHandler):
 				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer - Not Operational")
 				log.debug(command)
 				client_socket.send("\x01")
-			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
+			elif command[0:1] == b"\x1d":  # Check username - new user
 				self.send_mainkey(client_socket)
 
 				reply = client_socket.recv_withlen()
@@ -714,10 +734,40 @@ class authserver(TCPNetworkHandler):
 				log.info(f"{clientid}New user: check username exists: {username_str}")
 				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: username not found")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x1e":
+				log.info(f"{clientid}Get Suggested names packet")
+				self.send_mainkey(client_socket)
+
+				reply = client_socket.recv_withlen()
+
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				# print(plainblob)
+				username = plainblob[b'\x01\x00\x00\x00']
+				username_str = username.rstrip(b'\x00')
+
+				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				ser_suggestednames = blobs.blob_serialize(suggestedname)
+				client_socket.send_withlen(ser_suggestednames)
+
 			elif command[0:1] == b"\x22":  # Check email - new user
 				self.send_mainkey(client_socket)
 				reply = client_socket.recv_withlen()
@@ -755,7 +805,7 @@ class authserver(TCPNetworkHandler):
 							break
 				if email_exists:
 					log.warning(f"{clientid}New user: email already in use")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
@@ -1440,6 +1490,25 @@ class authserver(TCPNetworkHandler):
 			elif command[0:1] == b"\x1f":
 				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
 				log.debug(command)
+				self.send_mainkey(client_socket)
+				reply = client_socket.recv_withlen()
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				pprint.pprint(plainblob)
 				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
@@ -1692,7 +1761,7 @@ class authserver(TCPNetworkHandler):
 				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer  - Not Operational")
 				log.debug(command)
 				client_socket.send("\x01")
-			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
+			elif command[0:1] == b"\x1d":  # Check username - new user
 				self.send_mainkey(client_socket)
 
 				reply = client_socket.recv_withlen()
@@ -1720,10 +1789,40 @@ class authserver(TCPNetworkHandler):
 				log.info(f"{clientid}New user: check username exists: {username_str}")
 				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: username not found")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x1e":
+				log.info(f"{clientid}Get Suggested names packet")
+				self.send_mainkey(client_socket)
+
+				reply = client_socket.recv_withlen()
+
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				# print(plainblob)
+				username = plainblob[b'\x01\x00\x00\x00']
+				username_str = username.rstrip(b'\x00')
+
+				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				ser_suggestednames = blobs.blob_serialize(suggestedname)
+				client_socket.send_withlen(ser_suggestednames)
+
 			elif command[0:1] == b"\x22":  # Check email - new user
 				self.send_mainkey(client_socket)
 
@@ -1762,7 +1861,7 @@ class authserver(TCPNetworkHandler):
 							break
 				if email_exists:
 					log.warning(f"{clientid}New user: email already in use")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
@@ -2442,6 +2541,25 @@ class authserver(TCPNetworkHandler):
 			elif command[0:1] == b"\x1f":
 				log.info(f"{clientid}Generate Suggested Name packet 2 - Not Operational")
 				log.debug(command)
+				self.send_mainkey(client_socket)
+				reply = client_socket.recv_withlen()
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug("Message verification:" + repr(encryption.verify_message(key, cryptedblob)))
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				pprint.pprint(plainblob)
 				client_socket.send("\x01")
 			elif command[0:1] == b"\x05":  # Subscribe
 				ticket_full = binascii.b2a_hex(command)
@@ -2698,7 +2816,7 @@ class authserver(TCPNetworkHandler):
 				log.info(f"{clientid}Get Encrypted UserID Ticket To Send To AppServer - Not Operational")
 				log.debug(command)
 				client_socket.send("\x01")
-			elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
+			elif command[0:1] == b"\x1d":  # Check username - new user
 				self.send_mainkey(client_socket)
 
 				reply = client_socket.recv_withlen()
@@ -2728,10 +2846,39 @@ class authserver(TCPNetworkHandler):
 				# TODO SEND SUGGESTIONS PACKET
 				if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 					log.warning(f"{clientid}New user: username already exists")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: username not found")
 					client_socket.send(b"\x00")
+			elif command[0:1] == b"\x1e":
+				log.info(f"{clientid}Get Suggested names packet")
+				self.send_mainkey(client_socket)
+
+				reply = client_socket.recv_withlen()
+
+				RSAdata = reply[2:130]
+				datalength = struct.unpack(">L", reply[130:134])[0]
+				cryptedblob_signature = reply[134:136]
+				cryptedblob_length = reply[136:140]
+				cryptedblob_slack = reply[140:144]
+				cryptedblob = reply[144:]
+
+				key = encryption.get_aes_key(RSAdata, encryption.network_key)
+				log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
+				plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+				IV = cryptedblob[4:20]
+				ciphertext = cryptedblob[20:-20]
+				plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+				plaintext = plaintext[0:plaintext_length]
+				# print(plaintext)
+				plainblob = blobs.blob_unserialize(plaintext)
+				# print(plainblob)
+				username = plainblob[b'\x01\x00\x00\x00']
+				username_str = username.rstrip(b'\x00')
+
+				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				ser_suggestednames = blobs.blob_serialize(suggestedname)
+				client_socket.send_withlen(ser_suggestednames)
 			elif command[0:1] == b"\x22":  # Check email - new user
 				self.send_mainkey(client_socket)
 
@@ -2770,7 +2917,7 @@ class authserver(TCPNetworkHandler):
 							break
 				if email_exists:
 					log.warning(f"{clientid}New user: email already in use")
-					client_socket.send(b"\xff")  # not working
+					client_socket.send(b"\x01")
 				else:
 					log.info(f"{clientid}New user: email ok to use")
 					client_socket.send(b"\x00")
@@ -3710,7 +3857,7 @@ class authserver(TCPNetworkHandler):
 			ticket_signed = ticket + hmac.new(client_ticket[0:16], ticket, hashlib.sha1).digest()
 
 			client_socket.send(b"\x00\x01" + struct.pack(">I", len(ticket_signed)) + ticket_signed)
-		elif command[0:1] == b"\x1d" or command[0:1] == b"\x1e":  # Check username - new user
+		elif command[0:1] == b"\x1d":  # Check username - new user
 			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
 			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
 			reply = struct.pack(">H", len(BERstring)) + BERstring + struct.pack(">H", len(signature)) + signature
@@ -3741,10 +3888,40 @@ class authserver(TCPNetworkHandler):
 			# TODO BEN SEND SUGGESTED NAMES IF NAME EXISTS
 			if (os.path.isfile("files/users/" + username_str.decode('latin-1') + ".py")):
 				log.warning(f"{clientid}New user: username already exists")
-				client_socket.send(b"\xff")  # not working
+				client_socket.send(b"\x01")
 			else:
 				log.info(f"{clientid}New user: username not found")
 				client_socket.send(b"\x00")
+		elif command[0:1] == b"\x1e":
+			log.info(f"{clientid}Get Suggested names packet")
+			self.send_mainkey(client_socket)
+
+			reply = client_socket.recv_withlen()
+
+			RSAdata = reply[2:130]
+			datalength = struct.unpack(">L", reply[130:134])[0]
+			cryptedblob_signature = reply[134:136]
+			cryptedblob_length = reply[136:140]
+			cryptedblob_slack = reply[140:144]
+			cryptedblob = reply[144:]
+
+			key = encryption.get_aes_key(RSAdata, encryption.network_key)
+			log.debug(f"Message verification:{repr(encryption.verify_message(key, cryptedblob))}")
+			plaintext_length = struct.unpack("<L", cryptedblob[0:4])[0]
+			IV = cryptedblob[4:20]
+			ciphertext = cryptedblob[20:-20]
+			plaintext = encryption.aes_decrypt(key, IV, ciphertext)
+			plaintext = plaintext[0:plaintext_length]
+			# print(plaintext)
+			plainblob = blobs.blob_unserialize(plaintext)
+			# print(plainblob)
+			username = plainblob[b'\x01\x00\x00\x00']
+			username_str = username.rstrip(b'\x00')
+
+			suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+			ser_suggestednames = blobs.blob_serialize(suggestedname)
+			client_socket.send_withlen(ser_suggestednames)
+
 		elif command[0:1] == b"\x22":  # Check email - new user
 			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
 			signature = pkcs1_15.new(encryption.network_key).sign(SHA1.new(BERstring))
@@ -3786,7 +3963,7 @@ class authserver(TCPNetworkHandler):
 						break
 			if email_exists:
 				log.warning(f"{clientid}New user: email already in use")
-				client_socket.send(b"\xff")  # not working
+				client_socket.send(b"\x01")
 			else:
 				log.info(f"{clientid}New user: email ok to use")
 				client_socket.send(b"\x00")

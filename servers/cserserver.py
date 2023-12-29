@@ -464,7 +464,7 @@ class CSERServer(UDPNetworkHandler) :
 			filename = f"clientstats/steamstats/{ipactual}.{timestamp}.steamexe.csv"
 
 			f = open(filename, "w")
-			f.write(str(binascii.a2b_hex(message[2:21])))
+			f.write(binascii.hexlify(message[2:21]).decode('latin-1'))
 			f.write("\n")
 			f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6])  # + "," + keylist[7])
 			f.write("\n")
@@ -594,14 +594,15 @@ class CSERServer(UDPNetworkHandler) :
 
 		result = {}
 		index = 0
-		if data[0:1] == b"\x01":
-			# Decryption OK
-			result['DecryptionOK'], index = byte_string[index], index + 1
+		# Decryption OK
+		result['DecryptionOK'], index = byte_string[index], index + 1
 
-			if result['DecryptionOK'] != 1:
-				log.info(f'{clientid}Failed To Decrypt Survey Results')
-				self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x00", address)
-			else:
+		if result['DecryptionOK'] != 1:
+			log.info(f'{clientid}Failed To Decrypt Survey Results')
+			self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x00", address)
+		else:
+			if data[0:1] == b"\x01":
+
 				# Client ID
 				result['clientid'], index = read_null_terminated_string(byte_string, index)
 
@@ -621,7 +622,7 @@ class CSERServer(UDPNetworkHandler) :
 				result['rendermode'], index = byte_string[index], index + 1
 
 				# Bit Depth
-				result['bitdepth'], index = struct.unpack('>B', byte_string[index:index+1])[0], index + 1
+				result['bitdepth'], index = struct.unpack('>I', byte_string[index:index+1])[0], index + 1
 
 				# Skip 1 byte
 				index += 1
@@ -695,9 +696,154 @@ class CSERServer(UDPNetworkHandler) :
 				timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
 				filename = "clientstats/surveys/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
 
-				with open(filename, 'w') as file:
-					for key, value in result.items():
-						if key != 'DecryptionOK':
-							file.write(f'{key}: {value}\n')
+			elif data[0:1] == b"\x05":
+
+					result['clientid'], index = read_null_terminated_string(byte_string, index)
+
+					# RAM Size
+					result['ramsize'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					# Processor Speed
+					result['processorspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					# Net Speed
+					result['netspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					# Render Mode
+					result['renderer'], index = byte_string[index], index + 1
+
+					scr_games = ["goldsrc_screen", "hl1src_screen", "hl2_screen", "hl2mp_screen", "css_screen", "dod_screen", "lostcoast_screen"]
+					i = 0
+					while i < len(scr_games):
+						game = scr_games[i]
+						# screen width
+						result[f'{game}_width'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+						# screen height
+						result[f'{games}_height'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+						# game windowed
+						result[f'{games}_windowed'], index = byte_string[index], index + 1
+
+						# game screen deoth
+						result[f'{games}_depth'], index = byte_string[index], index + 1
+						i += 1
+
+					result['adapter'], index = read_null_terminated_string(byte_string, index)
+
+					result['driver_version'], index = read_null_terminated_string(byte_string, index)
+
+					result['video_card'], index = read_null_terminated_string(byte_string, index)
+
+					result['directx_videocard_driver'], index = read_null_terminated_string(byte_string, index)
+
+					result['directx_videocard_version'], index = read_null_terminated_string(byte_string, index)
+
+					result['msaa_modes'], index = read_null_terminated_string(byte_string, index)
+
+					result['monitor_vendor'], index = read_null_terminated_string(byte_string, index)
+
+					result['monitor_model'], index = read_null_terminated_string(byte_string, index)
+
+					result['driver_year'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['driver_month'], index = byte_string[index], index + 1
+
+					result['driver_day'], index = byte_string[index], index + 1
+
+					result['vram_size'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['bit_depth'], index = byte_string[index], index + 1
+
+					result['monitor_refresh_rate'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['number_of_monitors'], index = byte_string[index], index + 1
+
+					result['number_of_display_devices'], index = byte_string[index], index + 1
+
+					result['monitor_width_px'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['monitor_height_px'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['desktop_width_px'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['desktop_height_px'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['monitor_width_mm'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['monitor_height_mm'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['desktop_wdith_mm'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['desktop_height_mm'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['monitor_diagonal_nn'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['d3d_vendor_id'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['d3d_device_id'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['multi_gpu'], index = byte_string[index], index + 1
+
+					result['number_sli_gpus'], index = byte_string[index], index + 1
+
+					result['display_type'], index = byte_string[index], index + 1
+
+					result['bus_type'], index = byte_string[index], index + 1
+
+					result['bus_rate'], index = byte_string[index], index + 1
+
+					result['agpgart'], index = byte_string[index], index + 1
+
+					result['rdtsc'], index = byte_string[index], index + 1
+
+					result['cmov'], index = byte_string[index], index + 1
+
+					result['fcmov'], index = byte_string[index], index + 1
+
+					result['sse'], index = byte_string[index], index + 1
+
+					result['sse2'], index = byte_string[index], index + 1
+
+					result['3dnow'], index = byte_string[index], index + 1
+
+					result['ntfs'], index = byte_string[index], index + 1
+
+					result['cpu_vendor'], index = read_null_terminated_string(byte_string, index)
+
+					result['physical_processors'], index = byte_string[index], index + 1
+
+					result['logical_processors'], index = byte_string[index], index + 1
+
+					result['hyperthreading'], index = byte_string[index], index + 1
+
+					result['agp'], index = read_null_terminated_string(byte_string, index)
+
+					result['bus_speed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['os_version'], index = read_null_terminated_string(byte_string, index)
+
+					result['audio_device'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['ip2'], index = byte_string[index], index + 1
+
+					result['ip1'], index = byte_string[index], index + 1
+
+					result['ip0'], index = byte_string[index], index + 1
+
+					result['language_id'], index = byte_string[index], index + 1
+
+					result['drive_type'], index = byte_string[index], index + 1
+
+					result['free_hd_space'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+					result['total_hd_space'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+
+			# TODO loop here
+
+			with open(filename, 'w') as file:
+				for key, value in result.items():
+					if key != 'DecryptionOK':
+						file.write(f'{key}: {value}\n')
 
 			self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00" + b"thank you\x00", address)

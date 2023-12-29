@@ -37,7 +37,7 @@ def read_config():
                   'support_email': "admin@stmserver", 'network_name': "STMServer", 'http_maxconnections':"20", 'http_signature': "STMServer Network",
                   'friends_server_port': "27014", 'cm_server_port': "27017", 'cser_server_port': "27013", 'vtt_server_port1': "27046",
                   'vtt_server_port2': "27047", 'show_convert_bar': "True", "use_cached_blob": 'False', "network_logo": "",
-                  'email_location_support': "false", }
+                  'email_location_support': "false", "amount_of_suggested_names": '10'}
 
     c = configparser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")
