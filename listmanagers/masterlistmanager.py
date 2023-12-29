@@ -42,7 +42,7 @@ class MasterServerManager:
 			'islan': {},
 			# 'time': {},
 			'isproxy': {},
-			# 'isProxyTarget': {},
+            'isProxyTarget': {},
 			# 'proxyTarget': {},
 			'players': {},
 			'max': {},

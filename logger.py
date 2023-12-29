@@ -28,21 +28,18 @@ class ProgressBarFilter(logging.Filter) :
             return False  # Do not log to console for this logger if progress bar is enabled
         else :
             return True
-        if record.name == "pyftpdlib":
-            return True
-
 
 
 class ColoredFormatter(logging.Formatter) :
     COLORS = {
         "MODULE" : "\033[93m",  # yellow
         "LEVEL"  : "\033[90m",  # Aqua for level indicator
-        "WARNING": "\033[93m;1m",  # Yellow
+        "WARNING": "\033[93m",  # Yellow
         "INFO": "\033[32;10m",     # Green
         "DEBUG": "\033[94m",    # Blue
         "CRITICAL": "\033[91m", # Red
         "ERROR": "\033[91m",    # Red
-        "EXCEPTION":"\033[31;1m",  # Dark Red for Exceptions
+        "EXCEPTION":"\033[31",  # Dark Red for Exceptions
         "TIME":"\033[37m",
         "RESET": "\033[0m"     # Reset
     }
@@ -74,44 +71,46 @@ class ColoredFormatter(logging.Formatter) :
 
 
 def init_logger() :
-    # Create handlers for files and console
-    fh = logging.handlers.RotatingFileHandler('logs\\emulator_debug.log', maxBytes=20000000, backupCount=10)
-    fh.setLevel(logging.DEBUG)  # Debug and higher (includes INFO, WARNING, ERROR, CRITICAL)
+	if logtofile.lower() == "true":
+		# Create handlers for files and console
+		fh = logging.handlers.RotatingFileHandler('logs\\emulator_debug.log', maxBytes=20000000, backupCount=10)
+		fh.setLevel(logging.DEBUG)  # Debug and higher (includes INFO, WARNING, ERROR, CRITICAL)
 
-    fh2 = logging.handlers.RotatingFileHandler('logs\\emulator_info.log', maxBytes=20000000, backupCount=5)
-    fh2.setLevel(logging.INFO)  # Info and higher (includes WARNING, ERROR, CRITICAL)
+		fh2 = logging.handlers.RotatingFileHandler('logs\\emulator_info.log', maxBytes=20000000, backupCount=5)
+		fh2.setLevel(logging.INFO)  # Info and higher (includes WARNING, ERROR, CRITICAL)
 
-    er = logging.handlers.RotatingFileHandler('logs\\emulator_error.log', maxBytes=20000000, backupCount=2)
-    er.setLevel(logging.WARNING)  # Warning and higher (includes ERROR, CRITICAL)
+		er = logging.handlers.RotatingFileHandler('logs\\emulator_error.log', maxBytes=20000000, backupCount=2)
+		er.setLevel(logging.WARNING)  # Warning and higher (includes ERROR, CRITICAL)
 
-    ch = logging.StreamHandler(sys.stdout)
-    colored_formatter = ColoredFormatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+	ch = logging.StreamHandler(sys.stdout)
+	colored_formatter = ColoredFormatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
-    level = getattr(logging, loglevel.split('.')[-1], logging.INFO)
-    ch.setLevel(level)
+	level = getattr(logging, loglevel.split('.')[-1], logging.INFO)
+	ch.setLevel(level)
 
-    # Common formatter
-    formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    fh.setFormatter(formatter)
-    fh2.setFormatter(formatter)
-    er.setFormatter(formatter)
-    # ch.setFormatter(formatter)
-    ch.setFormatter(colored_formatter)
-    ch.addFilter(SpecificDebugFilter( ))
-    ch.addFilter(ProgressBarFilter( ))  # Apply the new filter
+	# Common formatter
+	formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+	if logtofile.lower() == "true":
+		fh.setFormatter(formatter)
+		fh2.setFormatter(formatter)
+		er.setFormatter(formatter)
+	# ch.setFormatter(formatter)
+	ch.setFormatter(colored_formatter)
+	ch.addFilter(SpecificDebugFilter( ))
+	ch.addFilter(ProgressBarFilter( ))  # Apply the new filter
 
-    # Create a queue and QueueHandler
-    log_queue = queue.Queue(-1)
-    queue_handler = logging.handlers.QueueHandler(log_queue)
+	# Create a queue and QueueHandler
+	log_queue = queue.Queue(-1)
+	queue_handler = logging.handlers.QueueHandler(log_queue)
 
-    # Create a root logger
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+	# Create a root logger
+	root = logging.getLogger()
+	root.setLevel(logging.DEBUG)
 
-    # Attach ONLY the QueueHandler to the root logger
-    root.addHandler(queue_handler)
+	# Attach ONLY the QueueHandler to the root logger
+	root.addHandler(queue_handler)
 
-    # Create and start a QueueListener
-    # QueueListener will distribute logs to the file and console handlers
-    listener = logging.handlers.QueueListener(log_queue, fh, fh2, er, ch)
-    listener.start()
+	# Create and start a QueueListener
+	# QueueListener will distribute logs to the file and console handlers
+	listener = logging.handlers.QueueListener(log_queue, fh, fh2, er, ch)
+	listener.start()

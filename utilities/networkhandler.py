@@ -106,9 +106,12 @@ class UDPNetworkHandler(NetworkHandler):
 	def run(self):
 		self.serversocket.bind((globalvars.server_ip, int(self.port)))
 		while True:
-			data, address = self.serversocket.recvfrom(16384)
-			server_thread = threading.Thread(target=self.handle_client, args=(data, address))
-			server_thread.start()
+			try:
+				data, address = self.serversocket.recvfrom(16384)
+				server_thread = threading.Thread(target=self.handle_client, args=(data, address))
+				server_thread.start()
+			except Exception as e:
+				continue # we ignore the 'attempted recv on closed socket
 
 	def handle_client(self, data, address):
 		raise NotImplementedError("handle_client method must be implemented in derived classes")
