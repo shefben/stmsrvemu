@@ -8,6 +8,7 @@ import os.path
 import socket
 import struct
 import time
+import ipcalc
 from CryptICE import IceKey
 from builtins import range
 from builtins import str
@@ -47,6 +48,7 @@ class CSERServer(UDPNetworkHandler) :
 			b'e': self.parse_steamstats,
 			b'c': self.parse_crashreport,
 			b'q': self.parse_encryptedbugreport,
+			b'p': self.parse_unknownp,
 			b'a': self.parse_downloadstats,
 			b'o': self.parse_bugreport,
 			b'i': self.handle_unknown_stats,
@@ -66,6 +68,11 @@ class CSERServer(UDPNetworkHandler) :
 			self.handlers[command](address, data[2:], clientid, log)
 		else:
 			log.info("Unknown CSER command: %s" % data)
+	def parse_unknownp(self, address, data, clientid, log):
+		timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+		filename = "clientstats//{}.{}.unknownstats.txt".format(address, timestamp)
+		with open(filename, 'w') as file:
+			file.write({data})
 
 	def parse_downloadstats(self, address, data, clientid, log):
 		log.info(f"{clientid}Received app download stats")
@@ -77,38 +84,40 @@ class CSERServer(UDPNetworkHandler) :
 		nbGcf = data[10:11]
 
 		keys = ['GameID', '']
-		vals = [str(appId), str(duration)]
+		vals = [str(appId), str(duration) + "s"]
 
-		debug = ""
-		if isDownload == 1:
+		#debug = ""
+		if isDownload == b"\x01":
 			keys[1] = 'DownloadDuration'
-			debug += f"\r\n appId: {appId}\r\n download duration: {duration}s\r\n"
-		elif isDownload == 0:
+			#debug += f"\r\n appId: {appId}\r\n download duration: {duration}s\r\n"
+		elif isDownload == b"\x00":
 			keys[1] = 'ExtractionDuration'
-			debug += f"\r\n appId: {appId}\r\n extraction duration: {duration}s\r\n"
+			#debug += f"\r\n appId: {appId}\r\n extraction duration: {duration}s\r\n"
 		else:
 			keys[1] = f'UnknownDuration_{isDownload}'
-			debug += f"\r\n appId: {appId}\r\n unknown duration({isDownload}): {duration}s\r\n"
-		print(debug)
+			#debug += f"\r\n appId: {appId}\r\n unknown duration({isDownload}): {duration}s\r\n"
+		#print(debug)
 		downloaded_from_content_server = False
 
 		nbGcf = struct.unpack('B', nbGcf)[0]
-
+		#debug +=f"Number of GCFs Downloaded {int(nbGcf)}\n"
+		keys.append('Number of GCFs Downloaded')
+		vals.append(str(nbgcf))
 		for ind in range(nbGcf):
-			ip = struct.unpack('<I', data[11+ind*4:15+ind*4])[0]
+			ip = struct.unpack('>I', data[11+ind*4:15+ind*4])[0]
 			if ip != -1:
-				debug += f" downloaded from content server :"
+				#debug += f" downloaded from content server :"
 				downloaded_from_content_server = True
 				break
 
 		if downloaded_from_content_server:
 			for ind in range(nbGcf):
-				ip = struct.unpack('I', data[11+ind*4:15+ind*4])[0]
+				ip = struct.unpack('>I', data[11+ind*4:15+ind*4])[0]
 				if ip != -1:
-					ip_str = socket.inet_ntoa(struct.pack('!I', ip))
-					debug += f" {ip_str}"
+					ip_str = socket.inet_ntoa(struct.pack('>I', ip))
+					#debug += f" {ip_str}"
 
-					key = f"ContentServer{len(keys)-1}"
+					key = f"GCF[{len(keys)-1}] Downloaded From ContentServer"
 					keys.append(key)
 					vals.append(ip_str)
 
@@ -117,7 +126,7 @@ class CSERServer(UDPNetworkHandler) :
 		with open(filename, 'w') as file:
 			for key, val in zip(keys, vals):
 				file.write(f'{key}: {val}\n')
-			file.write(debug)
+			#file.write(debug)
 
 		self.serversocket.sendto(reply + b"\x01", address)
 
@@ -126,12 +135,15 @@ class CSERServer(UDPNetworkHandler) :
 		log.debug(f"unknown stats: {data}")
 		self.serversocket.sendto(b"\xFF\xFF\xFF\xFFj\x01", address)
 
-	def check_allowupload(self, reply):
+	def check_allowupload(self, reply, address):
 		allowupload = b"\x02" if self.config["allow_harvest_upload"].lower == "true" else b"\x01" # \x00 = unknown
 		reply += b"\x01" + allowupload
 		if allowupload == b"\x02":
 			# TODO BEN, GRAB FROM DIR SERVER & SEND HARVEST SERVER NEWLY GENERATED CONTEXT ID'S FOR ITS LIST IF NOT AIO SERVER
-			bin_ip = utils.encodeIP((self.config['harvest_ip'], int(self.config['harvest_server_port'])))
+			if str(address[0]) in ipcalc.Network(str(globalvars.server_net)):
+				bin_ip = utils.encodeIP((self.config['server_ip'], int(self.config['harvest_server_port'])))
+			else:
+				bin_ip = utils.encodeIP((self.config['harvest_ip'], int(self.config['harvest_server_port'])))
 			contextid = globalvars.session_id_manager.add_new_context_id()
 			reply += bin_ip + contextid
 		return reply
@@ -186,7 +198,7 @@ class CSERServer(UDPNetworkHandler) :
 				//    u32(harvester ip address)
 				//	  u16(harvester port #)
 				//	  u32(upload context id)"""
-			reply += self.check_allowupload(reply)
+			reply += self.check_allowupload(reply, address)
 			self.serversocket.sendto(reply, address)
 
 	def parse_bugreport(self, address, data, clientid, log):
@@ -286,7 +298,7 @@ class CSERServer(UDPNetworkHandler) :
 			//	  u16(harvester port #)
 			//	  u32(upload context id)
 			"""
-			reply += self.check_allowupload(reply)
+			reply += self.check_allowupload(reply, address)
 
 			self.serversocket.sendto(reply, address)
 
@@ -347,7 +359,7 @@ class CSERServer(UDPNetworkHandler) :
 		# d =  message type
 		# then 0 = invalid message protocol, 1 = upload request denied, 2 = Ok to upload to harvest server
 		# 2 = server accepts minidump, so client will send it now
-		reply += self.check_allowupload(reply)
+		reply += self.check_allowupload(reply, address)
 		self.serversocket.sendto(reply, address)
 
 	def parse_encryptedbugreport(self, address, data, clientid, log):
@@ -438,7 +450,7 @@ class CSERServer(UDPNetworkHandler) :
 		keylist[6] = "UptimeFailureTotal"
 		#keylist[7] =
 
-		if message.startswith(b"537465616d2e657865") :  # Steam.exe
+		if message.startswith(b"537465616d2e657865") or message.startswith(b"537465616D2E646C6C"):  # Steam.exe or Steam.dll
 			vallist[0] = str(int(message[24:26], base=16))
 			vallist[1] = str(int(message[26:28], base=16))
 			vallist[2] = str(int(message[28:30], base=16))
@@ -452,12 +464,24 @@ class CSERServer(UDPNetworkHandler) :
 			filename = f"clientstats/steamstats/{ipactual}.{timestamp}.steamexe.csv"
 
 			f = open(filename, "w")
-			f.write(str(binascii.a2b_hex(message[6:24])))
+			f.write(str(binascii.a2b_hex(message[2:21])))
 			f.write("\n")
 			f.write(keylist[0] + "," + keylist[1] + "," + keylist[2] + "," + keylist[3] + "," + keylist[4] + "," + keylist[5] + "," + keylist[6])  # + "," + keylist[7])
 			f.write("\n")
 			f.write(vallist[0] + "," + vallist[1] + "," + vallist[2] + "," + vallist[3] + "," + vallist[4] + "," + vallist[5] + "," + vallist[6])  # + "," + vallist[7])
+
+			try:
+				f.write(f"\r\nrest of packet: {str(message[38:])}")
+			except:
+				pass
+
 			f.close()
+		else:
+			timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+			filename = f"clientstats/steamstats/{ipactual}.{timestamp}.unknown.csv"
+
+			f = open(filename, "w")
+			f.write(str(binascii.a2b_hex(message)))
 
 		self.serversocket.sendto(b"\xFF\xFF\xFF\xFFf", address)
 
@@ -514,13 +538,13 @@ class CSERServer(UDPNetworkHandler) :
 			buffer = NetworkBuffer(decrypted)
 
 			# Extract the remaining information
-			corruption_id = buffer.extract_u8( )
+			corruption_id = buffer.extract_u8()
 			unique_id = buffer.extract_string()
 			computer_name = buffer.extract_string()
 			username = buffer.extract_string()
 			game_dir = buffer.extract_string()
 			engine_timestamp = struct.unpack('f', buffer.extract_buffer(4))[0]
-			message_type = buffer.extract_u8( )
+			message_type = buffer.extract_u8()
 
 			# Log the received data
 			log.info(f"{clientid}Received Phone Home")
@@ -570,110 +594,110 @@ class CSERServer(UDPNetworkHandler) :
 
 		result = {}
 		index = 0
+		if data[0:1] == b"\x01":
+			# Decryption OK
+			result['DecryptionOK'], index = byte_string[index], index + 1
 
-		# Decryption OK
-		result['DecryptionOK'], index = byte_string[index], index + 1
+			if result['DecryptionOK'] != 1:
+				log.info(f'{clientid}Failed To Decrypt Survey Results')
+				self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x00", address)
+			else:
+				# Client ID
+				result['clientid'], index = read_null_terminated_string(byte_string, index)
 
-		if result['DecryptionOK'] != 1:
-			log.info(f'{clientid}Failed To Decrypt Survey Results')
-			self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x00", address)
-		else:
-			# Client ID
-			result['clientid'], index = read_null_terminated_string(byte_string, index)
+				# RAM Size
+				result['ramsize'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# RAM Size
-			result['ramsize'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Processor Speed
+				result['processorspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Processor Speed
-			result['processorspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Net Speed
+				result['netspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Net Speed
-			result['netspeed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Screen Size
+				result['screensize'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Screen Size
-			result['screensize'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Render Mode
+				result['rendermode'], index = byte_string[index], index + 1
 
-			# Render Mode
-			result['rendermode'], index = byte_string[index], index + 1
+				# Bit Depth
+				result['bitdepth'], index = struct.unpack('>B', byte_string[index:index+1])[0], index + 1
 
-			# Bit Depth
-			result['bitdepth'], index = struct.unpack('>B', byte_string[index:index+1])[0], index + 1
+				# Skip 1 byte
+				index += 1
 
-			# Skip 1 byte
-			index += 1
+				# Video Driver DLL
+				result['videodriverdll'], index = read_null_terminated_string(byte_string, index)
 
-			# Video Driver DLL
-			result['videodriverdll'], index = read_null_terminated_string(byte_string, index)
+				# Skip 1 byte
+				index += 1
 
-			# Skip 1 byte
-			index += 1
+				# Video Card
+				result['videocard'], index = read_null_terminated_string(byte_string, index)
 
-			# Video Card
-			result['videocard'], index = read_null_terminated_string(byte_string, index)
+				# High Video Card Version
+				result['highvidcardver'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# High Video Card Version
-			result['highvidcardver'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Low Video Card Version
+				result['lowvidcardver'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Low Video Card Version
-			result['lowvidcardver'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Card Vendor ID
+				result['cardvendorid'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Card Vendor ID
-			result['cardvendorid'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Device ID
+				result['deviceid'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Device ID
-			result['deviceid'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# RDTSC, CMOV, FCMOV, SSE, SSE2, 3DNOW, NTFS
+				fields = ['rdtsc', 'cmov', 'fcmov', 'sse', 'sse2', '3dnow', 'ntfs']
+				for field in fields:
+					result[field], index = byte_string[index], index + 1
 
-			# RDTSC, CMOV, FCMOV, SSE, SSE2, 3DNOW, NTFS
-			fields = ['rdtsc', 'cmov', 'fcmov', 'sse', 'sse2', '3dnow', 'ntfs']
-			for field in fields:
-				result[field], index = byte_string[index], index + 1
+				# Processor Type
+				result['proctype'], index = read_null_terminated_string(byte_string, index)
 
-			# Processor Type
-			result['proctype'], index = read_null_terminated_string(byte_string, index)
+				# Logical Processor Count, Physical Processor Count, Hyper-Threading
+				result['logprocescnt'], index = byte_string[index], index + 1
 
-			# Logical Processor Count, Physical Processor Count, Hyper-Threading
-			result['logprocescnt'], index = byte_string[index], index + 1
+				result['physproxcnt'], index = byte_string[index], index + 1
 
-			result['physproxcnt'], index = byte_string[index], index + 1
+				result['hyperthreading'], index = byte_string[index], index + 1
 
-			result['hyperthreading'], index = byte_string[index], index + 1
+				# AGP String
+				result['agpstr'], index = read_null_terminated_string(byte_string, index)
 
-			# AGP String
-			result['agpstr'], index = read_null_terminated_string(byte_string, index)
+				# Bus Speed
+				result['bus_speed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Bus Speed
-			result['bus_speed'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Windows Version
+				result['winver'], index = read_null_terminated_string(byte_string, index)
 
-			# Windows Version
-			result['winver'], index = read_null_terminated_string(byte_string, index)
+				# IP Address
+				# Unpack the three bytes into three integers
+				ip_parts = struct.unpack('BBB', byte_string[index:index+3])
+				result['ipaddress'], index = "{}.{}.{}.xxx".format(*ip_parts), index + 3
 
-			# IP Address
-			# Unpack the three bytes into three integers
-			ip_parts = struct.unpack('BBB', byte_string[index:index+3])
-			result['ipaddress'], index = "{}.{}.{}.xxx".format(*ip_parts), index + 3
+				# Language ID
+				result['languageid'], index = byte_string[index], index + 1
 
-			# Language ID
-			result['languageid'], index = byte_string[index], index + 1
+				# Media Type
+				result['mediatype'], index = byte_string[index], index + 1
 
-			# Media Type
-			result['mediatype'], index = byte_string[index], index + 1
+				# Free HDD Block
+				result['freehdblock'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Free HDD Block
-			result['freehdblock'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Total HDD Space
+				result['totalhdspace'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
 
-			# Total HDD Space
-			result['totalhdspace'], index = struct.unpack('>I', byte_string[index:index+4])[0], index + 4
+				# Unknown Buffer
+				result['unknownbuffer'] = byte_string[index:]
 
-			# Unknown Buffer
-			result['unknownbuffer'] = byte_string[index:]
+				ip_address = address[0]
+				timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+				filename = "clientstats/surveys/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
 
-			ip_address = address[0]
-			timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-			filename = "clientstats/surveys/{}.{}.hwsurvey.txt".format(ip_address, timestamp)
+				with open(filename, 'w') as file:
+					for key, value in result.items():
+						if key != 'DecryptionOK':
+							file.write(f'{key}: {value}\n')
 
-			with open(filename, 'w') as file:
-				for key, value in result.items():
-					if key != 'DecryptionOK':
-						file.write(f'{key}: {value}\n')
-
-			self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00" + b"thank you\n\0", address)
+			self.serversocket.sendto(b"\xFF\xFF\xFF\xFF\x68\x01\x00\x00\x00" + b"thank you\x00", address)

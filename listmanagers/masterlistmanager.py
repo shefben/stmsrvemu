@@ -42,7 +42,7 @@ class MasterServerManager:
 			'islan': {},
 			# 'time': {},
 			'isproxy': {},
-            'isProxyTarget': {},
+			'isProxyTarget': {},
 			# 'proxyTarget': {},
 			'players': {},
 			'max': {},
@@ -59,14 +59,14 @@ class MasterServerManager:
 	def _cleanup_old_servers(self):
 		while True:
 			time.sleep(60)  # Check every minute
-			cutoff_time = int(time.time()) - 15 * 60  # Calculate cutoff time outside of lock
+			current_time = int(time.time())
 			with self.lock:
-				old_servers = {server for server in self.servers if server.time <= cutoff_time}
-				self.servers = [server for server in self.servers if server not in old_servers]
-				# Update indexes
+				self.servers = [server for server in self.servers if current_time - server.time <= 15 * 60]
+				# Rebuild indexes
 				for key in self.indexes.keys():
-					for server in old_servers:
-						self.indexes[key].remove(server)  # Remove old servers from index
+					self.indexes[key].clear()
+					for server in self.servers:
+						self._add_to_index(key, server)
 
 	def _add_to_index(self, key, server):
 		if server.__dict__[key] not in self.indexes[key]:
@@ -90,16 +90,8 @@ class MasterServerManager:
 	def get_servers_by_attribute(self, attribute, value):
 		return self.indexes.get(attribute, {}).get(value, [])
 
-	def get_all_servers(self, criteria=None):
-		with self.lock:
-			if criteria is None:
-				return self.servers
-			else:
-				filtered_servers = self.servers
-				for attr, value in criteria.items():
-					filtered_servers = [server for server in filtered_servers if getattr(server, attr, None) == value]
-				return filtered_servers
-
+	def get_all_servers(self):
+		return self.servers
 
 	def print_all_servers(self):
 		for server in self.get_all_servers():
@@ -158,15 +150,18 @@ class MasterServerManager:
 		# print(criteria['proxy'])
 		return criteria
 
-	def is_server_in_list(self, address) :
+	def is_server_in_list(self, address):
 		"""
-		Check if a server with the given IP address and port is in the list.
+		Check if a server with the given IP address and port is in the list and return it.
 
 		:param address: The IP address and port tuple to check (e.g., ('192.168.1.1', 27015)).
-		:return: True if the server is in the list, False otherwise.
+		:return: The server object if found, None otherwise.
 		"""
-		with self.lock :
-			return any(server.address == address for server in self.servers)
+		with self.lock:
+			for server in self.servers:
+				if server.address == address:
+					return server
+			return None
 
 	def server_passes_criteria(self, server, criteria):
 		if not criteria:
