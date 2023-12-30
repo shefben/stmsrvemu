@@ -26,7 +26,9 @@ server_ip_b = b""
 public_ip = ""
 public_ip_b = b""
 hide_convert_prints = False
+prepended_modifiers = []
 
+appended_modifiers = []
 
 def startcser_sessionidtracker():
 	from utilities import sessionid_manager

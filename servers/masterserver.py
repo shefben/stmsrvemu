@@ -1,5 +1,6 @@
 import binascii
 import logging
+import os
 import struct
 import time
 import socket as real_socket
@@ -325,4 +326,5 @@ class MasterServer(UDPNetworkHandler):
 		#    return None  # Invalid header
 
 		# self.serversocket.close()
+
 		log.info(clientid + "Disconnected from Master Server")

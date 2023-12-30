@@ -13,7 +13,7 @@ def read_config():
 
     # log.info("Reloading config")
 
-    myDefaults = {'public_ip': "0.0.0.0", "log_level": 'logging.INFO', 'log_to_file': "true", 'hldsupkg': "", 'steamver': "v2",
+    myDefaults = {'public_ip': "0.0.0.0", 'log_level': 'logging.INFO', 'log_to_file': "true", 'hldsupkg': "", 'steamver': "v2",
                   'default_password': "password", 'v2storagedir': "files/v2storages/", 'storagedir': "files/storages/",
                   'manifestdir': "files/manifests/", 'v2manifestdir': "files/v2manifests/", "packagedir": 'files/packages/',
                   'tinserver': "0", 'tracker_ip': "0.0.0.0", 'cafeuser': "noaccountconfigured", 'cafepass': "bar",
@@ -36,8 +36,8 @@ def read_config():
                   'auto_server_ip': "True", 'harvest_ip': "0.0.0.0", 'allow_harvest_upload': "True", 'harvest_server_port': "27032",
                   'support_email': "admin@stmserver", 'network_name': "STMServer", 'http_maxconnections':"20", 'http_signature': "STMServer Network",
                   'friends_server_port': "27014", 'cm_server_port': "27017", 'cser_server_port': "27013", 'vtt_server_port1': "27046",
-                  'vtt_server_port2': "27047", 'show_convert_bar': "True", "network_logo": "",
-                  'email_location_support': "false", "amount_of_suggested_names": '10'}
+                  'vtt_server_port2': "27047", 'show_convert_bar': "True", 'network_logo': "", 'email_location_support': "false",
+                  'amount_of_suggested_names': "10", 'use_builtin_suggested_name_modifiers': "true"}
 
     c = configparser.SafeConfigParser(myDefaults)
     c.read("emulator.ini")

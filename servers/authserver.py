@@ -22,6 +22,7 @@ from Crypto.Hash import SHA1
 from Crypto.PublicKey import RSA
 import globalvars
 import utilities.encryption as encryption
+import utilities.name_suggestor
 import utils
 
 from utilities import cdr_manipulator, sendmail, validationcode_manager
@@ -764,7 +765,7 @@ class authserver(TCPNetworkHandler):
 				username = plainblob[b'\x01\x00\x00\x00']
 				username_str = username.rstrip(b'\x00')
 
-				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				suggestedname = utilities.name_suggestor.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
 				ser_suggestednames = blobs.blob_serialize(suggestedname)
 				client_socket.send_withlen(ser_suggestednames)
 
@@ -1819,7 +1820,7 @@ class authserver(TCPNetworkHandler):
 				username = plainblob[b'\x01\x00\x00\x00']
 				username_str = username.rstrip(b'\x00')
 
-				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				suggestedname = utilities.name_suggestor.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
 				ser_suggestednames = blobs.blob_serialize(suggestedname)
 				client_socket.send_withlen(ser_suggestednames)
 
@@ -2876,7 +2877,7 @@ class authserver(TCPNetworkHandler):
 				username = plainblob[b'\x01\x00\x00\x00']
 				username_str = username.rstrip(b'\x00')
 
-				suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+				suggestedname = utilities.name_suggestor.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
 				ser_suggestednames = blobs.blob_serialize(suggestedname)
 				client_socket.send_withlen(ser_suggestednames)
 			elif command[0:1] == b"\x22":  # Check email - new user
@@ -3918,7 +3919,7 @@ class authserver(TCPNetworkHandler):
 			username = plainblob[b'\x01\x00\x00\x00']
 			username_str = username.rstrip(b'\x00')
 
-			suggestedname = utils.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
+			suggestedname = utilities.name_suggestor.similar_username_generator(username_str.decode('latin-1'), self.suggestednames_amnt)
 			ser_suggestednames = blobs.blob_serialize(suggestedname)
 			client_socket.send_withlen(ser_suggestednames)
 
