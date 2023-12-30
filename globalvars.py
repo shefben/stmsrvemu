@@ -746,7 +746,7 @@ replacestringsCDR = (
 	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
 	 b"Messages URL 6"),
 	(b'http://www.steampowered.com/index.php?area=news',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/index.php?area=test",
+	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/index.php?area=news",
 	 b"News URL"),
 	(b'http://storefront.steampowered.com/v/?client=1',
 	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v/?client=1",

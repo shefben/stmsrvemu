@@ -36,7 +36,7 @@ def read_config():
                   'auto_server_ip': "True", 'harvest_ip': "0.0.0.0", 'allow_harvest_upload': "True", 'harvest_server_port': "27032",
                   'support_email': "admin@stmserver", 'network_name': "STMServer", 'http_maxconnections':"20", 'http_signature': "STMServer Network",
                   'friends_server_port': "27014", 'cm_server_port': "27017", 'cser_server_port': "27013", 'vtt_server_port1': "27046",
-                  'vtt_server_port2': "27047", 'show_convert_bar': "True", "use_cached_blob": 'False', "network_logo": "",
+                  'vtt_server_port2': "27047", 'show_convert_bar': "True", "network_logo": "",
                   'email_location_support': "false", "amount_of_suggested_names": '10'}
 
     c = configparser.SafeConfigParser(myDefaults)

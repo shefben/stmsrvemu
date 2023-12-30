@@ -66,10 +66,10 @@ def convertgcf() :
 				(b"207.173.177.11:27011", 			server_ip +  b":27011", "Replaced default HL2 Master server IP 1"),
 				(b"207.173.177.12:27011", 			server_ip +  b":27011", "Replaced default HL2 Master server IP 2"),
 				(b"tracker.valvesoftware.com:1200", server_ip +  b":1200", "Replaced Tracker Chat server DNS"),
-				(b'"207.173.177.42:1200"',  b'\"' + server_ip +  b':1200\"', "Replaced Tracker Chat server 1"),
-				(b'"207.173.177.43:1200"',  b'\"' + server_ip +  b':1200\"', "Replaced Tracker Chat server 2"),
-				(b'"207.173.177.44:1200"',  b'\"' + server_ip +  b':1200\"', "Replaced Tracker Chat server 3"),
-				(b'"207.173.177.45:1200"',  b'\"' + server_ip +  b':1200\"', "Replaced Tracker Chat server 4")
+				(b'"207.173.177.42:1200"',  b'"' + server_ip +  b':1200"', "Replaced Tracker Chat server 1"),
+				(b'"207.173.177.43:1200"',  b'"' + server_ip +  b':1200"', "Replaced Tracker Chat server 2"),
+				(b'"207.173.177.44:1200"',  b'"' + server_ip +  b':1200"', "Replaced Tracker Chat server 3"),
+				(b'"207.173.177.45:1200"',  b'"' + server_ip +  b':1200"', "Replaced Tracker Chat server 4")
 				]
 
 				for search, ip, message in searchip_2:
@@ -116,15 +116,25 @@ def ip_replacer(file, filename, ip, log, server_ip):
 		file = file[:loc] + replace_ip + file[loc+16:]
 		log.debug(f"{filename}: Found and replaced IP {ip} at location {loc:08x}" )
 	return file
-def find_replace(file, info, log, replace, search, null_padded = False):
-	missinglength = len(search) - len(replace)
-	padding = (b'\x00' * missinglength) if null_padded == False else (b'\x20' * missinglength)
-	if missinglength < 0 :
+
+def find_replace(file, info, log, replace, search, null_padded=False):
+	search_length = len(search)
+	replace_length = len(replace)
+
+	# Early exit if replace is longer than search
+	if replace_length > search_length:
 		log.debug(f"WARNING: Cannot replace {info} {search} with {replace} as it's too long")
-	elif missinglength == 0 :
+		return file
+
+	# Perform the replacement directly if lengths are equal
+	if replace_length == search_length:
 		file = file.replace(search, replace)
-		log.debug(f"Replaced  {info} {search} with {replace}")
-	else :
-		file = file.replace(search, replace + padding)
-		log.debug(f"Replaced  {info} {search} with {replace}")
+	else:
+		# Decide the padding character based on the 'null_padded' flag
+		padding_char = b'\x20' if null_padded else b'\x00'
+		# Pad the replace string and perform the replacement
+		padded_replace = replace.ljust(search_length, padding_char)
+		file = file.replace(search, padded_replace)
+		log.debug(f"Replaced {info} {search} with {padded_replace}")
+
 	return file

@@ -622,7 +622,7 @@ class CSERServer(UDPNetworkHandler) :
 				result['rendermode'], index = byte_string[index], index + 1
 
 				# Bit Depth
-				result['bitdepth'], index = struct.unpack('>I', byte_string[index:index+1])[0], index + 1
+				result['bitdepth'], index = struct.unpack('B', byte_string[index:index+1])[0], index + 1
 
 				# Skip 1 byte
 				index += 1
@@ -657,9 +657,9 @@ class CSERServer(UDPNetworkHandler) :
 				result['proctype'], index = read_null_terminated_string(byte_string, index)
 
 				# Logical Processor Count, Physical Processor Count, Hyper-Threading
-				result['logprocescnt'], index = byte_string[index], index + 1
+				result['logicalprocessorcount'], index = byte_string[index], index + 1
 
-				result['physproxcnt'], index = byte_string[index], index + 1
+				result['physicalproccesorcount'], index = byte_string[index], index + 1
 
 				result['hyperthreading'], index = byte_string[index], index + 1
 
