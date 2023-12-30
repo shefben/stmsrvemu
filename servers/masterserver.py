@@ -176,7 +176,7 @@ class MasterServer(UDPNetworkHandler):
 		nextid_ip = real_socket.inet_ntoa(struct.pack('!I', nextid))
 
 		server_list = server_manager.get_all_servers( )
-		print(repr(truenextid))
+		#print(repr(truenextid))
 		# Construct the response packet
 		reply = bytearray(b'\xff\xff\xff\xff\x66')
 		reply += b"\x0a"
@@ -197,7 +197,7 @@ class MasterServer(UDPNetworkHandler):
 			if send_info:
 				# Check if adding server info will exceed reply size
 				if i + 6 + len(server.info) >= 1024:
-					print("if send_info (exceeded 1024)")
+					log.warning(f"if send_info (exceeded 1024)")
 					break
 				server_info = server.info.encode("iso-8859-1")
 				server_address = struct.unpack('!I', server.address[0].encode("iso-8859-1"))[0]
@@ -209,7 +209,7 @@ class MasterServer(UDPNetworkHandler):
 			else:
 				# print(f"else send_info {server.address[0]}")
 				if i + 6 >= 1024:
-					print("else send_info (exceeded 1024)")
+					log.warning("else send_info (exceeded 1024)")
 					break
 				ip_bytes = real_socket.inet_aton(server.address[0])
 				# Pack IP address and port in big endian format
@@ -244,7 +244,7 @@ class MasterServer(UDPNetworkHandler):
 			if send_info :
 				new_truenextid |= (1 << 31)
 			struct.pack_into('!I', reply, savepos, new_truenextid)"""
-		print(repr(reply))
+		#print(repr(reply))
 		reply += b'\0\0\0\0\0\0'
 		# Send the packet
 		self.serversocket.sendto(reply, address)
@@ -319,7 +319,7 @@ class MasterServer(UDPNetworkHandler):
 		#data = data[5:]
 		#if header == expected_header:
 		handler = self.command_handlers.get(data[0:1], self.packet_Default)
-		print(repr(data))
+		#print(repr(data))
 		handler(self, data, address)
 		#else:
 		#    log.info("Header is incorrect!")

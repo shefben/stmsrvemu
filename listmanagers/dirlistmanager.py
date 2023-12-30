@@ -84,10 +84,10 @@ class DirServerManager(object):
             for wan_ip, lan_ip, port in server_list:
                 if islan:
                     ip_port_tuple = (lan_ip, port)
-                    print(f"{server_type} {lan_ip} {port}")
+                    log.debug(f"Sending: {server_type} {lan_ip} {port}")
                 else:
                     ip_port_tuple = (wan_ip, port)
-                    print(f"{server_type} {wan_ip} {port}")
+                    log.debug(f"Sending: {server_type} {wan_ip} {port}")
                 if single == 1:  # This means we only want 1 server, return the first one we find
                     return struct.pack(">H", 1) + utils.encodeIP(ip_port_tuple)
                 reply += utils.encodeIP(ip_port_tuple)
