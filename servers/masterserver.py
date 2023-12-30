@@ -142,7 +142,7 @@ class MasterServer(UDPNetworkHandler):
 		else:
 			challenge_value = challenge_manager.create_challenge(address)
 		# Construct the reply
-		reply = b'\xff\xff\xff\xff\x73\x0a' #struct.pack('>BBBBB', 255, 255, 255, 255, ord('s'))
+		reply = b'\xff\xff\xff\xff\x73\x0a' # struct.pack('>BBBBB', 255, 255, 255, 255, ord('s'))
 
 		reply += struct.pack('<I', challenge_value)
 		self.serversocket.sendto(reply, address)
@@ -176,7 +176,7 @@ class MasterServer(UDPNetworkHandler):
 		nextid_ip = real_socket.inet_ntoa(struct.pack('!I', nextid))
 
 		server_list = server_manager.get_all_servers( )
-		#print(repr(truenextid))
+		# print(repr(truenextid))
 		# Construct the response packet
 		reply = bytearray(b'\xff\xff\xff\xff\x66')
 		reply += b"\x0a"
@@ -216,7 +216,7 @@ class MasterServer(UDPNetworkHandler):
 				packed_data = struct.pack('!4sH', ip_bytes, server.address[1])
 				reply.extend(packed_data)
 				i += 6
-		#server_manager.print_all_servers()
+		# server_manager.print_all_servers()
 
 		# Update the truenextid in the reply
 		"""if i != 6 :  # If at least one server info is added
@@ -285,8 +285,7 @@ class MasterServer(UDPNetworkHandler):
 		reply_str = reply.decode('iso-8859-1')  # or another appropriate encoding
 		self.serversocket.sendto(reply_str, address)
 
-	def packet_ping(self, data, address):
-		self.serversocket.sendto(bytes([255, 255, 255, 255, ord('j')]), address)
+	def packet_ping(self, data, address):		self.serversocket.sendto(bytes([255, 255, 255, 255, ord('j')]), address)
 
 	def packet_nack(self, data, address):
 		# Implement the logic for A2A_NACK packet

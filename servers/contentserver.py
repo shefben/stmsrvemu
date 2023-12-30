@@ -509,7 +509,8 @@ class contentserver(TCPNetworkHandler):
 								break
 							else:
 								log.info(f"Banner message: {binascii.b2a_hex(command)}")
-								if config["use_webserver"].lower() == "true" and self.config["http_port"] == "steam" or self.config["http_port"] == "0":
+								# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
+								if config["use_webserver"].lower() == "true" and (self.config["http_port"] != "steam" or self.config["http_port"] != "0"):
 									if islan:
 										url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php")
 										# print("INTERNAL BANNER")
@@ -587,8 +588,10 @@ class contentserver(TCPNetworkHandler):
 						break
 					else:
 						log.info(f"Banner message: {binascii.b2a_hex(command)}")
+
+						# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
 						if config["use_webserver"].lower() == "true":
-							if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87:
+							if self.config["http_port"] != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
 								if self.config["public_ip"] != "0.0.0.0":
 									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
 								else:
@@ -1052,8 +1055,9 @@ class contentserver(TCPNetworkHandler):
 					elif len(command) > 1:
 						log.info(b"Banner message: " + binascii.b2a_hex(command))
 
+						# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
 						if config["use_webserver"].lower() == "true":
-							if self.config["http_port"] == "steam" or self.config["http_port"] == "0" or globalvars.steamui_ver < 87:
+							if self.config["http_port"] != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
 								if self.config["public_ip"] != "0.0.0.0":
 									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
 								else:

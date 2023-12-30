@@ -211,7 +211,7 @@ def fixblobs():
 def fixblobs_configserver():
 	if os.path.isfile("files/cache/secondblob.bin"):  # read cached bin
 		with open("files/cache/secondblob.bin", "rb") as f:
-			print("read cached blob")
+			#print("read cached blob")
 			blob = f.read()
 	elif os.path.isfile("files/2ndcdr.py") or os.path.isfile("files/secondblob.py"):  # read py
 		print("read py blob")

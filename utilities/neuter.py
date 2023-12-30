@@ -64,7 +64,7 @@ def neuter_file(file, server_ip, server_port, filename, islan):
 			fullstring2 = globalvars.replace_string_name_space(True)
 			fullstring3 = globalvars.replace_string_name(True)
 
-		file = config_replace_in_file(file, filename, fullstring2, 2)
+		file = config_replace_in_file(file, filename, fullstring2, 2, True)
 		file = config_replace_in_file(file, filename, fullstring3, 3)
 	return file
 
@@ -88,7 +88,7 @@ def replace_ips_in_file(file, filename, ip_list, replacement_ip) :
 	return file
 
 
-def config_replace_in_file(file, filename, replacement_strings, config_num):
+def config_replace_in_file(file, filename, replacement_strings, config_num, use_space = False):
 	if isinstance(filename, str):
 		filename = filename.encode("latin-1")
 	for search, replace, info in replacement_strings:
@@ -105,7 +105,8 @@ def config_replace_in_file(file, filename, replacement_strings, config_num):
 						file = file.replace(search, replace)
 						log.debug(f"{filename.decode()}: Replaced {info.decode()}")
 					else:
-						replace_padded = replace + (b'\x00' * missing_length)
+						padding = b'\x00' if use_space is False else b'\x20'
+						replace_padded = replace + (padding * missing_length)
 						file = file.replace(search, replace_padded)
 						log.debug(f"{filename.decode()}: Replaced {info.decode()}")
 		except Exception as e:
@@ -145,7 +146,7 @@ def replace_dirip_in_file(file, filename, search, server_ip, server_port, dirgro
 
 def get_filenames():
 	if globalvars.steamui_ver < 1003: #last 2009 for now
-		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll", b"steamclient.dll", b"steam\SteamUIConfig.vdf", b"Public\SubPanelWelcomeCreateNewAccount.res")
+		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll", b"steamclient.dll", b"steam\SteamUIConfig.vdf", b"Public\SubPanelWelcomeCreateNewAccount.res", b"steamclient64.dll", b"friendsUI.dll")
 	else:
 		return (b"SteamNew.exe", b"Steam.dll", b"SteamUI.dll", b"platform.dll", b"steam\SteamUI.dll", b"friends\servers.vdf", b"servers\MasterServers.vdf", b"servers\ServerBrowser.dll", b"Public\Account.html", b"caserver.exe", b"cacdll.dll", b"CASClient.exe", b"unicows.dll", b"GameUI.dll")  # b"steamclient.dll", b"GameOverlayUI.exe", b"serverbrowser.dll", b"gamoverlayui.dll", b"steamclient64.dll", b"AppOverlay.dll", b"AppOverlay64.dll", b"SteamService.exe", b"friendsUI.dll", b"SteamService.dll")
 
