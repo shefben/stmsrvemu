@@ -27,8 +27,20 @@ public_ip = ""
 public_ip_b = b""
 hide_convert_prints = False
 prepended_modifiers = []
-
 appended_modifiers = []
+
+dedicated_server_appids = [
+	4, 5, 153, 154, 203, 204, 205, 210, 310, 311, 313, 314, 524, 538, 560, 561, 562,
+	601, 602, 635, 740, 1203, 1204, 1213, 1241, 1253, 1254, 1273, 2144, 2145, 2403, 2404, 2740,
+	2741, 2912, 2915, 2916, 4207, 4240, 4270, 4922, 4940, 8680, 8710, 8730, 8770, 13180, 13181,
+	13182, 17505, 17515, 17525, 17535, 17575, 17585, 17705, 17718
+]
+game_engine_file_appids = [
+	0, 3, 7, 8, 200, 201, 212, 216, 217, 254, 255, 256, 257, 258, 264, 315, 316, 317, 322, 521, 572, 573,
+	1000, 1002, 1202, 1212, 1304, 1309, 1634, 1644, 2101, 2131, 2811, 4411, 4421, 6301, 6401, 6551,
+	6861, 6871, 6881, 7001, 7011, 7221, 7801, 7811, 8001, 8011, 10622, 10644, 13141, 16422, 17712
+]
+
 
 def startcser_sessionidtracker():
 	from utilities import sessionid_manager
@@ -61,9 +73,9 @@ elif config["http_port"] == "0":
 else :
 	http_port_neuter = ":" + config["http_port"]
 
-if not config["http_name"] == "" :
+if not config["http_name"] == "":
 	octal_ip = config["http_name"]
-elif not config["public_ip"] == "0.0.0.0" :
+elif not config["public_ip"] == "0.0.0.0":
 	octal_ip = config["public_ip"]
 else :
 	octal_ip = config["http_ip"]

@@ -3218,14 +3218,17 @@ class authserver(TCPNetworkHandler):
 
 		client_socket.close()
 		log.info(f"{clientid}Disconnected from Auth Server")
+
 	def send_validation_email(self, username_str, client_address):
+		if isinstance(username_str, bytes):
+			username_str = username_str.decode('latin-1')
 		# Send Email Verification Code and Password Recoveru Qiuestion
-		with open("files/users/" + username_str.decode() + ".py", 'r') as userblobfile:
+		with open("files/users/" + username_str + ".py", 'r') as userblobfile:
 			userblobstr = userblobfile.read()
 			userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
 
-		new_code = self.manager.generate_code(username_str.decode('latin-1'))
-		sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str][b'\x03\x00\x00\x00'], client_address, username_str.decode('latin-1'))
+		new_code = self.manager.generate_code(username_str)
+		sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str.encode('latin-1')][b'\x03\x00\x00\x00'], client_address, username_str.decode('latin-1'))
 
 	def process_beta2_packets(self, clientid, client_socket, client_address, log):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")

@@ -42,24 +42,10 @@ def convertgcf() :
 				g = open("files/convert/" + filename, "rb")
 				file = g.read()
 				g.close()
-				searchip_1 = [
-				(b"207.173.177.11:27030 207.173.177.12:27030 69.28.151.178:27038 69.28.153.82:27038 68.142.88.34:27038 68.142.72.250:27038", "Replaced directory server IP group 1"),
-				(b"207.173.177.11:27030 207.173.177.12:27030", "Replaced directory server IP group 5")
-				]
 
-				if not islan:
-					ip = server_ip + b":" + dirsrv_port + b" " + server_ip + b":" + dirsrv_port + b" "
-				else :
-					ip = server_ip + b":" + dirsrv_port + b" "
-				for search, message in searchip_1:
-					searchlength = len(search)
-					ips = ip * (searchlength // len(ip))
-					replace = ips.ljust(searchlength, b'\x00')
-					if file.find(search) != -1:
-						file = file.replace(search, replace)
-						log.debug(message)
-
-				searchip_2 = [
+				searchip = [
+				(b"207.173.177.11:27030 207.173.177.12:27030 69.28.151.178:27038 69.28.153.82:27038 68.142.88.34:27038 68.142.72.250:27038", server_ip + b":" + dirsrv_port + b" " + server_ip + b":" + dirsrv_port + b" ", "Replaced directory server IP group 1"),
+				(b"207.173.177.11:27030 207.173.177.12:27030", server_ip + b":" + dirsrv_port + b" ", "Replaced directory server IP group 5"),
 				(b"hlmaster1.hlauth.net:27010", 	server_ip +  b":27010", "Replaced default HL Master server DNS"),
 				(b"207.173.177.11:27010", 			server_ip +  b":27010", "Replaced default HL Master server IP 1"),
 				(b"207.173.177.12:27010",			server_ip +  b":27010", "Replaced default HL Master server IP 2"),
@@ -72,7 +58,7 @@ def convertgcf() :
 				(b'"207.173.177.45:1200"',  b'"' + server_ip +  b':1200"', "Replaced Tracker Chat server 4")
 				]
 
-				for search, ip, message in searchip_2:
+				for search, ip, message in searchip:
 					searchlength = len(search)
 					ips = ip * (searchlength // len(ip))
 					replace = ips.ljust(searchlength, b'\x00')

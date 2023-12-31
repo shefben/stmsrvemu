@@ -10,11 +10,11 @@ from utilities.indexes import readindexes, readindexes_old
 
 
 class Old_Storage(object):
-    def __init__(self, storagename, path):
+    def __init__(self, storagename, path, suffix = ""):
         self.name = str(storagename)
 
-        self.indexfile = path + self.name + ".index"
-        self.datafile = path + self.name + ".data"
+        self.indexfile = path + self.name + suffix + ".index"
+        self.datafile = path + self.name + suffix + ".data"
 
         (self.indexes, self.filemodes) = readindexes(self.indexfile)
 

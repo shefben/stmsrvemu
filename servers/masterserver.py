@@ -12,12 +12,12 @@ from utilities.master_packethandler import PacketHandler
 from utilities.networkhandler import UDPNetworkHandler
 from listmanagers.masterlistmanager import server_manager, challenge_manager, Server
 
-log = logging.getLogger("HL1Master")
+log = logging.getLogger("MasterSrv")
 
 
 class MasterServer(UDPNetworkHandler):
 	def __init__(self, port, config):
-		self.server_type = "HL1Master"
+		self.server_type = "MasterSrv"
 		super(MasterServer, self).__init__(config, port, self.server_type)  # Create an instance of NetworkHandler
 
 		self.last_unique_id = 100
@@ -219,7 +219,7 @@ class MasterServer(UDPNetworkHandler):
 				i += 6
 		# server_manager.print_all_servers()
 
-		# Update the truenextid in the reply
+		# Update the truenextid in the reply, not needed until someone wants to host a network with thousands of servers
 		"""if i != 6 :  # If at least one server info is added
 			# Ensure there are remaining servers in the list
 			if server_list[nextid :] :

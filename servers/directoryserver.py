@@ -138,23 +138,17 @@ class directoryserver(TCPNetworkHandler):
 
                 reply = manager.get_and_prep_server_list("CSDServer", islan)
 
-            elif command == b"\x0f":  # hl master server
+            elif command == b"\x0f" or command == b"\x18" or command == b"\x1e":  # goldsrc, src and rdkf master server
 
                 log.info(f"{clientid}Sending out list of HL Master Servers")
 
-                reply = manager.get_and_prep_server_list("HL1Master", islan)
+                reply = manager.get_and_prep_server_list("MasterSrv", islan)
 
             elif command == b"\x14":  # send out CSER server (not implemented)
 
                 log.info(f"{clientid}Sending out list of CSER Servers")
 
                 reply = manager.get_and_prep_server_list("CSERServer", islan)
-
-            elif command == b"\x18" or command == b"\x1e":  # source master server & ragdoll kungfu use the same exact protocol
-
-                log.info(f"{clientid}Requesting Source Master Servers")
-
-                reply = manager.get_and_prep_server_list("HL1Master", islan)
 
             elif command == b"\x0A":  # remote file harvest master server
 
@@ -167,7 +161,6 @@ class directoryserver(TCPNetworkHandler):
                 log.info(f"{clientid}Sending out list of Client / Account Authentication Servers")
 
                 reply = manager.get_and_prep_server_list("ValidationSRV", islan)
-
 
             elif command == b"\x1c":
                 if binascii.b2a_hex(msg).decode() == "1c600f2d40":
@@ -211,7 +204,6 @@ class directoryserver(TCPNetworkHandler):
                             ip_port_tuple = (auth_servers[0].ip, auth_servers[0].port)
 
                             reply += utils.encodeIP(ip_port_tuple)
-
 
                 elif binascii.b2a_hex(msg).decode() == "1cb5aae840":  # Used for Subscription & CDKey Registration
 

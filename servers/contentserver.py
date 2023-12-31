@@ -656,33 +656,6 @@ class contentserver(TCPNetworkHandler):
 						storages[storageid].app = app
 						storages[storageid].version = version
 
-						if str(app) == "3" or str(app) == "7":
-							if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-								if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
-									log.info("Fixing files in app " + str(app) + " version " + str(version))
-									g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
-									file = g.read()
-									g.close()
-									for (search, replace, info) in globalvars.replace_string:
-										fulllength = len(search)
-										newlength = len(replace)
-										missinglength = fulllength - newlength
-										if missinglength < 0:
-											print(b"WARNING: Replacement text " + replace + b" is too long! Not replaced!")
-										elif missinglength == 0:
-											file = file.replace(search, replace)
-											print (f"Replaced {info}")
-										else:
-											file = file.replace(search, replace + (b'\x00' * missinglength))
-											print (f"Replaced {info}")
-
-									h = open("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf", "wb")
-									h.write(file)
-									h.close()
-									gcf2storage("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
-									sleep(1)
-									os.remove("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
-
 						if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 							f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
 							log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
@@ -773,33 +746,6 @@ class contentserver(TCPNetworkHandler):
 					storages[storageid] = s
 					storages[storageid].app = app
 					storages[storageid].version = version
-
-					if str(app) == "3" or str(app) == "7":
-						if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-							if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
-								log.info("Fixing files in app " + str(app) + " version " + str(version))
-								g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
-								file = g.read()
-								g.close()
-								for (search, replace, info) in globalvars.replace_string(islan):
-									fulllength = len(search)
-									newlength = len(replace)
-									missinglength = fulllength - newlength
-									if missinglength < 0:
-										print(b"WARNING: Replacement text " + replace + b" is too long! Not replaced!")
-									elif missinglength == 0:
-										file = file.replace(search, replace)
-										print(b"Replaced", info)
-									else:
-										file = file.replace(search, replace + (b'\x00' * missinglength))
-										print(b"Replaced", info)
-
-								h = open("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf", "wb")
-								h.write(file)
-								h.close()
-								gcf2storage("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
-								sleep(1)
-								os.remove("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
 
 					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
@@ -983,6 +929,7 @@ class contentserver(TCPNetworkHandler):
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
 						break
+
 					f = open(filename, "rb")
 					file = f.read()
 					f.close()
@@ -1127,33 +1074,6 @@ class contentserver(TCPNetworkHandler):
 					storages[storageid].app = app
 					storages[storageid].version = version
 
-					if str(app) == "3" or str(app) == "7":
-						if not os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-							if os.path.isfile("files/convert/" + str(app) + "_" + str(version) + ".gcf"):
-								log.info("Fixing files in app " + str(app) + " version " + str(version))
-								g = open("files/convert/" + str(app) + "_" + str(version) + ".gcf", "rb")
-								file = g.read()
-								g.close()
-								for (search, replace, info) in globalvars.replace_string(islan):
-									fulllength = len(search)
-									newlength = len(replace)
-									missinglength = fulllength - newlength
-									if missinglength < 0:
-										print(b"WARNING: Replacement text " + replace + b" is too long! Not replaced!")
-									elif missinglength == 0:
-										file = file.replace(search, replace)
-										print(f"Replaced {info}")
-									else:
-										file = file.replace(search, replace + (b'\x00' * missinglength))
-										print(f"Replaced {info}")
-
-								h = open("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf", "wb")
-								h.write(file)
-								h.close()
-								gcf2storage("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
-								sleep(1)
-								os.remove("files/temp/" + str(app) + "_" + str(version) + ".neutered.gcf")
-
 					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
 						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
 						log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
@@ -1177,6 +1097,7 @@ class contentserver(TCPNetworkHandler):
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
 						break
+						
 					manifest = f.read()
 					f.close()
 
@@ -1336,6 +1257,7 @@ class contentserver(TCPNetworkHandler):
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
 						break
+
 					f = open(filename, "rb")
 					file = f.read()
 					f.close()

@@ -18,7 +18,7 @@ def load_modifiers_from_files():
 			with open(file_path, 'r') as file:
 				modifiers_list.extend(line.strip() for line in file if line.strip())
 		except IOError as e:
-			print(f"Error reading file {file_path}: {e}")
+			pass
 
 	if config["use_builtin_suggested_name_modifiers"].lower() == "true":
 		globalvars.prepended_modifiers += [
