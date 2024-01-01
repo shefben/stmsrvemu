@@ -136,7 +136,7 @@ class CSERServer(UDPNetworkHandler) :
 		self.serversocket.sendto(b"\xFF\xFF\xFF\xFFj\x01", address)
 
 	def check_allowupload(self, reply, address):
-		allowupload = b"\x02" if self.config["allow_harvest_upload"].lower == "true" else b"\x01" # \x00 = unknown
+		allowupload = b"\x02" if self.config["allow_harvest_upload"].lower() == "true" else b"\x01" # \x00 = unknown
 		reply += b"\x01" + allowupload
 		if allowupload == b"\x02":
 			# TODO BEN, GRAB FROM DIR SERVER & SEND HARVEST SERVER NEWLY GENERATED CONTEXT ID'S FOR ITS LIST IF NOT AIO SERVER

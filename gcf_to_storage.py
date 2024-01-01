@@ -52,7 +52,7 @@ def gcf2storage(filename):
     storagedir = "files/cache/" + str(gcf.appid) + "_" + str(gcf.appversion) + "/"
 
     if not os.path.isdir(manifestdir):
-        os.mkdir(manifestdir)
+        os.makedirs(manifestdir, exist_ok=True)
 
     storage = storages.Old_Storage(gcf.appid, storagedir)
 

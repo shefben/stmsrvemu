@@ -22,7 +22,7 @@ class beta1_dbdriver(object) :
 
 	def __init__(self, config):
 		# Assuming you have a db_driver instance created and connected
-		self.db_driver = dbengine.create_database_driver(config['database_type'])
+		self.db_driver = dbengine.create_database_driver(globalvars.db_type)
 		self.db_driver.connect()
 
 		if not self.db_driver.check_table_exists('beta1_users') or not self.db_driver.check_table_exists('beta1_subscriptions'):

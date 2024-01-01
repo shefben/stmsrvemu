@@ -20,7 +20,10 @@ aio_server = False
 db_type = ""
 peer_password = ""
 dir_ismaster = "false"
+use_sdk = "false"
+use_file_blobs = "true"
 cs_applist = []
+smtp_enable = "false"
 server_ip = ""
 server_ip_b = b""
 public_ip = ""
@@ -774,12 +777,12 @@ replacestringsCDR = (
 
 def replace_string_name_space(islan):
 	if islan:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
-		else:
+		if config["http_ip"] != "":
 			octal_ip = config["http_ip"]
+		else:
+			octal_ip = config["server_ip"]
 		conn_ip = config["server_ip"]
-		trk_ip = config["tracker_ip"]
+		trk_ip = config["server_ip"]
 	else:
 		if not config["http_name"] == "":
 			octal_ip = config["http_name"]
@@ -916,19 +919,19 @@ def replace_string_name_space(islan):
 
 def replace_string_name(islan):
 	if islan:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
-		else:
+		if config["http_ip"] != "":
 			octal_ip = config["http_ip"]
+		else:
+			octal_ip = config["server_ip"]
 		conn_ip = config["server_ip"]
 		trk_ip = config["tracker_ip"]
 	else:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
+		if not config["http_ip"] == "":
+			octal_ip = config["http_ip"]
 		else:
 			octal_ip = config["public_ip"]
 		conn_ip = config["public_ip"]
-		trk_ip = config["public_ip"]
+		trk_ip = config["tracker_ip"]
 
 	if steamui_ver < 87 :
 		http_port_neuter = ""
@@ -1036,10 +1039,10 @@ def replace_string_name(islan):
 
 def replace_string(islan):
 	if islan:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
-		else:
+		if config["http_ip"] != "":
 			octal_ip = config["http_ip"]
+		else:
+			octal_ip = config["server_ip"]
 		conn_ip = config["server_ip"]
 		trk_ip = config["tracker_ip"]
 	else:
@@ -1048,7 +1051,7 @@ def replace_string(islan):
 		else:
 			octal_ip = config["public_ip"]
 		conn_ip = config["public_ip"]
-		trk_ip = config["public_ip"]
+		trk_ip = config["tracker_ip"]
 
 	octal_ip = octal_ip.encode('latin-1')
 	conn_ip = conn_ip.encode('latin-1')

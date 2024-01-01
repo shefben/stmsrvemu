@@ -112,7 +112,7 @@ class Old_Storage(object):
 
 
 class Storage(object):
-    def __init__(self, storagename, path, version):
+    def __init__(self, storagename, path, version, islan=False):
         self.name = str(storagename)
         self.ver = str(version)
 

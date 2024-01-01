@@ -19,7 +19,7 @@ import utils
 from gcf_to_storage import gcf2storage
 from listmanagers.contentlistmanager import manager
 from listmanagers.contentserverlist_utilities import send_heartbeat
-from utilities import cdr_manipulator, encryption, blobs
+from utilities import cdr_manipulator, encryption, blobs, storages as stmstorages
 from utilities.checksums import Checksum2, Checksum3
 from utilities.manifests import *
 from utilities.networkhandler import TCPNetworkHandler
@@ -62,7 +62,7 @@ class contentserver(TCPNetworkHandler):
 	def handle_client(self, client_socket, client_address):
 		global csConnectionCount
 
-		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
+		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 			islan = True
 		else:
 			islan = False
@@ -110,7 +110,7 @@ class contentserver(TCPNetworkHandler):
 				# ptext = encryption.decrypt_message(bio.read()[:-20], key)
 				log.info(f"{clientid}Opening application {app} {version}" )
 				try:
-					s = utilities.storages.Storage(app, self.config["betastoragedir"], version)
+					s = stmstorages.Storage(app, self.config["betastoragedir"], version)
 				except Exception:
 					log.error("Application not installed! %d %d" % (app, version))
 
@@ -276,7 +276,7 @@ class contentserver(TCPNetworkHandler):
 					# connid = pow(2,31) + connid
 
 					try:
-						s = utilities.storages.Storage(app, self.config["storagedir"], version)
+						s = stmstorages.Storage(app, self.config["storagedir"], version)
 					except Exception:
 						log.error("Application not installed! %d %d" % (app, version))
 
@@ -510,7 +510,7 @@ class contentserver(TCPNetworkHandler):
 							else:
 								log.info(f"Banner message: {binascii.b2a_hex(command)}")
 								# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
-								if config["use_webserver"].lower() == "true" and (self.config["http_port"] != "steam" or self.config["http_port"] != "0"):
+								if config["use_webserver"].lower() == "true" and (self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0"):
 									if islan:
 										url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php")
 										# print("INTERNAL BANNER")
@@ -591,7 +591,7 @@ class contentserver(TCPNetworkHandler):
 
 						# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
 						if config["use_webserver"].lower() == "true":
-							if self.config["http_port"] != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
+							if self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
 								if self.config["public_ip"] != "0.0.0.0":
 									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
 								else:
@@ -641,7 +641,7 @@ class contentserver(TCPNetworkHandler):
 						# connid = pow(2,31) + connid
 
 						try:
-							s = utilities.storages.Storage(app, self.config["storagedir"], version)
+							s = stmstorages.Storage(app, self.config["storagedir"], version)
 						except Exception:
 							log.error(f"Application not installed! {app}, {version}")
 
@@ -731,7 +731,7 @@ class contentserver(TCPNetworkHandler):
 					connid = pow(2, 31) + connid
 
 					try:
-						s = utilities.storages.Storage(app, self.config["storagedir"], version)
+						s = stmstorages.Storage(app, self.config["storagedir"], version)
 					except Exception:
 						log.error("Application not installed! {app}, {version}")
 
@@ -928,7 +928,6 @@ class contentserver(TCPNetworkHandler):
 						log.error(b"Checksums not found for %s %s " % (app, version))
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
-						break
 
 					f = open(filename, "rb")
 					file = f.read()
@@ -1058,7 +1057,7 @@ class contentserver(TCPNetworkHandler):
 					connid = pow(2, 31) + connid
 
 					try:
-						s = utilities.storages.Storage(app, self.config["storagedir"], version)
+						s = stmstorages.Storage(app, self.config["storagedir"], version)
 					except Exception:
 						log.error("Application not installed! %d %d" % (app, version))
 
@@ -1109,7 +1108,6 @@ class contentserver(TCPNetworkHandler):
 
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
-
 						break
 
 					globalvars.converting = "0"

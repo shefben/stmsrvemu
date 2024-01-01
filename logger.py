@@ -9,7 +9,7 @@ from config import read_config
 
 config = read_config()
 loglevel = config["log_level"]
-logtofile = config["log_to_file"]
+logtofile = config["log_to_file"].lower()
 
 
 class SpecificDebugFilter(logging.Filter) :

@@ -59,7 +59,7 @@ class clientupdateserver(TCPNetworkHandler):
 		clientid = str(client_address) + ": "
 
 		log.info(clientid + "Connected to Client Update Server")
-		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
+		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 			islan = True
 		else:
 			islan = False
@@ -133,13 +133,13 @@ class clientupdateserver(TCPNetworkHandler):
 								log.debug(clientid + "Internal beta pkg dir already exists")
 
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 								if not os.path.isfile("files/cache/internal/betav2/" + newfilename) :
-									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/internal/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/internal/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], islan)
 								f = open('files/cache/internal/betav2/' + newfilename, 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/betav2/" + newfilename) :
-									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/external/betav2/" + newfilename, self.config["public_ip"], self.config["dir_server_port"], "wan")
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/external/betav2/" + newfilename, self.config["public_ip"], self.config["dir_server_port"], islan)
 								f = open('files/cache/external/betav2/' + newfilename, 'rb')
 						else:
 							try :
@@ -147,7 +147,7 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error :
 								log.debug(clientid + "Beta pkg dir already exists")
 							if not os.path.isfile("files/cache/betav2/" + newfilename) :
-								neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+								neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], islan)
 							f = open('files/cache/betav2/' + newfilename, 'rb')
 
 						file = f.read()
@@ -181,14 +181,14 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error :
 								log.debug(clientid + "Internal beta pkg dir already exists")
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)):
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 								if not os.path.isfile("files/cache/internal/betav2/" + filename) :
-									neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/internal/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+									neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/internal/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], islan)
 								f = open('files/cache/internal/betav2/' + filename, 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/" + filename.decode()):
 									if not os.path.isfile("files/cache/external/betav2/" + filename) :
-										neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/external/betav2/" + filename, self.config["public_ip"], self.config["dir_server_port"], "wan")
+										neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/external/betav2/" + filename, self.config["public_ip"], self.config["dir_server_port"], islan)
 									f = open('files/cache/external/betav2/' + filename, 'rb')
 						else:
 							try :
@@ -196,7 +196,7 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error :
 								log.debug(clientid + "Beta pkg dir already exists")
 							if not os.path.isfile("files/cache/betav2/" + filename) :
-								neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], "lan")
+								neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], islan)
 							f = open('files/cache/betav2/' + filename, 'rb')
 
 						file = f.read()
@@ -264,7 +264,7 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error:
 								log.debug(clientid + "Internal pkg dir already exists")
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) :
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 								if not os.path.isfile("files/cache/internal/" + newfilename.decode()):
 									neuter(self.config["packagedir"] + newfilename.decode(),
 										   "files/cache/internal/" + newfilename.decode(), self.config["server_ip"],
@@ -304,17 +304,17 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error:
 								log.debug(clientid + "Internal pkg dir already exists")
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) :
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 								if not os.path.isfile("files/cache/internal/" + filename.decode()):
-									neuter(self.config["packagedir"] + filename.decode(), "files/cache/internal/" + filename.decode(), self.config["server_ip"], self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + filename.decode(), "files/cache/internal/" + filename.decode(), self.config["server_ip"], self.config["dir_server_port"], True)
 								f = open('files/cache/internal/' + filename.decode(), 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/" + filename.decode()):
-									neuter(self.config["packagedir"] + filename.decode(), "files/cache/external/" + filename.decode(), self.config["public_ip"], self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + filename.decode(), "files/cache/external/" + filename.decode(), self.config["public_ip"], self.config["dir_server_port"], False)
 								f = open('files/cache/external/' + filename.decode(), 'rb')
 						else:
 							if not os.path.isfile("files/cache/" + filename.decode()):
-								neuter(self.config["packagedir"] + filename.decode(), "files/cache/" + filename.decode(), self.config["server_ip"], self.config["dir_server_port"], islan)
+								neuter(self.config["packagedir"] + filename.decode(), "files/cache/" + filename.decode(), self.config["server_ip"], self.config["dir_server_port"], True)
 							f = open('files/cache/' + filename.decode(), 'rb')
 
 						file = f.read()

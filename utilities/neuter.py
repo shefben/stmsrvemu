@@ -82,6 +82,7 @@ def replace_ips_in_file(file, filename, ip_list, replacement_ip) :
 				file = file[:loc] + replace_ip + file[loc + 16 :]
 				log.debug(f"{filename.decode()}: Found and replaced IP {ip.decode():>16} at location {loc:08x}")
 			else :
+				replacement_ip = config["server_ip"]
 				replace_ip = replacement_ip.encode( ) + (b"\x00" * (16 - len(replacement_ip)))
 				file = file[:loc] + replace_ip + file[loc + 16 :]
 				log.debug(f"{filename.decode()}: Found and replaced IP {ip.decode():>16} at location {loc:08x}")
@@ -165,7 +166,7 @@ def neuter(pkg_in, pkg_out, server_ip, server_port, islan):
 	if len(pkgadd_filelist) > 0:
 		del pkgadd_filelist[:]
 
-	if config["use_sdk"] == "0" and config["sdk_ip"] != "0.0.0.0":
+	if globalvars.use_sdk == "false" and config["sdk_ip"] != "0.0.0.0":
 		sdk_line = 'SdkContentServerAdrs = "' + config["sdk_ip"] + ":" + config["sdk_port"] + '"'
 		with open("files/pkg_add/steamui/Steam.cfg", "w") as f:
 			f.write(sdk_line)

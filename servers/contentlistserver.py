@@ -39,7 +39,7 @@ class contentlistserver(TCPNetworkHandler) :
         # ideas include: if a packet exists for getting the app list, have csds send the packet and parse the response
         # or put sdk contentserver in a folder within stmserver that we can parse through the files ourselves
 
-        # if self.config["use_sdk"] == 1 :
+        # if globalvars.use_sdk == "true" :
         #      sdk_server_info = {
         #     'ip_address': str(self.config["sdk_ip"]),
         #     'port': int(self.config["sdk_port"]),

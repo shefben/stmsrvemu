@@ -55,7 +55,7 @@ new_password = utils.check_peerpassword()
 
 directoryserver(int(config["dir_server_port"]), config).start()
 # launch directoryserver first so server can heartbeat the moment they launch
-if globalvars.dir_ismaster.loqwe is "true":
+if globalvars.dir_ismaster is "true":
     log.info(f"Steam Master General Directory Server listening on port {config['dir_server_port']}")
 else:
     log.info(f"Steam Slave General Directory Server listening on port {config['dir_server_port']}")

@@ -882,7 +882,7 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob))
 
 				client_socket.send(b"\x01")
-				if self.config['smtp_enabled'].lower() == "true":
+				if globalvars.smtp_enable == "true":
 					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
@@ -1943,7 +1943,7 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob))
 
 				client_socket.send(b"\x00")
-				if self.config['smtp_enabled'].lower() == "true":
+				if globalvars.smtp_enable == "true":
 					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
@@ -2995,7 +2995,7 @@ class authserver(TCPNetworkHandler):
 					userblobfile.write(str(plainblob_fixed))
 
 				client_socket.send(b"\x00")
-				if self.config['smtp_enabled'].lower() == "true":
+				if globalvars.smtp_enable == "true":
 					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
@@ -4027,7 +4027,7 @@ class authserver(TCPNetworkHandler):
 				userblobfile.write(str(plainblob))
 
 			client_socket.send(b"\x01")  # TO DO SEND \x00 FOR EMAIL IN USE
-		if self.config['smtp_enabled'].lower() == "true":
+		if globalvars.smtp_enable == "true":
 			sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
 		elif command[0:1] == b"\x0e":  # Check username - password reset
 			log.info(f"{clientid}Password reset: check username exists")

@@ -245,9 +245,7 @@ def formatstring(text):
 
 
 def autoupdate(arguments):
-	if not config["emu_auto_update"].lower() == "false":
-		autoupdate(sys.argv[0])
-
+	if config["emu_auto_update"].lower() == "true":
 		if arguments.endswith("emulator.exe"):
 			try:
 				if os.path.isfile("emulatorTmp.exe"):
@@ -633,7 +631,7 @@ def finalinitialize(log):
 					config
 			)
 
-	if config["use_sdk"] == "1":
+	if globalvars.use_sdk == "true":
 		with open("files/pkg_add/steam/Steam.cfg", "w") as h:
 			h.write('SdkContentServerAdrs = "' + config["sdk_ip"] + ':' + config["sdk_port"] + '"\n')
 		if os.path.isfile("files/cache/Steam_" + str(globalvars.steam_ver) + ".pkg"):
@@ -737,12 +735,16 @@ def flush_cache():
 def parent_initializer():
 	log.info("---Starting Initialization---")
 
-	globalvars.cs_region = config["cs_region"]
-	globalvars.dir_ismaster = config["dir_ismaster"]
+	globalvars.cs_region = config["cs_region"].upper()
+	globalvars.dir_ismaster = config["dir_ismaster"].lower()
 	globalvars.server_ip = config["server_ip"]
 	globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
 	globalvars.public_ip = config["public_ip"]
-
+	globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
+	globalvars.use_sdk = config["use_sdk"].lower()
+	globalvars.db_type = config["database_type"].lower()
+	globalvars.use_file_blobs = config["use_file_blobs"].lower()
+	globalvars.smtp_enable = config['smtp_enabled'].lower()
 	initialize()
 
 	if not globalvars.update_exception1 == "":

@@ -39,13 +39,13 @@ def send_email_via_smtp(msg):
 		print("Error sending email:", str(e))
 
 def load_email_template(template_name, **kwargs):
-	template_path = os.path.join('/files/email_tpl/', template_name)
+	template_path = os.path.join('files/email_tpl/', template_name)
 	with open(template_path, 'r') as file:
 		template = file.read()
 
 	kwargs['support_email'] = config['support_email']
 	kwargs['network_name'] = config['network_name']
-	kwargs['network_url'] = config['http_name']  # or http_ip??? TODO BEN, FIGURE THIS OUT
+	kwargs['network_url'] = config['http_ip']  # or http_ip??? TODO BEN, FIGURE THIS OUT
 	kwargs['logo_url'] = config['network_logo']
 
 	if config['email_includelocation'].lower() == "true":

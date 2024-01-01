@@ -171,7 +171,7 @@ if config["use_webserver"].lower() == "true" and os.path.isdir(config["apache_ro
 		http_port = str(config["http_port"])  # [1:]
 	log.info(f"Steam Web Server listening on port {http_port}")
 	find_child_pid_timer = threading.Timer(10.0, check_child_pid()).start()
-elif config["use_webserver"] == "true" and not os.path.isdir(config["apache_root"]):
+elif config["use_webserver"].lower() == "true" and not os.path.isdir(config["apache_root"]):
 		log.error("Cannot start Steam Web Server: apache folder is missing")
 
 if config["sdk_ip"] != "0.0.0.0":

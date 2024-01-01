@@ -56,7 +56,7 @@ print(" -== Steam 20th Anniversary Edition 2003-2023 ==-")
 print("")
 
 globalvars.aio_server = True
-globalvars.cs_region = config["cs_region"]
+globalvars.cs_region = config["cs_region"].upper()
 globalvars.dir_ismaster = "true"
 globalvars.server_ip = config["server_ip"]
 
