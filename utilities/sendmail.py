@@ -1,5 +1,6 @@
 import smtplib
 import os
+from email.mime.multipart import MIMEMultipart
 import logger
 
 from email.mime.text import MIMEText
@@ -45,69 +46,95 @@ def load_email_template(template_name, **kwargs):
 
 	kwargs['support_email'] = config['support_email']
 	kwargs['network_name'] = config['network_name']
-	kwargs['network_url'] = config['http_ip']  # or http_ip??? TODO BEN, FIGURE THIS OUT
+	kwargs['network_url'] = config['http_ip']
 	kwargs['logo_url'] = config['network_logo']
 
-	if config['email_includelocation'].lower() == "true":
+	if config['email_location_support'].lower() == "true":
 		country, region_name = utils.get_location(kwargs['ipaddress'])
 		kwargs['ip_location_msg'] = f" (Location: {country}, {region_name})"
+		print(f'Country: {country}, Region: {region_name}')
 	else:
 		kwargs['ip_location_msg'] = ""
 
-	print(f'Country: {country}, Region: {region_name}')
+
 	return template.format(**kwargs)
 
 def send_username_email(to_email, username, ipaddress):
 	subject = f"{config['network_name']}: Username Retrieval"
-	body = load_email_template('username_retrieval.tpl', username=username, ipaddress=ipaddress)
+	body = load_email_template('username_retrieval.tpl', username=username, ipaddress=ipaddress[0])
 
-	msg = MIMEText(body)
+	msg = MIMEMultipart('alternative')
 	msg['Subject'] = subject
-	msg['From'] = config['support_email']
+	msg['From'] = config['smtp_username']
 	msg['To'] = to_email
+
+	# Attach the HTML version of the body
+	part = MIMEText(body, 'html')
+	msg.attach(part)
 
 	send_email_via_smtp(msg)
 
 def send_reset_password_email(to_email, verification_code, question, ipaddress, username):
 	subject = f"{config['network_name']}: Password Reset Request"
-	body = load_email_template('password_reset_request.tpl', verification_code=verification_code, question=question, ipaddress=ipaddress, username=username)
+	body = load_email_template('password_reset_request.tpl', verification_code=verification_code, question=question, ipaddress=ipaddress[0], username=username)
 
-	msg = MIMEText(body)
+	msg = MIMEMultipart('alternative')
 	msg['Subject'] = subject
-	msg['From'] = config['support_email']
+	msg['From'] = config['smtp_username']
 	msg['To'] = to_email
+
+	# Attach the HTML version of the body
+	part = MIMEText(body, 'html')
+	msg.attach(part)
 
 	send_email_via_smtp(msg)
 
 def send_verification_email(to_email, verification_token, ipaddress, username):
 	subject = f"{config['network_name']}: Account Verification"
-	body = load_email_template('account_verification.tpl', verification_code=verification_token, ipaddress=ipaddress, username=username)
+	body = load_email_template('account_verification.tpl', verification_code=verification_token, ipaddress=ipaddress[0], username=username)
 
-	msg = MIMEText(body)
+	msg = MIMEMultipart('alternative')
 	msg['Subject'] = subject
-	msg['From'] = config['support_email']
+	msg['From'] = config['smtp_username']
 	msg['To'] = to_email
+
+	# Attach the HTML version of the body
+	part = MIMEText(body, 'html')
+	msg.attach(part)
 
 	send_email_via_smtp(msg)
 
 def send_new_user_email(to_email, ipaddress, username):
 	subject = f"Welcome to {config['network_name']}!"
-	body = load_email_template('new_user_welcome.tpl', ipaddress=ipaddress, username=username)
+	body = load_email_template('new_user_welcome.tpl', ipaddress=ipaddress[0], username=username)
 
-	msg = MIMEText(body)
+	msg = MIMEMultipart('alternative')
 	msg['Subject'] = subject
-	msg['From'] = config['support_email']
+	msg['From'] = config['smtp_username']
 	msg['To'] = to_email
+
+	# Attach the HTML version of the body
+	part = MIMEText(body, 'html')
+	msg.attach(part)
 
 	send_email_via_smtp(msg)
 
 def send_password_changed_email(to_email, ipaddress, username):
 	subject = f"{config['network_name']}: Password Change Notice"
-	body = load_email_template('password_changed.tpl', ipaddress=ipaddress, username=username)
+	body = load_email_template('password_changed.tpl', ipaddress=ipaddress[0], username=username)
 
-	msg = MIMEText(body)
+	msg = MIMEMultipart('alternative')
 	msg['Subject'] = subject
-	msg['From'] = config['support_email']
+	msg['From'] = config['smtp_username']
 	msg['To'] = to_email
 
+	# Attach the HTML version of the body
+	part = MIMEText(body, 'html')
+	msg.attach(part)
+
 	send_email_via_smtp(msg)
+
+
+
+if __name__ == "__main__":
+    send_new_user_email(sys.argv[1], sys.argv[2], sys.argv[3])

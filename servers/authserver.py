@@ -53,7 +53,10 @@ class authserver(TCPNetworkHandler):
 		clientid = str(client_address) + ": "
 
 		log.info(f"{clientid}Connected to Auth Server")
-
+		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
+			islan = True
+		else:
+			islan = False
 		command = client_socket.recv(13)
 
 		log.debug(f":{binascii.b2a_hex(command[1:5])}:")
@@ -62,7 +65,7 @@ class authserver(TCPNetworkHandler):
 		# if command[1:5] == b"\x00\x00\x00\x00": # \x00 for 2002 beta 1
 		# self.process_beta1_packets(clientid, client_socket, client_address, log)
 		if command[1:5] == b"\x00\x00\x00\x01":  # \x01 for 2003 beta 2
-			self.process_beta2_packets(clientid, client_socket, client_address, log)
+			self.process_beta2_packets(clientid, client_socket, client_address, log, islan)
 		elif command[1:5] == b"\x00\x00\x00\x03":  # \x03 for 2003 release
 
 			log.debug(f"{clientid}Using 2003 auth protocol")
@@ -883,7 +886,7 @@ class authserver(TCPNetworkHandler):
 
 				client_socket.send(b"\x01")
 				if globalvars.smtp_enable == "true":
-					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'].decode('latin-1'), client_address, username_str.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -1084,7 +1087,7 @@ class authserver(TCPNetworkHandler):
 					else:
 						client_socket.send(b"\x00")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
-				blob = cdr_manipulator.fixblobs()
+				blob = cdr_manipulator.fixblobs(islan)
 				checksum = SHA.new(blob).digest()
 
 				if checksum == command[1:]:
@@ -1944,7 +1947,7 @@ class authserver(TCPNetworkHandler):
 
 				client_socket.send(b"\x00")
 				if globalvars.smtp_enable == "true":
-					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'].decode('latin-1'), client_address, username_str.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -2140,7 +2143,7 @@ class authserver(TCPNetworkHandler):
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
-				blob = cdr_manipulator.fixblobs()
+				blob = cdr_manipulator.fixblobs(islan)
 				checksum = SHA.new(blob).digest()
 
 				if checksum == command[1:]:
@@ -2990,13 +2993,13 @@ class authserver(TCPNetworkHandler):
 
 				plainblob_fixed = pprint.pformat(plainblob_fixed)
 
-				with open("files/users/" + username_str + ".py", 'w') as userblobfile:
+				with open("files/users/" + username_str.decode('latin-1') + ".py", 'w') as userblobfile:
 					userblobfile.write("user_registry = ")
 					userblobfile.write(str(plainblob_fixed))
 
 				client_socket.send(b"\x00")
 				if globalvars.smtp_enable == "true":
-					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
+					sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'].decode('latin-1'), client_address, username_str.decode('latin-1'))
 			elif command[0:1] == b"\x0e":  # Check username - password reset
 				log.info(f"{clientid}Password reset: check username exists")
 				self.send_mainkey(client_socket)
@@ -3193,7 +3196,7 @@ class authserver(TCPNetworkHandler):
 					else:
 						client_socket.send(b"\x01")
 			elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
-				blob = cdr_manipulator.fixblobs()
+				blob = cdr_manipulator.fixblobs(islan)
 
 				checksum = SHA.new(blob).digest()
 
@@ -3228,9 +3231,9 @@ class authserver(TCPNetworkHandler):
 			userblob = ast.literal_eval(userblobstr[16:len(userblobstr)])
 
 		new_code = self.manager.generate_code(username_str)
-		sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str.encode('latin-1')][b'\x03\x00\x00\x00'], client_address, username_str.decode('latin-1'))
+		sendmail.send_reset_password_email(userblob[b'\x0b\x00\x00\x00'].decode('latin-1'), new_code, userblob[b'\x05\x00\x00\x00'][username_str.encode('latin-1')][b'\x03\x00\x00\x00'].decode('latin-1'), client_address, username_str)
 
-	def process_beta2_packets(self, clientid, client_socket, client_address, log):
+	def process_beta2_packets(self, clientid, client_socket, client_address, log, islan):
 		log.debug(f"{clientid}Using 2003 beta auth protocol")
 		client_socket.send(b"\x00" + real_socket.inet_aton(client_address[0]))
 		log.debug((str(real_socket.inet_aton(client_address[0]))))
@@ -4028,7 +4031,7 @@ class authserver(TCPNetworkHandler):
 
 			client_socket.send(b"\x01")  # TO DO SEND \x00 FOR EMAIL IN USE
 		if globalvars.smtp_enable == "true":
-			sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'], client_address, username.decode('latin-1'))
+			sendmail.send_new_user_email(plainblob[b'\x0b\x00\x00\x00'].decode('latin-1'), client_address, username_str.decode('latin-1'))
 		elif command[0:1] == b"\x0e":  # Check username - password reset
 			log.info(f"{clientid}Password reset: check username exists")
 			BERstring = bytes.fromhex("30819d300d06092a864886f70d010101050003818b0030818702818100") + encryption.network_key.n.to_bytes(128, byteorder="big") + bytes.fromhex("020111")
@@ -4236,7 +4239,7 @@ class authserver(TCPNetworkHandler):
 					client_socket.send(b"\x01")
 		elif command[0:1] == b"\x0b":  # Send CDR for v2 beta
 
-			blob = cdr_manipulator.fixblobs()
+			blob = cdr_manipulator.fixblobs(islan)
 			checksum = SHA.new(blob).digest()
 
 			if checksum == command[1:]:

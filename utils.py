@@ -8,6 +8,7 @@ import string
 import subprocess
 import sys
 import time
+import ipcalc
 import requests
 import socket
 import struct
@@ -351,7 +352,7 @@ def get_internal_ip():
 
 		return None
 
-def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478):
+def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478, locationcheck = False):
 	# STUN server request
 	stun_request = b'\x00\x01' + b'\x00\x00' + b'\x21\x12\xA4\x42' + b'\x00' * 12
 
@@ -385,7 +386,8 @@ def get_external_ip(stun_server='stun.ekiga.net', stun_port=3478):
 						# Unpack IP and convert to dotted-decimal notation
 						port, ip = struct.unpack_from('!xH4s', data[1:], index + 4)
 						ip = socket.inet_ntoa(ip)
-						save_config_value("public_ip", ip + "					; External IP for allowing users to connect over the internet")
+						if not locationcheck:
+							save_config_value("public_ip", ip + "					; External IP for allowing users to connect over the internet")
 						return ip
 					index += 4 + attr_len
 		except socket.error:
@@ -771,7 +773,13 @@ def parent_initializer():
 	return check_peerpassword()
 
 def get_location(ip_address):
+
+	# If the IP is a LAN IP then we grab the servers external IP, we assume the client and server both use the same external IP and we get the location information for the email!
+	if str(ip_address) in ipcalc.Network(str(globalvars.server_net)):
+		ip_address = get_external_ip(locationcheck=True)
+
 	url = f'http://ip-api.com/json/{ip_address}'
+
 	try:
 		response = requests.get(url)
 		response.raise_for_status()
@@ -785,5 +793,3 @@ def get_location(ip_address):
 			return 'Failed to retrieve data', 'Failed to retrieve data'
 	except requests.RequestException as e:
 		return f'Error: {e}', f'Error: {e}'
-
-# return file_paths["suggestion_prepend.txt"], file_paths["suggestion_append.txt"]

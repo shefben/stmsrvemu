@@ -11,7 +11,7 @@ from utilities import blobs, encryption
 from utils import log
 
 
-def fixblobs():
+def fixblobs(islan):
 	if os.path.isfile("files/cache/secondblob.bin"):
 		with open("files/cache/secondblob.bin", "rb") as f:
 			blob = f.read()
@@ -28,7 +28,7 @@ def fixblobs():
 			file = g.read()
 
 		print("Fixing CDR")
-		file = blobs.blob_replace(file, globalvars.replacestringsCDR)
+		file = blobs.blob_replace(file, globalvars.replaceCDRstring(islan))
 		execdict = {}
 		execdict_temp_01 = {}
 		execdict_temp_02 = {}
@@ -56,13 +56,13 @@ def fixblobs():
 						execdict_update = "blob = " + blob3
 
 						print("Fixing CDR 1")
-						execdict_update = blobs.blob_replace(execdict_update, globalvars.replacestringsCDR)
+						execdict_update = blobs.blob_replace(execdict_update, globalvars.replaceCDRstring(islan))
 
 					elif pyblobfile.endswith(".py"):
 						with open("files/custom/" + pyblobfile, 'r') as m:
 							userblobstr_upd = m.read()
 						print("Fixing CDR 2")
-						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
+						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replaceCDRstring(islan))
 						execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 					for k in execdict_update:
@@ -120,7 +120,7 @@ def fixblobs():
 		file = "blob = " + blob3
 
 		print("Fixing CDR 3")
-		file = blobs.blob_replace(file, globalvars.replacestringsCDR)
+		file = blobs.blob_replace(file, globalvars.replaceCDRstring(islan))
 
 		execdict = {}
 		execdict_temp_01 = {}
@@ -148,14 +148,14 @@ def fixblobs():
 						execdict_update = "blob = " + blob3
 
 						print("Fixing CDR 4")
-						execdict_update = blobs.blob_replace(execdict_update, globalvars.replacestringsCDR)
+						execdict_update = blobs.blob_replace(execdict_update, globalvars.replaceCDRstring(islan))
 
 					elif pyblobfile.endswith(".py"):
 						with open("files/custom/" + pyblobfile, 'r') as m:
 							userblobstr_upd = m.read()
 
 						print("Fixing CDR 5")
-						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
+						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replaceCDRstring(islan))
 						execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 					for k in execdict_update:
@@ -208,7 +208,7 @@ def fixblobs():
 	return blob
 
 
-def fixblobs_configserver():
+def fixblobs_configserver(islan):
 	if os.path.isfile("files/cache/secondblob.bin"):  # read cached bin
 		with open("files/cache/secondblob.bin", "rb") as f:
 			#print("read cached blob")
@@ -227,7 +227,7 @@ def fixblobs_configserver():
 			file = g.read()
 
 		print("Fixing CDR 6")
-		file = blobs.blob_replace(file, globalvars.replacestringsCDR)
+		file = blobs.blob_replace(file, globalvars.replaceCDRstring(islan))
 
 		execdict = {}
 		execdict_temp_01 = {}
@@ -275,12 +275,12 @@ def fixblobs_configserver():
 						blob3 = pprint.saferepr(blob2)
 						execdict_update = "blob = " + blob3
 						print("Fixing CDR 7")
-						execdict_update = blobs.blob_replace(execdict_update, globalvars.replacestringsCDR)
+						execdict_update = blobs.blob_replace(execdict_update, globalvars.replaceCDRstring(islan))
 					elif pyblobfile.endswith(".py"):
 						with open("files/custom/" + pyblobfile, 'r') as m:
 							userblobstr_upd = m.read()
 							print("Fixing CDR 8")
-						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
+						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replaceCDRstring(islan))
 						execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 
 					for k in execdict_update:
@@ -339,7 +339,7 @@ def fixblobs_configserver():
 		blob3 = pprint.saferepr(blob2)  # 1/5th of the time compared with using pprint.saferepr
 		file = "blob = " + blob3
 		print("Fixing CDR 9")
-		for (search, replace, info) in globalvars.replacestringsCDR:
+		for (search, replace, info) in globalvars.replaceCDRstring(islan):
 			# print "Fixing CDR 23"
 			fulllength = len(search)
 			newlength = len(replace)
@@ -412,13 +412,13 @@ def fixblobs_configserver():
 						blob3 = pprint.saferepr(blob2)
 						execdict_update = "blob = " + blob3
 						print("Fixing CDR 10")
-						execdict_update = blobs.blob_replace(execdict_update, globalvars.replacestringsCDR)
+						execdict_update = blobs.blob_replace(execdict_update, globalvars.replaceCDRstring(islan))
 
 					elif pyblobfile.endswith(".py"):
 						with open("files/custom/" + pyblobfile, 'r') as m:
 							userblobstr_upd = m.read()
 						print("Fixing CDR 11")
-						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replacestringsCDR)
+						userblobstr_upd = blobs.blob_replace(userblobstr_upd, globalvars.replaceCDRstring(islan))
 
 						execdict_update = ast.literal_eval(userblobstr_upd[7:len(userblobstr_upd)])
 

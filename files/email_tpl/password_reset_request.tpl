@@ -2,27 +2,27 @@
 <html>
 <head>
     <style>
-        body {
+        body {{
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             color: #333333;
-        }
-        .container {
+        }}
+        .container {{
             padding: 20px;
-        }
-        .footer {
+        }}
+        .footer {{
             font-size: 0.9em;
             margin-top: 20px;
             color: #666666;
-        }
-        .header img {
+        }}
+        .header img {{
             width: 100px;  /* Adjust as needed */
             height: auto;
-        }
-        .important {
+        }}
+        .important {{
             color: red;
-        }
+        }}
     </style>
 </head>
 <body>

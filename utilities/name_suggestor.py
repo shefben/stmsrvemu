@@ -30,7 +30,7 @@ def load_modifiers_from_files():
 				"nasty", "ultra", "mega", "super", "hyper", "dark", "chaos", "lucky",
 				"quick", "sneaky", "crazy", "furious", "silent", "rapid", "chronic",
 				"stormy", "wild", "ancient", "legendary", "ghost", "frosty", "the_phallic",
-				"hard", "crunchy"
+				"hard", "crunchy", "ugly", "crunchy", "re"
 			]
 		globalvars.appended_modifiers += [
 				"rific", "dream", "_the_womanizer", "transvester",

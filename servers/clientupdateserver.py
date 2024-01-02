@@ -135,11 +135,11 @@ class clientupdateserver(TCPNetworkHandler):
 
 							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
 								if not os.path.isfile("files/cache/internal/betav2/" + newfilename) :
-									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/internal/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/internal/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], True)
 								f = open('files/cache/internal/betav2/' + newfilename, 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/betav2/" + newfilename) :
-									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/external/betav2/" + newfilename, self.config["public_ip"], self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/external/betav2/" + newfilename, self.config["public_ip"], self.config["dir_server_port"], False)
 								f = open('files/cache/external/betav2/' + newfilename, 'rb')
 						else:
 							try :
@@ -147,7 +147,7 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error :
 								log.debug(clientid + "Beta pkg dir already exists")
 							if not os.path.isfile("files/cache/betav2/" + newfilename) :
-								neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], islan)
+								neuter(self.config["packagedir"] + "betav2/" + newfilename, "files/cache/betav2/" + newfilename, self.config["server_ip"], self.config["dir_server_port"], True)
 							f = open('files/cache/betav2/' + newfilename, 'rb')
 
 						file = f.read()
@@ -264,22 +264,17 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error:
 								log.debug(clientid + "Internal pkg dir already exists")
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]) or islan:
 								if not os.path.isfile("files/cache/internal/" + newfilename.decode()):
-									neuter(self.config["packagedir"] + newfilename.decode(),
-										   "files/cache/internal/" + newfilename.decode(), self.config["server_ip"],
-										   self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + newfilename.decode(), "files/cache/internal/" + newfilename.decode(), self.config["server_ip"], self.config["dir_server_port"], True)
 								f = open('files/cache/internal/' + newfilename.decode(), 'rb')
 							else:
 								if not os.path.isfile("files/cache/external/" + newfilename.decode()):
-									neuter(self.config["packagedir"] + newfilename.decode(),
-										   "files/cache/external/" + newfilename.decode(), self.config["public_ip"],
-										   self.config["dir_server_port"], islan)
+									neuter(self.config["packagedir"] + newfilename.decode(), "files/cache/external/" + newfilename.decode(), self.config["public_ip"], self.config["dir_server_port"], False)
 								f = open('files/cache/external/' + newfilename.decode(), 'rb')
 						else:
 							if not os.path.isfile("files/cache/" + newfilename.decode()):
-								neuter(self.config["packagedir"] + newfilename.decode(), "files/cache/" + newfilename.decode(),
-									   self.config["server_ip"], self.config["dir_server_port"], islan)
+								neuter(self.config["packagedir"] + newfilename.decode(), "files/cache/" + newfilename.decode(), self.config["server_ip"], self.config["dir_server_port"], True)
 							f = open('files/cache/' + newfilename.decode(), 'rb')
 
 						file = f.read()
@@ -304,7 +299,7 @@ class clientupdateserver(TCPNetworkHandler):
 							except OSError as error:
 								log.debug(clientid + "Internal pkg dir already exists")
 
-							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
+							if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]) or islan:
 								if not os.path.isfile("files/cache/internal/" + filename.decode()):
 									neuter(self.config["packagedir"] + filename.decode(), "files/cache/internal/" + filename.decode(), self.config["server_ip"], self.config["dir_server_port"], True)
 								f = open('files/cache/internal/' + filename.decode(), 'rb')
@@ -350,7 +345,7 @@ class clientupdateserver(TCPNetworkHandler):
 
 				if command == 2:  # SEND CDR
 
-					blob = self.clupdate_modify_blob(clientid,log)
+					blob = self.clupdate_modify_blob(clientid,log, islan)
 
 					checksum = SHA.new(blob).digest()
 
@@ -373,7 +368,8 @@ class clientupdateserver(TCPNetworkHandler):
 
 		client_socket.close()
 		log.info(clientid + "Disconnected from Client Update Server")
-	def clupdate_modify_blob(self, clientid, log):
+	def clupdate_modify_blob(self, clientid, log, islan):
+
 		if os.path.isfile("files/cache/secondblob.bin"):
 			with open("files/cache/secondblob.bin", "rb") as f:
 				blob = f.read()
@@ -389,7 +385,7 @@ class clientupdateserver(TCPNetworkHandler):
 			with open("files/secondblob.py", "r") as g:
 				file = g.read()
 
-			for (search, replace, info) in globalvars.replacestringsCDR:
+			for (search, replace, info) in globalvars.replaceCDRstring(islan):
 				#print(search)
 				fulllength = len(search)
 				newlength = len(replace)
@@ -498,7 +494,7 @@ class clientupdateserver(TCPNetworkHandler):
 			blob3 = utilities.blobs.blob_dump(blob2)
 			file = "blob = " + blob3
 
-			for (search, replace, info) in globalvars.replacestringsCDR:
+			for (search, replace, info) in globalvars.replaceCDRstring(islan):
 				print("Fixing CDR")
 				fulllength = len(search)
 				newlength = len(replace)

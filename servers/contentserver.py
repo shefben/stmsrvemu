@@ -27,7 +27,7 @@ from utilities.networkhandler import TCPNetworkHandler
 app_list = []
 csConnectionCount = 0
 
-
+log = logging.getLogger("ContentServer")
 class contentserver(TCPNetworkHandler):
 
 	def __init__(self, port, config):
@@ -37,6 +37,7 @@ class contentserver(TCPNetworkHandler):
 			server_ip = globalvars.server_ip
 		else:
 			server_ip = globalvars.public_ip
+		self.config = config
 		self.contentserver_info = {
 			'wan_ip' : server_ip,
 			'lan_ip' : globalvars.server_ip,
@@ -67,7 +68,6 @@ class contentserver(TCPNetworkHandler):
 		else:
 			islan = False
 
-		log = logging.getLogger("ContentServer")
 		clientid = str(client_address) + ": "
 		log.info(f"{clientid}Connected to Content Server")
 
@@ -910,6 +910,14 @@ class contentserver(TCPNetworkHandler):
 
 					(storageid, messageid) = struct.unpack(">xLL", command)
 
+					if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
+						if islan:
+							suffix = "_lan"
+						else:
+							suffix = "_wan"
+					else:
+						suffix = ""
+
 					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
 					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
@@ -920,14 +928,15 @@ class contentserver(TCPNetworkHandler):
 						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 							filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
 						else:
-							log.error(b"Manifest not found for %s %s " % (app, version))
+							log.error("Manifest not found for %s %s " % (app, version))
 							reply = struct.pack(">LLc", connid, messageid, b"\x01")
 							client_socket.send(reply)
 							break
 					else:
-						log.error(b"Checksums not found for %s %s " % (app, version))
+						log.error("Checksums not found for %s %s " % (app, version))
 						reply = struct.pack(">LLc", connid, messageid, b"\x01")
 						client_socket.send(reply)
+						break
 
 					f = open(filename, "rb")
 					file = f.read()
@@ -1024,7 +1033,7 @@ class contentserver(TCPNetworkHandler):
 
 				elif command[0:1] == b"\xf2":  # SEND CDR - f2 TO DISABLE FOR 2003 TESTING
 
-					blob = cdr_manipulator.fixblobs_configserver()
+					blob = cdr_manipulator.fixblobs_configserver(islan)
 					checksum = SHA.new(blob).digest()
 
 					if checksum == command[1:]:
@@ -1235,6 +1244,13 @@ class contentserver(TCPNetworkHandler):
 					log.info(f"{clientid}Sending checksums")
 
 					(storageid, messageid) = struct.unpack(">xLL", command)
+					if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
+						if islan:
+							suffix = "_lan"
+						else:
+							suffix = "_wan"
+					else:
+						suffix = ""
 
 					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"

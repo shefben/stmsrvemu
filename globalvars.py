@@ -76,12 +76,12 @@ elif config["http_port"] == "0":
 else :
 	http_port_neuter = ":" + config["http_port"]
 
-if not config["http_name"] == "":
-	octal_ip = config["http_name"]
-elif not config["public_ip"] == "0.0.0.0":
+if config["http_ip"] != "":
+	octal_ip = config["http_ip"]
+elif config["public_ip"] != "0.0.0.0":
 	octal_ip = config["public_ip"]
 else :
-	octal_ip = config["http_ip"]
+	octal_ip = config["server_ip"]
 
 ip_addresses = (
 	b"65.122.178.71",
@@ -742,38 +742,47 @@ loopback_ips = (
 # )
 
 # octal_ip_b = octal_ip.encode("latin-1")
+def replaceCDRstring(islan):
 
-replacestringsCDR = (
-	(b'http://storefront.steampowered.com/marketing',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/marketing",
-	 b"Messages URL 1"),
-	(b'http://www.steampowered.com/marketing',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/marketing",
-	 b"Messages URL 2"),
-	(b'http://storefront.steampowered.com/Steam/Marketing',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1')+ b"/Steam/Marketing",
-	 b"Messages URL 3"),
-	(b'http://www.steampowered.com/Steam/Marketing/',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
-	 b"Messages URL 4"),
-	(b'http://steampowered.com/Steam/Marketing/',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
-	 b"Messages URL 5"),
-	(b'http://storefront.steampowered.com/Marketing/',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
-	 b"Messages URL 6"),
-	(b'http://www.steampowered.com/index.php?area=news',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/index.php?area=news",
-	 b"News URL"),
-	(b'http://storefront.steampowered.com/v/?client=1',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v/?client=1",
-	 b"Storefront URL 1"),
-	(b'http://storefront.steampowered.com/v2/',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v2/",
-	 b"Storefront URL 1"),
-	(b'http://store.steampowered.com',
-	 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1'),
-	 b"Storefront URL 3"))
+	if islan and config["http_ip"] == "":
+		octal_ip = config["server_ip"]
+	elif config["http_ip"] != "":
+		octal_ip = config["http_ip"]
+	else:
+		octal_ip = config["public_ip"]
+
+	replacestringsCDR = (
+		(b'http://storefront.steampowered.com/marketing',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/marketing",
+		 b"Messages URL 1"),
+		(b'http://www.steampowered.com/marketing',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/marketing",
+		 b"Messages URL 2"),
+		(b'http://storefront.steampowered.com/Steam/Marketing',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1')+ b"/Steam/Marketing",
+		 b"Messages URL 3"),
+		(b'http://www.steampowered.com/Steam/Marketing/',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
+		 b"Messages URL 4"),
+		(b'http://steampowered.com/Steam/Marketing/',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
+		 b"Messages URL 5"),
+		(b'http://storefront.steampowered.com/Marketing/',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/Steam/Marketing/",
+		 b"Messages URL 6"),
+		(b'http://www.steampowered.com/index.php?area=news',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/index.php?area=news",
+		 b"News URL"),
+		(b'http://storefront.steampowered.com/v/?client=1',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v/?client=1",
+		 b"Storefront URL 1"),
+		(b'http://storefront.steampowered.com/v2/',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/v2/",
+		 b"Storefront URL 1"),
+		(b'http://store.steampowered.com',
+		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1'),
+		 b"Storefront URL 3"))
+	return replacestringsCDR
 
 def replace_string_name_space(islan):
 	if islan:
@@ -784,12 +793,12 @@ def replace_string_name_space(islan):
 		conn_ip = config["server_ip"]
 		trk_ip = config["server_ip"]
 	else:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
+		if config["http_ip"] != "":
+			octal_ip = config["http_ip"]
 		else:
 			octal_ip = config["public_ip"]
 		conn_ip = config["public_ip"]
-		trk_ip = config["public_ip"]
+		trk_ip = config["tracker_ip"]
 
 	if steamui_ver < 87 :
 		http_port_neuter = ""
@@ -917,6 +926,7 @@ def replace_string_name_space(islan):
 
 	return replace_string_space
 
+#this contains the create user link
 def replace_string_name(islan):
 	if islan:
 		if config["http_ip"] != "":
@@ -924,9 +934,9 @@ def replace_string_name(islan):
 		else:
 			octal_ip = config["server_ip"]
 		conn_ip = config["server_ip"]
-		trk_ip = config["tracker_ip"]
+		trk_ip = config["server_ip"]
 	else:
-		if not config["http_ip"] == "":
+		if config["http_ip"] != "":
 			octal_ip = config["http_ip"]
 		else:
 			octal_ip = config["public_ip"]
@@ -1046,8 +1056,8 @@ def replace_string(islan):
 		conn_ip = config["server_ip"]
 		trk_ip = config["tracker_ip"]
 	else:
-		if not config["http_name"] == "":
-			octal_ip = config["http_name"]
+		if not config["http_ip"] == "":
+			octal_ip = config["http_ip"]
 		else:
 			octal_ip = config["public_ip"]
 		conn_ip = config["public_ip"]

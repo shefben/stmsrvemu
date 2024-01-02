@@ -1,5 +1,3 @@
-
-
 import binascii
 import logging
 import os
@@ -44,48 +42,61 @@ def neuter_file(file, server_ip, server_port, filename, islan):
 	for index, search in enumerate(ips_to_replace) :
 		file = replace_dirip_in_file(file, filename, search, server_ip, server_port, index % 5)
 
-	file = replace_ips_in_file(file, filename, globalvars.ip_addresses, server_ip)
+	file = replace_ips_in_file(file, filename, globalvars.ip_addresses, server_ip, islan)
 
 	if not config["server_ip"] == "127.0.0.1":
-		file = replace_ips_in_file(file, filename, globalvars.loopback_ips, server_ip)
+		file = replace_ips_in_file(file, filename, globalvars.loopback_ips, server_ip, islan)
 
-	if config["public_ip"] != "0.0.0.0" and filename != b"SteamNewLAN.exe" :
-		fullstring1 = globalvars.replace_string(False)
-	else :
+	if islan and filename == b"SteamNewLAN.exe" or config["public_ip"] == "0.0.0.0":
+		# If islan is True and the filename is SteamNewLAN.exe, use the server IP
 		fullstring1 = globalvars.replace_string(True)
+	else:
+		# In all other cases, use the public IP
+		fullstring1 = globalvars.replace_string(False)
+
 
 	file = config_replace_in_file(file, filename, fullstring1, 1)
 
 	if config["http_port"] != "steam" :
-		if config["public_ip"] != "0.0.0.0" and filename != b"SteamNewLAN.exe" :
-			fullstring2 = globalvars.replace_string_name_space(False)
-			fullstring3 = globalvars.replace_string_name(False)
-		else :
+		if islan:
+			# print(f"neuter_file: replace with lan true")
 			fullstring2 = globalvars.replace_string_name_space(True)
 			fullstring3 = globalvars.replace_string_name(True)
+		elif config["public_ip"] != "0.0.0.0" or filename != b"SteamNewLAN.exe":
+			# print(f"neuter_file: replace with lan false")
+			fullstring2 = globalvars.replace_string_name_space(False)
+			fullstring3 = globalvars.replace_string_name(False)
+		else:
+			fullstring2 = globalvars.replace_string_name_space(False)
+			fullstring3 = globalvars.replace_string_name(False)
+
+
 
 		file = config_replace_in_file(file, filename, fullstring2, 2, True)
 		file = config_replace_in_file(file, filename, fullstring3, 3)
 	return file
 
 
-def replace_ips_in_file(file, filename, ip_list, replacement_ip) :
+def replace_ips_in_file(file, filename, ip_list, replacement_ip, islan):
 	if isinstance(filename, str):
 		filename = filename.encode("latin-1")
+
 	for ip in ip_list:
 		loc = file.find(ip)
-		if loc != -1 :
-			if config["public_ip"] != "0.0.0.0" and not filename == b"SteamNewLAN.exe" :
-				replacement_ip = config["public_ip"]
-				replacement_ip = replacement_ip.encode( )
-				replace_ip = replacement_ip + (b"\x00" * (16 - len(replacement_ip)))
-				file = file[:loc] + replace_ip + file[loc + 16 :]
-				log.debug(f"{filename.decode()}: Found and replaced IP {ip.decode():>16} at location {loc:08x}")
-			else :
-				replacement_ip = config["server_ip"]
-				replace_ip = replacement_ip.encode( ) + (b"\x00" * (16 - len(replacement_ip)))
-				file = file[:loc] + replace_ip + file[loc + 16 :]
-				log.debug(f"{filename.decode()}: Found and replaced IP {ip.decode():>16} at location {loc:08x}")
+		if loc != -1:
+			if islan:
+				# For LAN, always use server_ip
+				replacement_ip = config["server_ip"].encode() + (b"\x00" * (16 - len(config["server_ip"])))
+			else:
+				# For non-LAN, use public_ip only if it's set and not dealing with SteamNewLAN.exe
+				if config["public_ip"] != "0.0.0.0" and filename != b"SteamNewLAN.exe":
+					replacement_ip = config["public_ip"].encode() + (b"\x00" * (16 - len(config["public_ip"])))
+				else:
+					# Default case, if public_ip is not set or filename is SteamNewLAN.exe
+					replacement_ip = config["server_ip"].encode() + (b"\x00" * (16 - len(config["server_ip"])))
+
+			file = file[:loc] + replacement_ip + file[loc + 16:]
+			log.debug(f"{filename.decode()}: Found and replaced IP {ip.decode():>16} at location {loc:08x}")
 	return file
 
 
@@ -130,10 +141,7 @@ def replace_bytes_in_file(file, filename, search, replace) :
 def replace_dirip_in_file(file, filename, search, server_ip, server_port, dirgroup) :
 	if isinstance(filename, str):
 		filename = filename.encode("latin-1")
-	if config["public_ip"] != "0.0.0.0" and not filename == b"SteamNewLAN.exe" :
-		ip = (config["public_ip"] + ":" + server_port + " " + config["server_ip"] + ":" + server_port + " ").encode( )
-	else :
-		ip = (server_ip + ":" + server_port + " ").encode( )
+	ip = (server_ip + ":" + server_port + " " + server_ip + ":" + server_port + " ").encode( )
 	searchlength = len(search)
 	iplength = len(ip)
 	numtoreplace = searchlength // iplength

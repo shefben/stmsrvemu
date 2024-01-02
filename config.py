@@ -30,7 +30,7 @@ def read_config():
                   'v3storagedir2': "files/v3storages2/", 'v3manifestdir2': "files/v3manifests2/", 'vac_server_port': "27012",
                   'store_url_new': "/storefront", 'support_url_new': "/support", 'http_port': "80", 'universe': "1",
                   'apache_root': "files/webserver/apache24", 'web_root': "files/webserver/webroot", 'reset_clears_client': "false",
-                  'use_webserver': "true", 'http_name': "", 'emu_auto_update': "true", 'clupd_server_port': "27031",
+                  'use_webserver': "true", 'http_ip': "", 'emu_auto_update': "true", 'clupd_server_port': "27031",
                   'betamanifestdir': "", 'betastoragedir': "", 'server_sm': "255.255.255.0", 'server_ip': "127.0.0.1",
                   'steam_date': "2004/10/01", 'steam_time': "00:14:03", 'enable_steam3_servers': "false", 'auto_public_ip': "True", 'use_file_blobs': "true",
                   'auto_server_ip': "True", 'harvest_ip': "0.0.0.0", 'allow_harvest_upload': "True", 'harvest_server_port': "27032",
@@ -65,8 +65,15 @@ def save_config_value(key, value, old_key=None):
     # Check if the old_key or key already exists
     key_exists = False
     for i, line in enumerate(lines):
-        if (old_key and line.startswith(old_key + '=')) or line.startswith(key + '='):
-            # Old key or key exists, replace the line with new key and value
+        # Check for the key (active or commented)
+        if ((old_key and line.startswith(old_key + '=')) or
+            line.startswith(key + '=') or
+            line.lstrip().startswith(';' + key + '=')):
+            # If key is commented, remove the comment
+            if line.lstrip().startswith(';' + key + '='):
+                line = line.lstrip()[1:]
+
+            # Replace the line with new key and value
             lines[i] = key + '=' + value + '\n'
             key_exists = True
             break

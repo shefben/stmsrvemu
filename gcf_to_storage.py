@@ -38,25 +38,24 @@ def compare_checksums(less, more):
 def gcf2storage(filename):
     log = logging.getLogger("converter")
 
-    filename = filename
+    is_wan_file = filename.endswith("_wan.neutered.gcf")
+    is_lan_file = filename.endswith("_lan.neutered.gcf")
+    file_suffix = "_wan" if is_wan_file else "_lan" if is_lan_file else ""
 
     do_updates = True
-
     gcf = GCF(filename)
 
-    # print gcf.appid, gcf.appversion
-
     progress_bar = create_progress_bar(len(gcf.manifest.dir_entries), filename)
-
     manifestdir = "files/cache/" + str(gcf.appid) + "_" + str(gcf.appversion) + "/"
     storagedir = "files/cache/" + str(gcf.appid) + "_" + str(gcf.appversion) + "/"
 
     if not os.path.isdir(manifestdir):
         os.makedirs(manifestdir, exist_ok=True)
 
-    storage = storages.Old_Storage(gcf.appid, storagedir)
+    storage = storages.Old_Storage(gcf.appid, storagedir, file_suffix)
 
-    manifest_filename = manifestdir + str(gcf.appid) + "_" + str(gcf.appversion) + ".manifest"
+    manifest_filename = os.path.join(manifestdir, f"{gcf.appid}_{gcf.appversion}.manifest")
+
     if os.path.isfile(manifest_filename):
         f = open(manifest_filename, "rb")
         stored_manifest_data = f.read()
@@ -65,8 +64,8 @@ def gcf2storage(filename):
         if stored_manifest_data != gcf.manifest_data:
             print("Manifests differ!!")
             sys.exit()
-        else:
-            print("Manifests match, continuing..")
+        #else:
+        #    print("Manifests match, continuing..")
     else:
         # print "New manifest"
 
@@ -77,7 +76,7 @@ def gcf2storage(filename):
 
     gcf_checksums = Checksums(gcf.checksum_data)
 
-    checksum_filename = storagedir + str(gcf.appid) + ".checksums"
+    checksum_filename = os.path.join(storagedir, f"{gcf.appid}{file_suffix}.checksums")
     if os.path.isfile(checksum_filename):
         stored_checksums = Checksums()
         stored_checksums.load_from_file(checksum_filename)
