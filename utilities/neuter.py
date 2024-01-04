@@ -70,8 +70,6 @@ def neuter_file(file, server_ip, server_port, filename, islan):
 			fullstring2 = globalvars.replace_string_name_space(False)
 			fullstring3 = globalvars.replace_string_name(False)
 
-
-
 		file = config_replace_in_file(file, filename, fullstring2, 2, True)
 		file = config_replace_in_file(file, filename, fullstring3, 3)
 	return file

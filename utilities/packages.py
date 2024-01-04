@@ -208,7 +208,7 @@ class Package(object):
             self.file_chunks[filename] = file
             self.file_unpacked_sizes[filename] = unpacked_size
             self.filenames.append(filename)
-            print(filename)
+            #print(filename)
 
     def get_file(self, filename):
         if filename not in self.filenames:

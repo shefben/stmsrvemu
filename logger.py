@@ -4,12 +4,15 @@ import configparser
 import sys
 import queue
 import re
+import os
 
 from config import read_config
 
 config = read_config()
 loglevel = config["log_level"]
 logtofile = config["log_to_file"].lower()
+
+os.system('color') #NEEDED FOR WINDOWS SERVER COLORING
 
 
 class SpecificDebugFilter(logging.Filter) :
@@ -29,8 +32,8 @@ class ProgressBarFilter(logging.Filter) :
         else :
             return True
 
-
 class ColoredFormatter(logging.Formatter) :
+
     COLORS = {
         "MODULE" : "\033[93m",  # yellow
         "LEVEL"  : "\033[90m",  # Aqua for level indicator

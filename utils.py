@@ -553,7 +553,15 @@ def finalinitialize(log):
 
 	try:
 		os.mkdir("client")
+    except:
+        pass
+        
+    try:
 		os.mkdir("client/lan")
+    except:
+        pass
+        
+    try:
 		os.mkdir("client/wan")
 	except:
 		pass
@@ -712,7 +720,7 @@ def check_peerpassword():
 			config.save_config_value("peer_password", globalvars.peer_password)
 			return 1
 	except Exception as e:
-		print(f"An error occurred while checking/setting peer password: {e}")
+        log.warning(f"An error occurred while checking/setting peer password: {e}")
 		return -1
 
 

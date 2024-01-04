@@ -7,6 +7,7 @@ import time
 import socket as pysocket
 import globalvars
 import utils
+import ipcalc
 
 from listmanagers.contentlistmanager import manager
 from listmanagers.contentserverlist_utilities import unpack_contentserver_info, receive_removal
@@ -56,6 +57,12 @@ class contentlistserver(TCPNetworkHandler) :
         clientid = str(client_address) + ": "
         log.info(f"{clientid} Connected to Content List Server ")
 
+		# Determine if connection is local or external
+		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) :
+			islan = True
+		else :
+			islan = False
+
         msg = client_socket.recv(4)
         if msg == b"\x00\x4f\x8c\x11" :
             self.acceptcontentservers(log, clientid, client_socket)
@@ -67,10 +74,10 @@ class contentlistserver(TCPNetworkHandler) :
             msg = client_socket.recv_withlen( )
 
             if msg[0 :1] == b"\x03" :  # send out file servers (Which have the initial packages)
-                reply = self.packet_getpkgcs_x03(clientid)
+				reply = self.packet_getpkgcs_x03(clientid, islan)
             else :
                 if msg[2 :3] == b"\x00" :
-                    reply = self.packet_getpkgcs(clientid)
+					reply = self.packet_getpkgcs(clientid, islan)
 
                 elif msg[2 :3] == b"\x01" :
                     reply = self.packet_getcswithapps(clientid, msg)
@@ -81,9 +88,9 @@ class contentlistserver(TCPNetworkHandler) :
         client_socket.close( )
         log.info(f"{clientid} Disconnected from Content Server Directory Server")
 
-    def packet_getpkgcs(self, clientid) :
+	def packet_getpkgcs(self, clientid, islan) :
         log.info(f"{clientid} Sending out Content Servers with packages (0x00)")
-        all_results, all_count = manager.get_empty_or_no_applist_entries( )
+		all_results, all_count = manager.get_empty_or_no_applist_entries(islan)
 
         if all_count > 0 :
             reply = struct.pack(">H", 1) + b"\x00\x00\x00\x00"
@@ -118,9 +125,9 @@ class contentlistserver(TCPNetworkHandler) :
 
         return reply
 
-    def packet_getpkgcs_x03(self, clientid) :
+	def packet_getpkgcs_x03(self, clientid, islan) :
         log.info(f"{clientid} Sending out Content Servers with packages (0x03)")
-        all_results, all_count = manager.get_empty_or_no_applist_entries( )
+		all_results, all_count = manager.get_empty_or_no_applist_entries(islan)
         if all_count > 0 :
             reply = struct.pack(">H", 1) + b"\x00\x00\x00\x00"  # is this needed?? BEN NOTE
             for ip, port in all_results :

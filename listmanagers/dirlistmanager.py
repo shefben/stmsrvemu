@@ -77,7 +77,7 @@ class DirServerManager(object):
         else:
             return None, 0  # No matching entries found
 
-    def get_and_prep_server_list(self, server_type, single = 0, islan = False):  # Grab all server ip/port's available for a specific client request
+    def get_and_prep_server_list(self, server_type, islan, single = 0):  # Grab all server ip/port's available for a specific client request
         server_list, count = self.find_ip_address(str(server_type))
         if count > 0:
             reply = struct.pack(">H", 1)

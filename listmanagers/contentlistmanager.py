@@ -40,7 +40,7 @@ class ContentServerManager(object):
         else:
             return 1  # Entries were successfully removed
 
-    def get_empty_or_no_applist_entries(self, islan = 0):
+    def get_empty_or_no_applist_entries(self, islan):
         empty_entries = []
         with self.lock:
             for entry in self.contentserver_list:
