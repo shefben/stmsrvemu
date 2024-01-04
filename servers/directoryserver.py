@@ -95,7 +95,7 @@ class directoryserver(TCPNetworkHandler):
             log.info(f"{clientid} Connected to Slave/Peer Directory Server")
 
         # Determine if connection is local or external
-        if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) :
+        if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == "0.0.0.0":
             islan = True
         else :
             islan = False
@@ -140,7 +140,7 @@ class directoryserver(TCPNetworkHandler):
 
             elif command == b"\x0f" or command == b"\x18" or command == b"\x1e":  # goldsrc, src and rdkf master server
 
-                log.info(f"{clientid}Sending out list of HL Master Servers")
+                log.info(f"{clientid}Sending out list of Master Servers")
 
                 reply = manager.get_and_prep_server_list("MasterSrv", islan)
 

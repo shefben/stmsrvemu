@@ -731,7 +731,7 @@ class contentserver(TCPNetworkHandler):
 					connid = pow(2, 31) + connid
 
 					try:
-						s = stmstorages.Storage(app, self.config["storagedir"], version)
+						s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
 					except Exception:
 						log.error("Application not installed! {app}, {version}")
 
@@ -747,31 +747,29 @@ class contentserver(TCPNetworkHandler):
 					storages[storageid].app = app
 					storages[storageid].version = version
 
-					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
-					elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-						f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a v0.2 depot")
-					elif os.path.isfile(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-						f = open(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 depot")
-					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
-							f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest", "rb")
-							log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 extra depot")
-						else:
-							log.error(f"Manifest not found for {app} {version} " )
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-							break
-					else:
-						log.error(f"Manifest not found for {app} {version} " )
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-						break
-					manifest = f.read()
-					f.close()
+					manifest_dirs = [
+						("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"),
+						(self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"),
+						(self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"),
+						(self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")
+					]
+
+					f = None
+					manifest = None
+					for base_dir, manifestpath, message in manifest_dirs:
+						file_path = os.path.join(base_dir, manifestpath)
+						print(file_path)
+						if os.path.isfile(file_path):
+
+							with open(file_path, "rb") as f:
+								log.info(f"{clientid}{app}_{version} {message}")
+								if not f:
+									log.error("Manifest not found for %s %s " % (app, version))
+									reply = struct.pack(">LLc", connid, messageid, b"\x01")
+									client_socket.send(reply)
+									continue
+								manifest = f.read()
+
 
 					manifest_appid = struct.unpack('<L', manifest[4:8])[0]
 					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
@@ -919,7 +917,7 @@ class contentserver(TCPNetworkHandler):
 						suffix = ""
 
 					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
+						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
 					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
 					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
@@ -1066,7 +1064,7 @@ class contentserver(TCPNetworkHandler):
 					connid = pow(2, 31) + connid
 
 					try:
-						s = stmstorages.Storage(app, self.config["storagedir"], version)
+						s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
 					except Exception:
 						log.error("Application not installed! %d %d" % (app, version))
 
@@ -1082,32 +1080,28 @@ class contentserver(TCPNetworkHandler):
 					storages[storageid].app = app
 					storages[storageid].version = version
 
-					if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-						f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
-					elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-						f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a v0.2 depot")
-					elif os.path.isfile(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-						f = open(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 depot")
-					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
-							f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest", "rb")
-							log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 extra depot")
-						else:
-							log.error("Manifest not found for %s %s " % (app, version))
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-							break
-					else:
-						log.error("Manifest not found for %s %s " % (app, version))
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-						break
-						
-					manifest = f.read()
-					f.close()
+					manifest_dirs = [
+						("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"),
+						(self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"),
+						(self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"),
+						(self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")
+					]
+
+					f = None
+					manifest = None
+					for base_dir, manifestpath, message in manifest_dirs:
+						file_path = os.path.join(base_dir, manifestpath)
+						print(file_path)
+						if os.path.isfile(file_path):
+
+							with open(file_path, "rb") as f:
+								log.info(f"{clientid}{app}_{version} {message}")
+								if not f:
+									log.error("Manifest not found for %s %s " % (app, version))
+									reply = struct.pack(">LLc", connid, messageid, b"\x01")
+									client_socket.send(reply)
+									continue
+								manifest = f.read()
 
 					manifest_appid = struct.unpack('<L', manifest[4:8])[0]
 					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
@@ -1253,7 +1247,7 @@ class contentserver(TCPNetworkHandler):
 						suffix = ""
 
 					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + ".checksums"
+						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
 					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
 						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
 					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
