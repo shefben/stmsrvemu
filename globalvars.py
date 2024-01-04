@@ -12,6 +12,7 @@ update_exception2 = ""
 clear_config = False
 converting = "0"
 checksum_temp_file = 0
+
 # NOTE: Ben's added vars
 cs_region = "US"
 cellid = 1
@@ -210,7 +211,7 @@ def replaceCDRstring(islan):
 	else:
 		octal_ip = config["public_ip"]
 
-	replacestringsCDR = (
+	replace_string_cdr = (
 		(b'http://storefront.steampowered.com/marketing',
 		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1') + b"/marketing",
 		 b"Messages URL 1"),
@@ -241,7 +242,7 @@ def replaceCDRstring(islan):
 		(b'http://store.steampowered.com',
 		 b"http://" + octal_ip.encode('latin-1') + http_port_neuter.encode('latin-1'),
 		 b"Storefront URL 3"))
-	return replacestringsCDR
+	return replace_string_cdr
 
 def replace_string_name_space(islan):
 	if islan:

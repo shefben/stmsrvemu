@@ -69,20 +69,20 @@ class contentlistserver(TCPNetworkHandler) :
         elif msg == b"\x00\x00\x00\x02" :
             csdsConnectionCount += 1
 
-            client_socket.send(b"\x01")
+		client_socket.send(b"\x01")
 
-            msg = client_socket.recv_withlen( )
+		msg = client_socket.recv_withlen( )
 
-            if msg[0 :1] == b"\x03" :  # send out file servers (Which have the initial packages)
-				reply = self.packet_getpkgcs_x03(clientid, islan)
+		if msg[0 :1] == b"\x03" :  # send out file servers (Which have the initial packages)
+			reply = self.packet_getpkgcs_x03(clientid, islan)
+        else :
+            if msg[2 :3] == b"\x00" :
+				reply = self.packet_getpkgcs(clientid, islan)
+
+            elif msg[2 :3] == b"\x01" :
+                reply = self.packet_getcswithapps(clientid, msg)
             else :
-                if msg[2 :3] == b"\x00" :
-					reply = self.packet_getpkgcs(clientid, islan)
-
-                elif msg[2 :3] == b"\x01" :
-                    reply = self.packet_getcswithapps(clientid, msg)
-                else :
-                    log.warning(f"Invalid message! {binascii.b2a_hex(msg).decode( )}")
+                log.warning(f"Invalid message! {binascii.b2a_hex(msg).decode( )}")
 
         client_socket.send_withlen(reply)
         client_socket.close( )
