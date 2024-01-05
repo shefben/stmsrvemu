@@ -1,20 +1,18 @@
 import ast
+import logging
 import os
-import pprint
 import shutil
 import struct
-import logging
-import sys
 import zlib
-import logging
 
 from config import get_config
-from utilities.database import dbengine  # Import the function to create database driver
 from utilities import blobs, packages
+from utilities.database import dbengine  # Import the function to create database driver
 
 log = logging.getLogger("CCDB")
 
 config = get_config()
+
 
 def process_date(date_str):
     for char in [":", "/", "\\", "-", "_"]:
@@ -48,27 +46,27 @@ def create_firstblob_from_row(row):
 
 
 def load_filesys_blob():
-    if os.path.isfile("files/1stcdr.py") or os.path.isfile("files/firstblob.py") :
-        if os.path.isfile("files/1stcdr.py") :
+    if os.path.isfile("files/1stcdr.py") or os.path.isfile("files/firstblob.py"):
+        if os.path.isfile("files/1stcdr.py"):
             shutil.copy2("files/1stcdr.py", "files/firstblob.py")
             os.remove("files/1stcdr.py")
-        with open("files/firstblob.py", "r") as f :
-            firstblob = f.read( )
+        with open("files/firstblob.py", "r") as f:
+            firstblob = f.read()
         execdict = {}
         # execfile("files/1stcdr.py", execdict)
         exec(firstblob, execdict)
-        return blobs.blob_serialize(execdict["blob"]), firstblob
-        # firstblob_unser = utils.blob_unserialize(blob)
-        # firstblob_bin = utils.blob_serialize(firstblob_unser)
-    else :
-        with open("files/firstblob.bin", "rb") as f :
-            blob = f.read( )
-        if blob[0:2] == b"\x01\x43" :
-            blob = zlib.decompress(blob[20 :])
+        return blobs.blob_serialize(execdict["blob"]), firstblob  # firstblob_unser = utils.blob_unserialize(blob)  # firstblob_bin = utils.blob_serialize(firstblob_unser)
+    else:
+        with open("files/firstblob.bin", "rb") as f:
+            blob = f.read()
+        if blob[0:2] == b"\x01\x43":
+            blob = zlib.decompress(blob[20:])
         firstblob_unser = blobs.blob_unserialize(blob)
         firstblob = "blob = " + blobs.blob_dump(firstblob_unser)
 
-    return ast.literal_eval(firstblob[7 :len(firstblob)]), blob
+    return ast.literal_eval(firstblob[7:len(firstblob)]), blob
+
+
 def load_ccdb():
     import globalvars
     # Initialize the database driver
@@ -87,7 +85,7 @@ def load_ccdb():
             while status != "ok":
                 query = f"SELECT * FROM firstblob WHERE ccr_blobdate <= '{client_date}' ORDER BY filename DESC"
                 rows = db_driver.execute_query(query)
-                #print(repr(rows))
+                # print(repr(rows))
 
                 row_num = 0
                 if len(rows) > 0 and rows[row_num][20] > client_time and rows[row_num][19] > client_date:

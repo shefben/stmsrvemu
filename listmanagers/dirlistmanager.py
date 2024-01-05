@@ -2,9 +2,7 @@ import datetime
 import logging
 import struct
 import threading
-
-from builtins import object
-from builtins import str
+from builtins import object, str
 
 import utils
 
@@ -24,16 +22,14 @@ class DirServerManager(object):
         packed_size = struct.pack('I', size)
         return packed_size, self.dirserver_list
 
-    def add_server_info(self, wan_ip, lan_ip, port, server_type, permanent=0):
+    def add_server_info(self, wan_ip, lan_ip, port, server_type, permanent = 0):
         current_time = datetime.datetime.now()
         new_entry = (wan_ip, lan_ip, port, server_type, permanent, current_time)
         with self.lock:
             for entry in self.dirserver_list:  # check for the same server, if it exists then update the timestamp
                 if entry[0] == wan_ip and entry[1] == lan_ip and entry[2] == int(port) and entry[3] == server_type:
                     # if entry[4] != 1:  # ignore permanent entries
-                    self.dirserver_list.remove(entry)
-                    # else:
-                    #    return -1
+                    self.dirserver_list.remove(entry)  # else:  #    return -1
             log.debug(f"adding: {repr(new_entry)}")
             self.dirserver_list.append(new_entry)
 
@@ -62,15 +58,14 @@ class DirServerManager(object):
                     return True
         return False
 
-    def find_ip_address(self, server_type=None):
+    def find_ip_address(self, server_type = None):
         matches = []
         with self.lock:
             for entry in self.dirserver_list:
-                if entry[3] == server_type: # Add IP address and port to matches
-                    matches.append(
-                        (entry[0],  # wan_ip
-                         entry[1],  # lan_ip
-                         entry[2])) # port
+                if entry[3] == server_type:  # Add IP address and port to matches
+                    matches.append((entry[0],  # wan_ip
+                                    entry[1],  # lan_ip
+                                    entry[2]))  # port
         count = len(matches)
         if count > 0:
             return matches, count

@@ -1,38 +1,23 @@
-
-
 import logging
 import msvcrt
 import os
-import subprocess
 import threading
 import time
 
-import logger
 import globalvars
 import utils
-import dirs
 from config import get_config as read_config
-from globalvars import local_ver, update_exception1, update_exception2
+from globalvars import local_ver
 from servers.authserver import authserver
-from servers.clientupdateserver import clientupdateserver
-from servers.configserver import configserver
-from servers.contentlistserver import contentlistserver
-from servers.contentserver import contentserver
-from servers.cserserver import CSERServer
-from servers.directoryserver import directoryserver
-from servers.friends import friends
 # from servers.authserverv3 import authserverv3
-from servers.validationserver import validationserver
-from servers.vttserver import vttserver
-from steamweb.steamweb import check_child_pid
-from steamweb.steamweb import steamweb
 from utilities.converter import convertgcf
+
 
 # BEN NOTE: uncomment for realse
 # clearConsole = lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 # clearConsole()
 
-#logger.start_logging_thread() # Start Logger Thread
+# logger.start_logging_thread() # Start Logger Thread
 # ^ is technically not needed
 
 def watchescape_thread():
@@ -42,7 +27,7 @@ def watchescape_thread():
             os.exit(0)
 
 
-thread2 = threading.Thread(target=watchescape_thread)
+thread2 = threading.Thread(target = watchescape_thread)
 thread2.daemon = True
 thread2.start()
 
@@ -77,7 +62,6 @@ if config["show_convert_bar"].lower() == "true":
 convertgcf()
 globalvars.hide_convert_prints = False
 time.sleep(0.2)
-
 
 authserver(int(config["auth_server_port"]), config).start()
 log.info("Steam2 Master Authentication Server listening on port " + str(config["auth_server_port"]))

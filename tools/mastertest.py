@@ -1,12 +1,13 @@
+import random
 import socket
 import struct
-import random
 import time
 
 # Constants
 MASTER_SERVER_IP = '192.168.3.180'  # Replace with the actual IP of the master server
 MASTER_SERVER_PORT = 27010  # Replace with the actual port of the master server
 NUM_SERVERS = 100  # Number of servers to simulate
+
 
 # Function to create a random server info string
 def create_random_server_info(challenge):
@@ -27,6 +28,7 @@ def create_random_server_info(challenge):
            f"\\password\\{password}\\secure\\{secure}\\lan\\{lan}\\version\\{version}"
     return info
 
+
 # Create a socket
 
 
@@ -36,11 +38,11 @@ for i in range(NUM_SERVERS):
     # Send challenge request ('q')
     challenge_request = b'q'
     sock.sendto(challenge_request, (MASTER_SERVER_IP, MASTER_SERVER_PORT))
-    
+
     # Receive challenge response
     response, _ = sock.recvfrom(1024)
     challenge_value = struct.unpack('<I', response[6:])[0]
-    
+
     # Create and send heartbeat2 packet ('0')
     server_info = create_random_server_info(challenge_value)
     heartbeat2_packet = b'0' + server_info.encode('iso-8859-1')
@@ -50,4 +52,3 @@ for i in range(NUM_SERVERS):
     time.sleep(1)
 
 # Close the socket
-

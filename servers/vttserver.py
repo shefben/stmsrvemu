@@ -60,8 +60,7 @@ class vttserver(TCPNetworkHandler):
 
                 elif command[0:9] == b"\x43\x48\x41\x4c\x4c\x45\x4e\x47\x45":  # CHALLENGE (v1)
                     log.info(f"{clientid} CHALLENGE received")
-                    client_socket.send(
-                        b"\xff\xff\x00\x00")  # CHALLENGE reply (can be anything, is the inverse of the client reply)
+                    client_socket.send(b"\xff\xff\x00\x00")  # CHALLENGE reply (can be anything, is the inverse of the client reply)
 
                 elif command[5:12] == b"\x47\x45\x54\x49\x4e\x46\x4f":  # GETINFO
                     # print(binascii.b2a_hex(command))
@@ -76,8 +75,7 @@ class vttserver(TCPNetworkHandler):
                     # print(binascii.b2a_hex(reply))
                     client_socket.send(reply)
 
-                elif command[0:8] == b"\x53\x45\x4e\x44\x4d\x49\x4e\x53" or command[
-                                                                            5:13] == b"\x53\x45\x4e\x44\x4d\x49\x4e\x53":  # SENDMINS
+                elif command[0:8] == b"\x53\x45\x4e\x44\x4d\x49\x4e\x53" or command[5:13] == b"\x53\x45\x4e\x44\x4d\x49\x4e\x53":  # SENDMINS
                     log.info(f"{clientid} SENDMINS received")
                     # client_socket.send(b"\x01\x00\x00\x00") #FAKE MINS
                     reply = struct.pack("<L", int(self.config["cafetime"]))

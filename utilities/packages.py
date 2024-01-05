@@ -114,8 +114,8 @@ def package_unpack2(infilename, outpath, version):
 
         # print filename, "written"
         print("")
-    if infilename.endswith(".pkg") :
-        with open("server_" + version + ".mst", "w") as f :
+    if infilename.endswith(".pkg"):
+        with open("server_" + version + ".mst", "w") as f:
             for filename in filenames:
                 f.writelines(filename + b"\n")
 
@@ -162,8 +162,7 @@ def package_pack(directory, outfilename):
 
             packedbytes += packedlen
 
-        indexsection = indexsection + filename + b"\x00" + struct.pack("<LLLL", len(filedata), packedbytes,
-                                                                       outfileoffset, len(filename) + 1)
+        indexsection = indexsection + filename + b"\x00" + struct.pack("<LLLL", len(filedata), packedbytes, outfileoffset, len(filename) + 1)
 
         outfileoffset = len(datasection)
 
@@ -179,7 +178,7 @@ def package_pack(directory, outfilename):
 
 
 class Package(object):
-    def __init__(self, pkg=None):
+    def __init__(self, pkg = None):
         self.pkg = pkg
         self.filenames = []
         self.file_chunks = {}
@@ -207,8 +206,7 @@ class Package(object):
                 packed_size = packed_size - compressed_len
             self.file_chunks[filename] = file
             self.file_unpacked_sizes[filename] = unpacked_size
-            self.filenames.append(filename)
-            #print(filename)
+            self.filenames.append(filename)  # print(filename)
 
     def get_file(self, filename):
         if filename not in self.filenames:
@@ -246,11 +244,9 @@ class Package(object):
                 datasection_length += chunk_length
                 packedbytes += chunk_length
             filename_bytes = filename.encode() if isinstance(filename, str) else filename
-            indexsection.insert(0, filename_bytes+ b"\x00" + struct.pack("<LLLL", self.file_unpacked_sizes[filename],
-                                                                    packedbytes, outfileoffset, len(filename) + 1))
+            indexsection.insert(0, filename_bytes + b"\x00" + struct.pack("<LLLL", self.file_unpacked_sizes[filename], packedbytes, outfileoffset, len(filename) + 1))
 
-        return b"".join(datasection) + b"".join(indexsection) + struct.pack("<BLL", self.pkg_ver, self.compress_level,
-                                                                            number_of_files)
+        return b"".join(datasection) + b"".join(indexsection) + struct.pack("<BLL", self.pkg_ver, self.compress_level, number_of_files)
 
 
 def check_pkgs(db_row):

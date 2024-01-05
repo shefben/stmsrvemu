@@ -8,18 +8,15 @@ import pickle
 import threading
 import time
 import zlib
+
 import ipcalc
-from time import sleep
 from Crypto.Hash import SHA
 
 import globalvars
-import utilities
 import utils
-
-from gcf_to_storage import gcf2storage
 from listmanagers.contentlistmanager import manager
 from listmanagers.contentserverlist_utilities import send_heartbeat
-from utilities import cdr_manipulator, encryption, blobs, storages as stmstorages
+from utilities import cdr_manipulator, encryption, storages as stmstorages
 from utilities.checksums import Checksum2, Checksum3
 from utilities.manifests import *
 from utilities.networkhandler import TCPNetworkHandler
@@ -28,1320 +25,1298 @@ app_list = []
 csConnectionCount = 0
 
 log = logging.getLogger("ContentServer")
+
+
 class contentserver(TCPNetworkHandler):
 
-	def __init__(self, port, config):
-		global app_list
-		super(contentserver, self).__init__(config, port)  # Create an instance of NetworkHandler
-		if globalvars.public_ip == "0.0.0.0" :
-			server_ip = globalvars.server_ip
-		else:
-			server_ip = globalvars.public_ip
-		self.config = config
-		self.contentserver_info = {
-			'wan_ip' : server_ip,
-			'lan_ip' : globalvars.server_ip,
-			'port': int(port),
-			'region': globalvars.cs_region,
-			'timestamp': 1623276000
-		}
-
-		if not globalvars.aio_server:
-			self.applist = self.parse_manifest_files(self.contentserver_info)
-			self.thread2 = threading.Thread(target=self.heartbeat_thread)
-			self.thread2.daemon = True
-			self.thread2.start()
-		else:
-			self.parse_manifest_files(self.contentserver_info)
-			manager.add_contentserver_info(server_ip, globalvars.server_ip, int(port), globalvars.cs_region, app_list, 1)
-
-	def heartbeat_thread(self):
-		while True:
-			send_heartbeat(self.contentserver_info, self.applist)
-			time.sleep(1800)  # 30 minutes
-
-	def handle_client(self, client_socket, client_address):
-		global csConnectionCount
-
-		if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
-			islan = True
-		else:
-			islan = False
-
-		clientid = str(client_address) + ": "
-		log.info(f"{clientid}Connected to Content Server")
-
-		msg = client_socket.recv(4)
-		csConnectionCount += 1
-
-		if len(msg) == 0:
-			log.info(f"{clientid}Got simple handshake. Closing connection.")
-
-		elif msg in [b"\x00\x00\x00\x00", b"\x00\x00\x00\x01"]:  # beta 1 version 0 & Beta1 Version 1
-			log.info(f"{clientid}Storage mode entered")
-
-			storagesopen = 0
-			storages = {}
-
-			client_socket.send(b"\x01")  # this should just be the handshake
-
-			if msg == b"\x00\x00\x00\x01":
-				command = client_socket.recv_withlen()
-			else:
-				command = client_socket.recv_withlen_short()
-
-			if command[0:1] == b"\x00":
-				(connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
-
-				(app, version) = struct.unpack(">II", command[1:9])
-				log.debug(f"{clientid}appid: {app}, verid: {version}" )
-
-				connid |= 0x80000000
-				key = b"\x69" * 0x10
-				if encryption.validate_mac(command[9:], key):
-					log.debug(clientid + repr(encryption.validate_mac(command[9:], key)))
-
-				# TODO BEN, DO PROPER TICKET VALIDATION
-				# bio = io.BytesIO(command[9:])
-
-				# ticketsize, = struct.unpack(">H", bio.read(2))
-				# ticket = bio.read(ticketsize)
-
-				# ptext = encryption.decrypt_message(bio.read()[:-20], key)
-				log.info(f"{clientid}Opening application {app} {version}" )
-				try:
-					s = stmstorages.Storage(app, self.config["betastoragedir"], version)
-				except Exception:
-					log.error("Application not installed! %d %d" % (app, version))
-
-					# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-					reply = struct.pack(">B", 0)
-					client_socket.send(reply)
-					return
-
-				storageid = storagesopen
-				storagesopen += 1
-
-				storages[storageid] = s
-				storages[storageid].app = app
-				storages[storageid].version = version
-
-				if os.path.isfile(self.config["betamanifestdir"]  + str(app) + "_" + str(version) + ".manifest"): #+ "/beta1/"
-					f = open(self.config["betamanifestdir"]  + str(app) + "_" + str(version) + ".manifest", "rb") #+ "/beta1/"
-					log.info(f"{clientid}{app}_{version} is a beta depot" )
-				else:
-					log.error(f"Manifest not found for {app} {version} " )
-					# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-					client_socket.send(b"\x00")
-					return
-				manifest = f.read()
-				f.close()
-
-				manifest_appid = struct.unpack('<L', manifest[4:8])[0]
-				manifest_verid = struct.unpack('<L', manifest[8:12])[0]
-				log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}" )
-				if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-					log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})" )
-
-					# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-					client_socket.send(b"\x00")
-					return
-
-				globalvars.converting = "0"
-
-				fingerprint = manifest[0x30:0x34]
-				oldchecksum = manifest[0x34:0x38]
-				manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
-				checksum = struct.pack("<I", zlib.adler32(manifest, 0))
-				manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
-
-				log.debug(f"Checksum fixed from  {binascii.b2a_hex(oldchecksum)}  to {binascii.b2a_hex(checksum)}")
-
-				storages[storageid].manifest = manifest
-
-				checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
-
-				# reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
-				reply = b"\x66" + fingerprint[::-1] + b"\x01"
-
-				client_socket.send(reply, False)
-
-				index_file = self.config["betastoragedir"]  + str(app) + "_" + str(version) + ".index" #+ "/beta1/"
-				dat_file = self.config["betastoragedir"]  + str(app) + "_" + str(version) + ".dat" #+ "/beta1/"
-				# Load the index
-				with open(index_file, 'rb') as f:
-					index_data = pickle.load(f)
-				try:
-					dat_file_handle.close()
-				except:
-					pass
-				dat_file_handle = open(dat_file, 'rb')
-				while True:
-					command = client_socket.recv(1)
-					if len(command) == 0:
-						log.info(f"{clientid}Disconnected from Content Server" )
-						client_socket.close()
-						return
-
-					if command[0:1] == b"\x01":  # HANDSHAKE
-						client_socket.send(b"")
-						break
-
-					elif command[0:1] in [b"\x02",b"\x04"] :  # SEND MANIFEST AGAIN
-						log.info(f"{clientid}Sending manifest")
-						client_socket.send(struct.pack(">I", len(manifest)) + manifest, False)
-
-					elif command[0:1] == b"\x03":  # CLOSE STORAGE
-						(storageid, messageid) = struct.unpack(">xLL", command)
-						del storages[storageid]
-						reply = struct.pack(">LLc", storageid, messageid, b"\x00")
-						log.info(f"{clientid}Closing down storage {storageid}")
-						client_socket.send(reply)
-					elif command[0:1] == b"\x05":  # SEND DATA
-						msg = client_socket.recv(12)
-						fileid, offset, length = struct.unpack(">III", msg)
-						index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index" #+ "/beta1/"
-						dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat" #+ "/beta1/"
-						if islan:
-							filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
-						else:
-							filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "external")
-						# 0000001a 00000000 00010000
-						# 00000001 00000000 00001e72
-						client_socket.send(b"\x01" + struct.pack(">II", len(filedata), 0), False)
-						for i in range(0, len(filedata), 0x2000):
-							chunk = filedata[i:i + 0x2000]
-							client_socket.send(struct.pack(">I", len(chunk)) + chunk, False)
-						# client_socket.send(struct.pack(">I", len(filedata)) + filedata, False)
-
-		elif msg == b"\x00\x00\x00\x02":  # \x02 for 2003 beta v2 content
-			log.info(f"{clientid}Storage mode entered")
-
-			storagesopen = 0
-			storages = {}
-
-			client_socket.send(b"\x01")  # this should just be the handshake
-
-			while True:
-
-				command = client_socket.recv_withlen()
-
-				if command[0:1] == b"\x00":  # SEND MANIFEST AND PROCESS RESPONSE
-
-					(connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
-					# print(connid, messageid, app, version)
-					# print(app)
-					# print(version)
-
-					(app, version) = struct.unpack(">II", command[1:9])
-					log.debug(clientid + "appid: " + str(int(app)) + ", verid: " + str(int(version)))
-
-					# bio = io.BytesIO(msg[9:])
-
-					# ticketsize, = struct.unpack(">H", bio.read(2))
-					# ticket = bio.read(ticketsize)
-
-					connid |= 0x80000000
-					key = b"\x69" * 0x10
-					if encryption.validate_mac(command[9:], key):
-						log.debug(clientid + repr(encryption.validate_mac(command[9:], key)))
-					# TODO BEN, DO PROPER TICKET VALIDATION
-					# print(binascii.b2a_hex(signeddata))
-
-					# if hmac.new(key, signeddata[:-20], hashlib.sha1).digest() == signeddata[-20:]:
-					#    log.debug(clientid + "HMAC verified OK")
-					# else:
-					#    log.error(clientid + "BAD HMAC")
-					#    raise Exception("BAD HMAC")
-
-					# bio = io.BytesIO(msg[9:]) #NOT WORKING, UNKNOWN KEY
-					# print(bio)
-					# ticketsize, = struct.unpack(">H", bio.read(2))
-					# print(ticketsize)
-					# ticket = bio.read(ticketsize)
-					# print(binascii.b2a_hex(ticket))
-					# postticketdata = io.BytesIO(bio.read()[:-20])
-					# IV = postticketdata.read(16)
-					# print(len(IV))
-					# print(binascii.b2a_hex(IV))
-					# enclen = postticketdata.read(2)
-					# print(binascii.b2a_hex(enclen))
-					# print(struct.unpack(">H", enclen)[0])
-					# enctext = postticketdata.read(struct.unpack(">H", enclen)[0])
-					# print(binascii.b2a_hex(enctext))
-					# ptext = utils.aes_decrypt(key, IV, enctext)
-					# print(binascii.b2a_hex(ptext))
-
-					log.info(f"{clientid}Opening application %d %d" % (app, version))
-					# connid = pow(2,31) + connid
-
-					try:
-						s = stmstorages.Storage(app, self.config["storagedir"], version)
-					except Exception:
-						log.error("Application not installed! %d %d" % (app, version))
-
-						# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						reply = struct.pack(">B", 0)
-						client_socket.send(reply)
-
-						break
-
-					storageid = storagesopen
-					storagesopen += 1
-
-					storages[storageid] = s
-					storages[storageid].app = app
-					storages[storageid].version = version
-
-					if os.path.isfile(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-						f = open(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-						log.info(f"{clientid}{app}_{version} is a beta depot" )
-					else:
-						log.error(f"Manifest not found for {app} {version} " )
-						# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(b"\x00")
-						break
-					manifest = f.read()
-					f.close()
-
-					manifest_appid = struct.unpack('<L', manifest[4:8])[0]
-					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
-					log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}" )
-					if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-						log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})" )
+    def __init__(self, port, config):
+        global app_list
+        super(contentserver, self).__init__(config, port)  # Create an instance of NetworkHandler
+        if globalvars.public_ip == "0.0.0.0":
+            server_ip = globalvars.server_ip
+        else:
+            server_ip = globalvars.public_ip
+        self.config = config
+        self.contentserver_info = {'wan_ip':server_ip, 'lan_ip':globalvars.server_ip, 'port':int(port), 'region':globalvars.cs_region, 'timestamp':1623276000}
+
+        if not globalvars.aio_server:
+            self.applist = self.parse_manifest_files(self.contentserver_info)
+            self.thread2 = threading.Thread(target = self.heartbeat_thread)
+            self.thread2.daemon = True
+            self.thread2.start()
+        else:
+            self.parse_manifest_files(self.contentserver_info)
+            manager.add_contentserver_info(server_ip, globalvars.server_ip, int(port), globalvars.cs_region, app_list, 1)
+
+    def heartbeat_thread(self):
+        while True:
+            send_heartbeat(self.contentserver_info, self.applist)
+            time.sleep(1800)  # 30 minutes
+
+    def handle_client(self, client_socket, client_address):
+        global csConnectionCount
+
+        if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
+            islan = True
+        else:
+            islan = False
+
+        clientid = str(client_address) + ": "
+        log.info(f"{clientid}Connected to Content Server")
+
+        msg = client_socket.recv(4)
+        csConnectionCount += 1
+
+        if len(msg) == 0:
+            log.info(f"{clientid}Got simple handshake. Closing connection.")
+
+        elif msg in [b"\x00\x00\x00\x00", b"\x00\x00\x00\x01"]:  # beta 1 version 0 & Beta1 Version 1
+            log.info(f"{clientid}Storage mode entered")
+
+            storagesopen = 0
+            storages = {}
+
+            client_socket.send(b"\x01")  # this should just be the handshake
+
+            if msg == b"\x00\x00\x00\x01":
+                command = client_socket.recv_withlen()
+            else:
+                command = client_socket.recv_withlen_short()
+
+            if command[0:1] == b"\x00":
+                (connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
+
+                (app, version) = struct.unpack(">II", command[1:9])
+                log.debug(f"{clientid}appid: {app}, verid: {version}")
+
+                connid |= 0x80000000
+                key = b"\x69" * 0x10
+                if encryption.validate_mac(command[9:], key):
+                    log.debug(clientid + repr(encryption.validate_mac(command[9:], key)))
+
+                # TODO BEN, DO PROPER TICKET VALIDATION
+                # bio = io.BytesIO(command[9:])
+
+                # ticketsize, = struct.unpack(">H", bio.read(2))
+                # ticket = bio.read(ticketsize)
+
+                # ptext = encryption.decrypt_message(bio.read()[:-20], key)
+                log.info(f"{clientid}Opening application {app} {version}")
+                try:
+                    s = stmstorages.Storage(app, self.config["betastoragedir"], version)
+                except Exception:
+                    log.error("Application not installed! %d %d" % (app, version))
+
+                    # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                    reply = struct.pack(">B", 0)
+                    client_socket.send(reply)
+                    return
+
+                storageid = storagesopen
+                storagesopen += 1
+
+                storages[storageid] = s
+                storages[storageid].app = app
+                storages[storageid].version = version
+
+                if os.path.isfile(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest"):  # + "/beta1/"
+                    f = open(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")  # + "/beta1/"
+                    log.info(f"{clientid}{app}_{version} is a beta depot")
+                else:
+                    log.error(f"Manifest not found for {app} {version} ")
+                    # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                    client_socket.send(b"\x00")
+                    return
+                manifest = f.read()
+                f.close()
+
+                manifest_appid = struct.unpack('<L', manifest[4:8])[0]
+                manifest_verid = struct.unpack('<L', manifest[8:12])[0]
+                log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}")
+                if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
+                    log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})")
+
+                    # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                    client_socket.send(b"\x00")
+                    return
+
+                globalvars.converting = "0"
+
+                fingerprint = manifest[0x30:0x34]
+                oldchecksum = manifest[0x34:0x38]
+                manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
+                checksum = struct.pack("<I", zlib.adler32(manifest, 0))
+                manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
+
+                log.debug(f"Checksum fixed from  {binascii.b2a_hex(oldchecksum)}  to {binascii.b2a_hex(checksum)}")
+
+                storages[storageid].manifest = manifest
+
+                checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
+
+                # reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
+                reply = b"\x66" + fingerprint[::-1] + b"\x01"
+
+                client_socket.send(reply, False)
+
+                index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"  # + "/beta1/"
+                dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"  # + "/beta1/"
+                # Load the index
+                with open(index_file, 'rb') as f:
+                    index_data = pickle.load(f)
+                try:
+                    dat_file_handle.close()
+                except:
+                    pass
+                dat_file_handle = open(dat_file, 'rb')
+                while True:
+                    command = client_socket.recv(1)
+                    if len(command) == 0:
+                        log.info(f"{clientid}Disconnected from Content Server")
+                        client_socket.close()
+                        return
+
+                    if command[0:1] == b"\x01":  # HANDSHAKE
+                        client_socket.send(b"")
+                        break
+
+                    elif command[0:1] in [b"\x02", b"\x04"]:  # SEND MANIFEST AGAIN
+                        log.info(f"{clientid}Sending manifest")
+                        client_socket.send(struct.pack(">I", len(manifest)) + manifest, False)
+
+                    elif command[0:1] == b"\x03":  # CLOSE STORAGE
+                        (storageid, messageid) = struct.unpack(">xLL", command)
+                        del storages[storageid]
+                        reply = struct.pack(">LLc", storageid, messageid, b"\x00")
+                        log.info(f"{clientid}Closing down storage {storageid}")
+                        client_socket.send(reply)
+                    elif command[0:1] == b"\x05":  # SEND DATA
+                        msg = client_socket.recv(12)
+                        fileid, offset, length = struct.unpack(">III", msg)
+                        index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"  # + "/beta1/"
+                        dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"  # + "/beta1/"
+                        if islan:
+                            filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
+                        else:
+                            filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "external")
+                        # 0000001a 00000000 00010000
+                        # 00000001 00000000 00001e72
+                        client_socket.send(b"\x01" + struct.pack(">II", len(filedata), 0), False)
+                        for i in range(0, len(filedata), 0x2000):
+                            chunk = filedata[i:i + 0x2000]
+                            client_socket.send(struct.pack(">I", len(chunk)) + chunk, False)  # client_socket.send(struct.pack(">I", len(filedata)) + filedata, False)
+
+        elif msg == b"\x00\x00\x00\x02":  # \x02 for 2003 beta v2 content
+            log.info(f"{clientid}Storage mode entered")
+
+            storagesopen = 0
+            storages = {}
+
+            client_socket.send(b"\x01")  # this should just be the handshake
+
+            while True:
+
+                command = client_socket.recv_withlen()
+
+                if command[0:1] == b"\x00":  # SEND MANIFEST AND PROCESS RESPONSE
+
+                    (connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
+                    # print(connid, messageid, app, version)
+                    # print(app)
+                    # print(version)
+
+                    (app, version) = struct.unpack(">II", command[1:9])
+                    log.debug(clientid + "appid: " + str(int(app)) + ", verid: " + str(int(version)))
+
+                    # bio = io.BytesIO(msg[9:])
+
+                    # ticketsize, = struct.unpack(">H", bio.read(2))
+                    # ticket = bio.read(ticketsize)
+
+                    connid |= 0x80000000
+                    key = b"\x69" * 0x10
+                    if encryption.validate_mac(command[9:], key):
+                        log.debug(clientid + repr(encryption.validate_mac(command[9:], key)))
+                    # TODO BEN, DO PROPER TICKET VALIDATION
+                    # print(binascii.b2a_hex(signeddata))
+
+                    # if hmac.new(key, signeddata[:-20], hashlib.sha1).digest() == signeddata[-20:]:
+                    #    log.debug(clientid + "HMAC verified OK")
+                    # else:
+                    #    log.error(clientid + "BAD HMAC")
+                    #    raise Exception("BAD HMAC")
+
+                    # bio = io.BytesIO(msg[9:]) #NOT WORKING, UNKNOWN KEY
+                    # print(bio)
+                    # ticketsize, = struct.unpack(">H", bio.read(2))
+                    # print(ticketsize)
+                    # ticket = bio.read(ticketsize)
+                    # print(binascii.b2a_hex(ticket))
+                    # postticketdata = io.BytesIO(bio.read()[:-20])
+                    # IV = postticketdata.read(16)
+                    # print(len(IV))
+                    # print(binascii.b2a_hex(IV))
+                    # enclen = postticketdata.read(2)
+                    # print(binascii.b2a_hex(enclen))
+                    # print(struct.unpack(">H", enclen)[0])
+                    # enctext = postticketdata.read(struct.unpack(">H", enclen)[0])
+                    # print(binascii.b2a_hex(enctext))
+                    # ptext = utils.aes_decrypt(key, IV, enctext)
+                    # print(binascii.b2a_hex(ptext))
+
+                    log.info(f"{clientid}Opening application %d %d" % (app, version))
+                    # connid = pow(2,31) + connid
+
+                    try:
+                        s = stmstorages.Storage(app, self.config["storagedir"], version)
+                    except Exception:
+                        log.error("Application not installed! %d %d" % (app, version))
+
+                        # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        reply = struct.pack(">B", 0)
+                        client_socket.send(reply)
+
+                        break
+
+                    storageid = storagesopen
+                    storagesopen += 1
+
+                    storages[storageid] = s
+                    storages[storageid].app = app
+                    storages[storageid].version = version
 
-						# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(b"\x00")
+                    if os.path.isfile(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest"):
+                        f = open(self.config["betamanifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
+                        log.info(f"{clientid}{app}_{version} is a beta depot")
+                    else:
+                        log.error(f"Manifest not found for {app} {version} ")
+                        # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(b"\x00")
+                        break
+                    manifest = f.read()
+                    f.close()
 
-						break
+                    manifest_appid = struct.unpack('<L', manifest[4:8])[0]
+                    manifest_verid = struct.unpack('<L', manifest[8:12])[0]
+                    log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}")
+                    if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
+                        log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})")
 
-					globalvars.converting = "0"
+                        # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(b"\x00")
 
-					fingerprint = manifest[0x30:0x34]
-					oldchecksum = manifest[0x34:0x38]
-					manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
-					checksum = struct.pack("<I", zlib.adler32(manifest, 0))
-					manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
+                        break
 
-					log.debug(f"Checksum fixed from  {binascii.b2a_hex(oldchecksum)}  to {binascii.b2a_hex(checksum)}")
+                    globalvars.converting = "0"
 
-					storages[storageid].manifest = manifest
+                    fingerprint = manifest[0x30:0x34]
+                    oldchecksum = manifest[0x34:0x38]
+                    manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
+                    checksum = struct.pack("<I", zlib.adler32(manifest, 0))
+                    manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
 
-					checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
-
-					# reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
-					reply = b"\xff" + fingerprint[::-1]
-
-					client_socket.send(reply, False)
-
-					index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"
-					dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"
-					# Load the index
-					with open(index_file, 'rb') as f:
-						index_data = pickle.load(f)
-					try:
-						dat_file_handle.close()
-					except:
-						pass
-					dat_file_handle = open(dat_file, 'rb')
-
-					while True:
-						command = client_socket.recv(1)
-
-						if len(command) == 0:
-							log.info(f"{clientid}Disconnected from Content Server" )
-							client_socket.close()
-							return
-
-						if command[0:1] == b"\x02":  # SEND MANIFEST AGAIN
-
-							log.info(f"{clientid}Sending manifest")
-
-							# (storageid, messageid) = struct.unpack(">xLL", command)
-
-							# manifest = storages[storageid].manifest
-
-							# reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
-							# reply = struct.pack(">BL", 0, len(manifest))
-							# print(binascii.b2a_hex(reply))
-
-							# client_socket.send(reply)
-
-							# reply = struct.pack(">LLL", storageid, messageid, len(manifest))
-							reply = struct.pack(">L", len(manifest))
-							# print(binascii.b2a_hex(reply))
-
-							# print(binascii.b2a_hex(manifest))
-
-							client_socket.send(b"\x01" + reply + manifest, False)
-
-						elif command[0:1] == b"\x01":  # HANDSHAKE
-
-							client_socket.send(b"")
-							break
-
-						elif command[0:1] == b"\x03":  # CLOSE STORAGE
-
-							(storageid, messageid) = struct.unpack(">xLL", command)
-
-							del storages[storageid]
-
-							reply = struct.pack(">LLc", storageid, messageid, b"\x00")
-
-							log.info(f"{clientid}Closing down storage {storageid}")
-
-							client_socket.send(reply)
-
-						elif command[0:1] == b"\x04":  # SEND MANIFEST
-
-							log.info(f"{clientid}Sending manifest")
-
-							# (storageid, messageid) = struct.unpack(">xLL", command)
-
-							# manifest = storages[storageid].manifest
-
-							# reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
-							# reply = struct.pack(">BL", 0, len(manifest))
-							# print(binascii.b2a_hex(reply))
-
-							# client_socket.send(reply)
-
-							# reply = struct.pack(">LLL", storageid, messageid, len(manifest))
-							reply = struct.pack(">L", len(manifest))
-							# print(binascii.b2a_hex(reply))
-
-							# print(binascii.b2a_hex(manifest))
-
-							client_socket.send(b"\x01" + reply + manifest, False)
-
-						elif command[0:1] == b"\x25":  # SEND UPDATE INFO - DISABLED WAS \x05
-							log.info(f"{clientid}Sending app update information")
-							(storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
-							appid = storages[storageid].app
-							version = storages[storageid].version
-							log.info(f"Old GCF version: {appid}_{oldversion}" )
-							log.info(f"New GCF version: {appid}_{version}" )
-							manifestNew = Manifest2(appid, version)
-							manifestOld = Manifest2(appid, oldversion)
-
-							if os.path.isfile(
-									self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
-								checksumNew = Checksum3(appid)
-							else:
-								checksumNew = Checksum2(appid, version)
-
-							if os.path.isfile(
-									self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
-								checksumOld = Checksum3(appid)
-							else:
-								checksumOld = Checksum2(appid, version)
-
-							filesOld = {}
-							filesNew = {}
-							for n in manifestOld.nodes.values():
-								if n.fileId != 0xffffffff:
-									n.checksum = checksumOld.getchecksums_raw(n.fileId)
-									filesOld[n.fullFilename] = n
-
-							for n in manifestNew.nodes.values():
-								if n.fileId != 0xffffffff:
-									n.checksum = checksumNew.getchecksums_raw(n.fileId)
-									filesNew[n.fullFilename] = n
-
-							del manifestNew
-							del manifestOld
-
-							changedFiles = []
-
-							for filename in filesOld:
-								if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
-									changedFiles.append(filesOld[filename].fileId)
-									log.debug(f"Changed file: {str(filename)} : {str(filesOld[filename].fileId)}" )
-								if filename not in filesNew:
-									changedFiles.append(filesOld[filename].fileId)
-									# if not 0xffffffff in changedFiles:
-									# changedFiles.append(0xffffffff)
-									log.debug(f"Deleted file: {str(filename)} : {str(filesOld[filename].fileId)}" )
-
-							for x in range(len(changedFiles)):
-								log.debug(changedFiles[x], )
-
-							count = len(changedFiles)
-							log.info(f"Number of changed files: {count}" )
-
-							if count == 0:
-								reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
-								client_socket.send(reply)
-							else:
-								reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
-								client_socket.send(reply)
-
-								changedFilesTmp = []
-								for fileid in changedFiles:
-									changedFilesTmp.append(struct.pack("<L", fileid))
-								updatefiles = b"".join(changedFilesTmp)
+                    log.debug(f"Checksum fixed from  {binascii.b2a_hex(oldchecksum)}  to {binascii.b2a_hex(checksum)}")
 
-								reply = struct.pack(">LL", storageid, messageid)
-								client_socket.send(reply)
-								client_socket.send_withlen(updatefiles)
+                    storages[storageid].manifest = manifest
 
-						elif command[0:1] == b"\x05":  # SEND DATA
-							msg = client_socket.recv(12)
-							fileid, offset, length = struct.unpack(">III", msg)
-							index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"
-							dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"
-							if islan:
-								filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
-							else:
-								filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "external")
-							# 0000001a 00000000 00010000
-							# 00000001 00000000 00001e72
-							client_socket.send(b"\x01" + struct.pack(">II", len(filedata), 0), False)
-							for i in range(0, len(filedata), 0x2000):
-								chunk = filedata[i:i + 0x2000]
-								client_socket.send(struct.pack(">I", len(chunk)) + chunk, False)
-							# client_socket.send(struct.pack(">I", len(filedata)) + filedata, False)
-
-						elif command[0:1] == b"\x06":  # BANNER
-
-							if len(command) == 10:
-								client_socket.send(b"\x01")
-								break
-							else:
-								log.info(f"Banner message: {binascii.b2a_hex(command)}")
-								# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
-								if config["use_webserver"].lower() == "true" and (self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0"):
-									if islan:
-										url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php")
-										# print("INTERNAL BANNER")
-									else:
-										url = ("http://" + self.config["public_ip"] + "/platform/banner/random.php")
-										# print("EXTERNAL BANNER")
-									# url = "about:blank"
-								else :
-									url = "about:blank"
-
-								reply = struct.pack(">H", len(url)) + url.encode("latin-1")
-
-								client_socket.send(reply)
-
-						elif command[0:1] == b"\x07":  # SEND DATA
-
-							(storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
-
-							(chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
-
-							reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
-
-							client_socket.send(reply, False)
-
-							for chunk in chunks:
-								reply = struct.pack(">LLL", storageid, messageid, len(chunk))
-
-								client_socket.send(reply, False)
-
-								reply = struct.pack(">LLL", storageid, messageid, len(chunk))
-
-								client_socket.send(reply, False)
-
-								client_socket.send(chunk, False)
-
-						elif command[0:1] == b"\x08":  # INVALID
-
-							log.warning("08 - Invalid Command!")
-							client_socket.send(b"\x01")
-						else:
-
-							log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
-							client_socket.send(b"\x01")
-
-							break
-
-					try:
-						dat_file_handle.close()
-					except:
-						pass
-				else:
-
-					log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
-					client_socket.send(b"\x01")
-
-					break
-
-		elif msg == b"\x00\x00\x00\x05" or msg == b"\x00\x00\x00\x06":  # \x06 for 2003 release
-
-			log.info(f"{clientid}Storage mode entered")
-
-			storagesopen = 0
-			storages = {}
-
-			client_socket.send(b"\x01")  # this should just be the handshake
-
-			while True:
-
-				command = client_socket.recv_withlen()
-
-				if command[0:1] == b"\x00":  # BANNER
-
-					if len(command) == 10:
-						client_socket.send(b"\x01")
-						break
-					else:
-						log.info(f"Banner message: {binascii.b2a_hex(command)}")
-
-						# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
-						if config["use_webserver"].lower() == "true":
-							if self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
-								if self.config["public_ip"] != "0.0.0.0":
-									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
-								else:
-									url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
-							else:
-								if self.config["public_ip"] != "0.0.0.0":
-									url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
-								else:
-									url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
-						else :
-							url = "about:blank"
-
-					reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
-
-					client_socket.send(reply)
-
-				elif command[0:1] == b"\x02":  # SEND MANIFEST
-
-					if globalvars.steamui_ver < 24:
-						(connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
-						# print(connid, messageid, app, version)
-						# print(app)
-						# print(version)
-						connid |= 0x80000000
-						key = b"\x69" * 0x10
-						signeddata = command[17:]
-						# print(binascii.b2a_hex(signeddata))
-
-						if hmac.new(key, signeddata[:-20], hashlib.sha1).digest() == signeddata[-20:]:
-							log.debug(clientid + "HMAC verified OK")
-						else:
-							log.error(clientid + "BAD HMAC")
-							raise Exception("BAD HMAC")
-
-						bio = io.BytesIO(signeddata)
-						# print(bio)
-						ticketsize, = struct.unpack(">H", bio.read(2))
-						# print(ticketsize)
-						ticket = bio.read(ticketsize)
-						# print(binascii.b2a_hex(ticket))
-						postticketdata = bio.read()[:-20]
-						IV = postticketdata[0:16]
-						# print(len(IV))
-						# print(len(postticketdata))
-						ptext = encryption.aes_decrypt(key, IV, postticketdata[4:])
-						log.info(f"{clientid}Opening application {app}, {version}")
-						# connid = pow(2,31) + connid
-
-						try:
-							s = stmstorages.Storage(app, self.config["storagedir"], version)
-						except Exception:
-							log.error(f"Application not installed! {app}, {version}")
-
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-
-							break
-						storageid = storagesopen
-						storagesopen += 1
-
-						storages[storageid] = s
-						storages[storageid].app = app
-						storages[storageid].version = version
-
-						if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
-							f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
-							log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
-						elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-							f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-							log.info(clientid + str(app) + "_" + str(version) + " is a v0.2 depot")
-						elif os.path.isfile(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
-							f = open(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
-							log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 depot")
-						elif os.path.isdir(self.config["v3manifestdir2"]):
-							if os.path.isfile(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
-								f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest", "rb")
-								log.info(f"{clientid}{app}_{version} is a v0.3 extra depot" )
-							else:
-								log.error(f"Manifest not found for {app} {version} " )
-								reply = struct.pack(">LLc", connid, messageid, b"\x01")
-								client_socket.send(reply)
-								break
-						else:
-							log.error(f"Manifest not found for {app} {version} " )
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-							break
-						manifest = f.read()
-						f.close()
-
-						manifest_appid = struct.unpack('<L', manifest[4:8])[0]
-						manifest_verid = struct.unpack('<L', manifest[8:12])[0]
-						log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}")
-						if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-							log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})" )
-
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-
-							break
-
-						globalvars.converting = "0"
-
-						fingerprint = manifest[0x30:0x34]
-						oldchecksum = manifest[0x34:0x38]
-						manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
-						checksum = struct.pack("<I", zlib.adler32(manifest, 0))
-						manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
-
-						log.debug(f"Checksum fixed from {binascii.b2a_hex(oldchecksum).decode('latin-1')}  to {binascii.b2a_hex(checksum).decode('latin-1')}")
-
-						storages[storageid].manifest = manifest
-
-						checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
-
-						reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
-
-						client_socket.send(reply, False)
-					else:
-						pass
-
-				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
-
-					if command[0:1] == b"\x0a":
-						log.info(f"{clientid}Login packet used")
-					# else :
-					# log.error(clientid + "Not logged in")
-
-					# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-					# client_socket.send(reply)
+                    checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
 
-					# break
+                    # reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
+                    reply = b"\xff" + fingerprint[::-1]
 
-					(connid, messageid, app, version) = struct.unpack(">xLLLL", command[0:17])
+                    client_socket.send(reply, False)
 
-					log.info(f"{clientid}Opening application {app}, {version}")
-					connid = pow(2, 31) + connid
+                    index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"
+                    dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"
+                    # Load the index
+                    with open(index_file, 'rb') as f:
+                        index_data = pickle.load(f)
+                    try:
+                        dat_file_handle.close()
+                    except:
+                        pass
+                    dat_file_handle = open(dat_file, 'rb')
 
-					try:
-						s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
-					except Exception:
-						log.error("Application not installed! {app}, {version}")
+                    while True:
+                        command = client_socket.recv(1)
 
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
+                        if len(command) == 0:
+                            log.info(f"{clientid}Disconnected from Content Server")
+                            client_socket.close()
+                            return
 
-						break
+                        if command[0:1] == b"\x02":  # SEND MANIFEST AGAIN
 
-					storageid = storagesopen
-					storagesopen += 1
+                            log.info(f"{clientid}Sending manifest")
 
-					storages[storageid] = s
-					storages[storageid].app = app
-					storages[storageid].version = version
+                            # (storageid, messageid) = struct.unpack(">xLL", command)
+
+                            # manifest = storages[storageid].manifest
+
+                            # reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
+                            # reply = struct.pack(">BL", 0, len(manifest))
+                            # print(binascii.b2a_hex(reply))
 
-					manifest_dirs = [
-						("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"),
-						(self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"),
-						(self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"),
-						(self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")
-					]
+                            # client_socket.send(reply)
+
+                            # reply = struct.pack(">LLL", storageid, messageid, len(manifest))
+                            reply = struct.pack(">L", len(manifest))
+                            # print(binascii.b2a_hex(reply))
+
+                            # print(binascii.b2a_hex(manifest))
+
+                            client_socket.send(b"\x01" + reply + manifest, False)
+
+                        elif command[0:1] == b"\x01":  # HANDSHAKE
+
+                            client_socket.send(b"")
+                            break
+
+                        elif command[0:1] == b"\x03":  # CLOSE STORAGE
+
+                            (storageid, messageid) = struct.unpack(">xLL", command)
+
+                            del storages[storageid]
+
+                            reply = struct.pack(">LLc", storageid, messageid, b"\x00")
+
+                            log.info(f"{clientid}Closing down storage {storageid}")
+
+                            client_socket.send(reply)
+
+                        elif command[0:1] == b"\x04":  # SEND MANIFEST
+
+                            log.info(f"{clientid}Sending manifest")
+
+                            # (storageid, messageid) = struct.unpack(">xLL", command)
+
+                            # manifest = storages[storageid].manifest
+
+                            # reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
+                            # reply = struct.pack(">BL", 0, len(manifest))
+                            # print(binascii.b2a_hex(reply))
+
+                            # client_socket.send(reply)
+
+                            # reply = struct.pack(">LLL", storageid, messageid, len(manifest))
+                            reply = struct.pack(">L", len(manifest))
+                            # print(binascii.b2a_hex(reply))
+
+                            # print(binascii.b2a_hex(manifest))
+
+                            client_socket.send(b"\x01" + reply + manifest, False)
+
+                        elif command[0:1] == b"\x25":  # SEND UPDATE INFO - DISABLED WAS \x05
+                            log.info(f"{clientid}Sending app update information")
+                            (storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
+                            appid = storages[storageid].app
+                            version = storages[storageid].version
+                            log.info(f"Old GCF version: {appid}_{oldversion}")
+                            log.info(f"New GCF version: {appid}_{version}")
+                            manifestNew = Manifest2(appid, version)
+                            manifestOld = Manifest2(appid, oldversion)
+
+                            if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
+                                checksumNew = Checksum3(appid)
+                            else:
+                                checksumNew = Checksum2(appid, version)
+
+                            if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
+                                checksumOld = Checksum3(appid)
+                            else:
+                                checksumOld = Checksum2(appid, version)
+
+                            filesOld = {}
+                            filesNew = {}
+                            for n in manifestOld.nodes.values():
+                                if n.fileId != 0xffffffff:
+                                    n.checksum = checksumOld.getchecksums_raw(n.fileId)
+                                    filesOld[n.fullFilename] = n
 
-					f = None
-					manifest = None
-					for base_dir, manifestpath, message in manifest_dirs:
-						file_path = os.path.join(base_dir, manifestpath)
-						print(file_path)
-						if os.path.isfile(file_path):
+                            for n in manifestNew.nodes.values():
+                                if n.fileId != 0xffffffff:
+                                    n.checksum = checksumNew.getchecksums_raw(n.fileId)
+                                    filesNew[n.fullFilename] = n
 
-							with open(file_path, "rb") as f:
-								log.info(f"{clientid}{app}_{version} {message}")
-								if not f:
-									log.error("Manifest not found for %s %s " % (app, version))
-									reply = struct.pack(">LLc", connid, messageid, b"\x01")
-									client_socket.send(reply)
-									continue
-								manifest = f.read()
+                            del manifestNew
+                            del manifestOld
 
+                            changedFiles = []
 
-					manifest_appid = struct.unpack('<L', manifest[4:8])[0]
-					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
-					log.debug(clientid + ("Manifest ID: %s Version: %s" % (manifest_appid, manifest_verid)))
-					if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-						log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})" )
-
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-
-						break
-
-					globalvars.converting = "0"
-
-					fingerprint = manifest[0x30:0x34]
-					oldchecksum = manifest[0x34:0x38]
-					manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
-					checksum = struct.pack("<I", zlib.adler32(manifest, 0))
-					manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
-
-					log.debug(b"Checksum fixed from " + binascii.b2a_hex(oldchecksum) + b" to " + binascii.b2a_hex(checksum))
-
-					storages[storageid].manifest = manifest
-
-					checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
-
-					reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
-
-					client_socket.send(reply, False)
-
-				elif command[0:1] == b"\x01":  # HANDSHAKE
-
-					client_socket.send(b"")
-					break
-
-				elif command[0:1] == b"\x03":  # CLOSE STORAGE
+                            for filename in filesOld:
+                                if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
+                                    changedFiles.append(filesOld[filename].fileId)
+                                    log.debug(f"Changed file: {str(filename)} : {str(filesOld[filename].fileId)}")
+                                if filename not in filesNew:
+                                    changedFiles.append(filesOld[filename].fileId)
+                                    # if not 0xffffffff in changedFiles:
+                                    # changedFiles.append(0xffffffff)
+                                    log.debug(f"Deleted file: {str(filename)} : {str(filesOld[filename].fileId)}")
 
-					(storageid, messageid) = struct.unpack(">xLL", command)
+                            for x in range(len(changedFiles)):
+                                log.debug(changedFiles[x], )
 
-					del storages[storageid]
+                            count = len(changedFiles)
+                            log.info(f"Number of changed files: {count}")
 
-					reply = struct.pack(">LLc", storageid, messageid, b"\x00")
-
-					log.info(f"{clientid}Closing down storage %d" % storageid)
-
-					client_socket.send(reply)
-
-				elif command[0:1] == b"\x04":  # SEND MANIFEST
-
-					log.info(f"{clientid}Sending manifest")
-
-					(storageid, messageid) = struct.unpack(">xLL", command)
-
-					manifest = storages[storageid].manifest
-
-					reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
-
-					client_socket.send(reply)
-
-					reply = struct.pack(">LLL", storageid, messageid, len(manifest))
-
-					client_socket.send(reply + manifest, False)
-
-				elif command[0:1] == b"\x05":  # SEND UPDATE INFO
-					log.info(f"{clientid}Sending app update information")
-					(storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
-					appid = storages[storageid].app
-					version = storages[storageid].version
-					log.info("Old GCF version: " + str(appid) + "_" + str(oldversion))
-					log.info("New GCF version: " + str(appid) + "_" + str(version))
-					manifestNew = Manifest2(appid, version)
-					manifestOld = Manifest2(appid, oldversion)
-
-					if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
-						checksumNew = Checksum3(appid)
-					else:
-						checksumNew = Checksum2(appid, version)
-
-					if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
-						checksumOld = Checksum3(appid)
-					else:
-						checksumOld = Checksum2(appid, version)
-
-					filesOld = {}
-					filesNew = {}
-					for n in manifestOld.nodes.values():
-						if n.fileId != 0xffffffff:
-							n.checksum = checksumOld.getchecksums_raw(n.fileId)
-							filesOld[n.fullFilename] = n
-
-					for n in manifestNew.nodes.values():
-						if n.fileId != 0xffffffff:
-							n.checksum = checksumNew.getchecksums_raw(n.fileId)
-							filesNew[n.fullFilename] = n
+                            if count == 0:
+                                reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
+                                client_socket.send(reply)
+                            else:
+                                reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
+                                client_socket.send(reply)
 
-					del manifestNew
-					del manifestOld
+                                changedFilesTmp = []
+                                for fileid in changedFiles:
+                                    changedFilesTmp.append(struct.pack("<L", fileid))
+                                updatefiles = b"".join(changedFilesTmp)
 
-					changedFiles = []
+                                reply = struct.pack(">LL", storageid, messageid)
+                                client_socket.send(reply)
+                                client_socket.send_withlen(updatefiles)
 
-					for filename in filesOld:
-						if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
-							changedFiles.append(filesOld[filename].fileId)
-							log.debug("Changed file: " + str(filename) + " : " + str(filesOld[filename].fileId))
-						if filename not in filesNew:
-							changedFiles.append(filesOld[filename].fileId)
-							# if not 0xffffffff in changedFiles:
-							# changedFiles.append(0xffffffff)
-							log.debug("Deleted file: " + str(filename) + " : " + str(filesOld[filename].fileId))
+                        elif command[0:1] == b"\x05":  # SEND DATA
+                            msg = client_socket.recv(12)
+                            fileid, offset, length = struct.unpack(">III", msg)
+                            index_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".index"
+                            dat_file = self.config["betastoragedir"] + str(app) + "_" + str(version) + ".dat"
+                            if islan:
+                                filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "internal")
+                            else:
+                                filedata = utils.readfile_beta(fileid, offset, length, index_data, dat_file_handle, "external")
+                            # 0000001a 00000000 00010000
+                            # 00000001 00000000 00001e72
+                            client_socket.send(b"\x01" + struct.pack(">II", len(filedata), 0), False)
+                            for i in range(0, len(filedata), 0x2000):
+                                chunk = filedata[i:i + 0x2000]
+                                client_socket.send(struct.pack(">I", len(chunk)) + chunk, False)  # client_socket.send(struct.pack(">I", len(filedata)) + filedata, False)
 
-					for x in range(len(changedFiles)):
-						log.debug(changedFiles[x], )
+                        elif command[0:1] == b"\x06":  # BANNER
 
-					count = len(changedFiles)
-					log.info("Number of changed files: " + str(count))
+                            if len(command) == 10:
+                                client_socket.send(b"\x01")
+                                break
+                            else:
+                                log.info(f"Banner message: {binascii.b2a_hex(command)}")
+                                # TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
+                                if config["use_webserver"].lower() == "true" and (self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0"):
+                                    if islan:
+                                        url = ("http://" + self.config["http_ip"] + "/platform/banner/random.php")  # print("INTERNAL BANNER")
+                                    else:
+                                        url = ("http://" + self.config["public_ip"] + "/platform/banner/random.php")  # print("EXTERNAL BANNER")  # url = "about:blank"
+                                else:
+                                    url = "about:blank"
 
-					if count == 0:
-						reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
-						client_socket.send(reply)
-					else:
-						reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
-						client_socket.send(reply)
+                                reply = struct.pack(">H", len(url)) + url.encode("latin-1")
 
-						changedFilesTmp = []
-						for fileid in changedFiles:
-							changedFilesTmp.append(struct.pack("<L", fileid))
-						updatefiles = b"".join(changedFilesTmp)
+                                client_socket.send(reply)
 
-						reply = struct.pack(">LL", storageid, messageid)
-						client_socket.send(reply)
-						client_socket.send_withlen(updatefiles)
+                        elif command[0:1] == b"\x07":  # SEND DATA
 
-				elif command[0:1] == b"\x06":  # SEND CHECKSUMS
+                            (storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
 
-					log.info(f"{clientid}Sending checksums")
+                            (chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
 
-					(storageid, messageid) = struct.unpack(">xLL", command)
+                            reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
+
+                            client_socket.send(reply, False)
+
+                            for chunk in chunks:
+                                reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+
+                                client_socket.send(reply, False)
+
+                                reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+
+                                client_socket.send(reply, False)
+
+                                client_socket.send(chunk, False)
+
+                        elif command[0:1] == b"\x08":  # INVALID
+
+                            log.warning("08 - Invalid Command!")
+                            client_socket.send(b"\x01")
+                        else:
+
+                            log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
+                            client_socket.send(b"\x01")
+
+                            break
+
+                    try:
+                        dat_file_handle.close()
+                    except:
+                        pass
+                else:
+
+                    log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
+                    client_socket.send(b"\x01")
+
+                    break
+
+        elif msg == b"\x00\x00\x00\x05" or msg == b"\x00\x00\x00\x06":  # \x06 for 2003 release
+
+            log.info(f"{clientid}Storage mode entered")
+
+            storagesopen = 0
+            storages = {}
+
+            client_socket.send(b"\x01")  # this should just be the handshake
+
+            while True:
+
+                command = client_socket.recv_withlen()
+
+                if command[0:1] == b"\x00":  # BANNER
+
+                    if len(command) == 10:
+                        client_socket.send(b"\x01")
+                        break
+                    else:
+                        log.info(f"Banner message: {binascii.b2a_hex(command)}")
+
+                        # TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
+                        if config["use_webserver"].lower() == "true":
+                            if self.config["http_port"].lower() != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
+                                if self.config["public_ip"] != "0.0.0.0":
+                                    url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+                                else:
+                                    url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
+                            else:
+                                if self.config["public_ip"] != "0.0.0.0":
+                                    url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+                                else:
+                                    url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+                        else:
+                            url = "about:blank"
+
+                    reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
+
+                    client_socket.send(reply)
+
+                elif command[0:1] == b"\x02":  # SEND MANIFEST
+
+                    if globalvars.steamui_ver < 24:
+                        (connid, messageid, app, version) = struct.unpack(">IIII", command[1:17])
+                        # print(connid, messageid, app, version)
+                        # print(app)
+                        # print(version)
+                        connid |= 0x80000000
+                        key = b"\x69" * 0x10
+                        signeddata = command[17:]
+                        # print(binascii.b2a_hex(signeddata))
+
+                        if hmac.new(key, signeddata[:-20], hashlib.sha1).digest() == signeddata[-20:]:
+                            log.debug(clientid + "HMAC verified OK")
+                        else:
+                            log.error(clientid + "BAD HMAC")
+                            raise Exception("BAD HMAC")
+
+                        bio = io.BytesIO(signeddata)
+                        # print(bio)
+                        ticketsize, = struct.unpack(">H", bio.read(2))
+                        # print(ticketsize)
+                        ticket = bio.read(ticketsize)
+                        # print(binascii.b2a_hex(ticket))
+                        postticketdata = bio.read()[:-20]
+                        IV = postticketdata[0:16]
+                        # print(len(IV))
+                        # print(len(postticketdata))
+                        ptext = encryption.aes_decrypt(key, IV, postticketdata[4:])
+                        log.info(f"{clientid}Opening application {app}, {version}")
+                        # connid = pow(2,31) + connid
+
+                        try:
+                            s = stmstorages.Storage(app, self.config["storagedir"], version)
+                        except Exception:
+                            log.error(f"Application not installed! {app}, {version}")
+
+                            reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                            client_socket.send(reply)
+
+                            break
+                        storageid = storagesopen
+                        storagesopen += 1
+
+                        storages[storageid] = s
+                        storages[storageid].app = app
+                        storages[storageid].version = version
+
+                        if os.path.isfile("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest"):
+                            f = open("files/cache/" + str(app) + "_" + str(version) + "/" + str(app) + "_" + str(version) + ".manifest", "rb")
+                            log.info(clientid + str(app) + "_" + str(version) + " is a cached depot")
+                        elif os.path.isfile(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
+                            f = open(self.config["v2manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
+                            log.info(clientid + str(app) + "_" + str(version) + " is a v0.2 depot")
+                        elif os.path.isfile(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest"):
+                            f = open(self.config["manifestdir"] + str(app) + "_" + str(version) + ".manifest", "rb")
+                            log.info(clientid + str(app) + "_" + str(version) + " is a v0.3 depot")
+                        elif os.path.isdir(self.config["v3manifestdir2"]):
+                            if os.path.isfile(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest"):
+                                f = open(self.config["v3manifestdir2"] + str(app) + "_" + str(version) + ".manifest", "rb")
+                                log.info(f"{clientid}{app}_{version} is a v0.3 extra depot")
+                            else:
+                                log.error(f"Manifest not found for {app} {version} ")
+                                reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                                client_socket.send(reply)
+                                break
+                        else:
+                            log.error(f"Manifest not found for {app} {version} ")
+                            reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                            client_socket.send(reply)
+                            break
+                        manifest = f.read()
+                        f.close()
+
+                        manifest_appid = struct.unpack('<L', manifest[4:8])[0]
+                        manifest_verid = struct.unpack('<L', manifest[8:12])[0]
+                        log.debug(f"{clientid}Manifest ID: {manifest_appid} Version: {manifest_verid}")
+                        if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
+                            log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})")
+
+                            reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                            client_socket.send(reply)
+
+                            break
+
+                        globalvars.converting = "0"
+
+                        fingerprint = manifest[0x30:0x34]
+                        oldchecksum = manifest[0x34:0x38]
+                        manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
+                        checksum = struct.pack("<I", zlib.adler32(manifest, 0))
+                        manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
+
+                        log.debug(f"Checksum fixed from {binascii.b2a_hex(oldchecksum).decode('latin-1')}  to {binascii.b2a_hex(checksum).decode('latin-1')}")
 
-					if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
-						if islan:
-							suffix = "_lan"
-						else:
-							suffix = "_wan"
-					else:
-						suffix = ""
+                        storages[storageid].manifest = manifest
 
-					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
-					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-							filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
-						else:
-							log.error("Manifest not found for %s %s " % (app, version))
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-							break
-					else:
-						log.error("Checksums not found for %s %s " % (app, version))
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-						break
+                        checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
 
-					f = open(filename, "rb")
-					file = f.read()
-					f.close()
+                        reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
 
-					# hack to rip out old sig, insert new
-					file = file[0:-128]
-					signature = encryption.rsa_sign_message(encryption.network_key, file)
+                        client_socket.send(reply, False)
+                    else:
+                        pass
 
-					file = file + signature
+                elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
 
-					reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(file))
+                    if command[0:1] == b"\x0a":
+                        log.info(f"{clientid}Login packet used")
+                    # else :
+                    # log.error(clientid + "Not logged in")
 
-					client_socket.send(reply)
+                    # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                    # client_socket.send(reply)
 
-					reply = struct.pack(">LLL", storageid, messageid, len(file))
+                    # break
 
-					client_socket.send(reply + file, False)
+                    (connid, messageid, app, version) = struct.unpack(">xLLLL", command[0:17])
 
-				elif command[0:1] == b"\x07":  # SEND DATA
+                    log.info(f"{clientid}Opening application {app}, {version}")
+                    connid = pow(2, 31) + connid
 
-					(storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
+                    try:
+                        s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
+                    except Exception:
+                        log.error("Application not installed! {app}, {version}")
 
-					(chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
 
-					reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
+                        break
 
-					client_socket.send(reply, False)
+                    storageid = storagesopen
+                    storagesopen += 1
 
-					for chunk in chunks:
-						reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+                    storages[storageid] = s
+                    storages[storageid].app = app
+                    storages[storageid].version = version
 
-						client_socket.send(reply, False)
+                    manifest_dirs = [("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"), (self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"), (self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"), (self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")]
 
-						reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+                    f = None
+                    manifest = None
+                    for base_dir, manifestpath, message in manifest_dirs:
+                        file_path = os.path.join(base_dir, manifestpath)
+                        print(file_path)
+                        if os.path.isfile(file_path):
 
-						client_socket.send(reply, False)
+                            with open(file_path, "rb") as f:
+                                log.info(f"{clientid}{app}_{version} {message}")
+                                if not f:
+                                    log.error("Manifest not found for %s %s " % (app, version))
+                                    reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                                    client_socket.send(reply)
+                                    continue
+                                manifest = f.read()
 
-						client_socket.send(chunk, False)
+                    manifest_appid = struct.unpack('<L', manifest[4:8])[0]
+                    manifest_verid = struct.unpack('<L', manifest[8:12])[0]
+                    log.debug(clientid + ("Manifest ID: %s Version: %s" % (manifest_appid, manifest_verid)))
+                    if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
+                        log.error(f"Manifest doesn't match requested file: ({app}, {version}) ({manifest_appid}, {manifest_verid})")
 
-				elif command[0:1] == b"\x08":  # INVALID
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
 
-					log.warning("08 - Invalid Command!")
-					client_socket.send(b"\x01")
+                        break
 
-				else:
+                    globalvars.converting = "0"
 
-					log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
-					client_socket.send(b"\x01")
+                    fingerprint = manifest[0x30:0x34]
+                    oldchecksum = manifest[0x34:0x38]
+                    manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
+                    checksum = struct.pack("<I", zlib.adler32(manifest, 0))
+                    manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
 
-					break
+                    log.debug(b"Checksum fixed from " + binascii.b2a_hex(oldchecksum) + b" to " + binascii.b2a_hex(checksum))
 
-		elif msg == b"\x00\x00\x00\x07":  # \x07 for 2004+
+                    storages[storageid].manifest = manifest
 
-			log.info(f"{clientid}Storage mode entered")
+                    checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
 
-			storagesopen = 0
-			storages = {}
+                    reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
 
-			client_socket.send(b"\x01")  # this should just be the handshake
+                    client_socket.send(reply, False)
 
-			while True:
+                elif command[0:1] == b"\x01":  # HANDSHAKE
 
-				command = client_socket.recv_withlen()
+                    client_socket.send(b"")
+                    break
 
-				if command[0:1] == b"\x00":  # BANNER
+                elif command[0:1] == b"\x03":  # CLOSE STORAGE
 
-					if len(command) == 10:
-						client_socket.send(b"\x01")
-						break
-					elif len(command) > 1:
-						log.info(b"Banner message: " + binascii.b2a_hex(command))
+                    (storageid, messageid) = struct.unpack(">xLL", command)
 
-						# TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
-						if config["use_webserver"].lower() == "true":
-							if self.config["http_port"] != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
-								if self.config["public_ip"] != "0.0.0.0":
-									url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
-								else:
-									url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
-							else:
-								if self.config["public_ip"] != "0.0.0.0":
-									url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
-								else:
-									url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
-						else :
-							url = "about:blank"
+                    del storages[storageid]
 
-						reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
+                    reply = struct.pack(">LLc", storageid, messageid, b"\x00")
 
-						client_socket.send(reply)
-					else:
-						client_socket.send(b"")
+                    log.info(f"{clientid}Closing down storage %d" % storageid)
 
-				elif command[0:1] == b"\xf2":  # SEND CDR - f2 TO DISABLE FOR 2003 TESTING
+                    client_socket.send(reply)
 
-					blob = cdr_manipulator.fixblobs_configserver(islan)
-					checksum = SHA.new(blob).digest()
+                elif command[0:1] == b"\x04":  # SEND MANIFEST
 
-					if checksum == command[1:]:
-						log.info(f"{clientid}Client has matching checksum for secondblob")
-						log.debug(f"{clientid}We validate it: {binascii.b2a_hex(command)}")
+                    log.info(f"{clientid}Sending manifest")
 
-						client_socket.send(b"\x00\x00\x00\x00")
+                    (storageid, messageid) = struct.unpack(">xLL", command)
 
-					else:
-						log.info(f"{clientid}Client didn't match our checksum for secondblob")
-						log.debug(f"{clientid}Sending new blob: {binascii.b2a_hex(command)}")
+                    manifest = storages[storageid].manifest
 
-						client_socket.send_withlen(blob, False)
+                    reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
 
-				elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
+                    client_socket.send(reply)
 
-					if command[0:1] == b"\x0a":
-						log.info(f"{clientid}Login packet used")
-					# else :
-					# log.error(clientid + "Not logged in")
+                    reply = struct.pack(">LLL", storageid, messageid, len(manifest))
+
+                    client_socket.send(reply + manifest, False)
+
+                elif command[0:1] == b"\x05":  # SEND UPDATE INFO
+                    log.info(f"{clientid}Sending app update information")
+                    (storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
+                    appid = storages[storageid].app
+                    version = storages[storageid].version
+                    log.info("Old GCF version: " + str(appid) + "_" + str(oldversion))
+                    log.info("New GCF version: " + str(appid) + "_" + str(version))
+                    manifestNew = Manifest2(appid, version)
+                    manifestOld = Manifest2(appid, oldversion)
+
+                    if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
+                        checksumNew = Checksum3(appid)
+                    else:
+                        checksumNew = Checksum2(appid, version)
+
+                    if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
+                        checksumOld = Checksum3(appid)
+                    else:
+                        checksumOld = Checksum2(appid, version)
 
-					# reply = struct.pack(">LLc", connid, messageid, b"\x01")
-					# client_socket.send(reply)
+                    filesOld = {}
+                    filesNew = {}
+                    for n in manifestOld.nodes.values():
+                        if n.fileId != 0xffffffff:
+                            n.checksum = checksumOld.getchecksums_raw(n.fileId)
+                            filesOld[n.fullFilename] = n
 
-					# break
+                    for n in manifestNew.nodes.values():
+                        if n.fileId != 0xffffffff:
+                            n.checksum = checksumNew.getchecksums_raw(n.fileId)
+                            filesNew[n.fullFilename] = n
 
-					(connid, messageid, app, version) = struct.unpack(">xLLLL", command[0:17])
+                    del manifestNew
+                    del manifestOld
 
-					log.info(f"{clientid}Opening application %d %d" % (app, version))
-					connid = pow(2, 31) + connid
+                    changedFiles = []
 
-					try:
-						s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
-					except Exception:
-						log.error("Application not installed! %d %d" % (app, version))
+                    for filename in filesOld:
+                        if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
+                            changedFiles.append(filesOld[filename].fileId)
+                            log.debug("Changed file: " + str(filename) + " : " + str(filesOld[filename].fileId))
+                        if filename not in filesNew:
+                            changedFiles.append(filesOld[filename].fileId)
+                            # if not 0xffffffff in changedFiles:
+                            # changedFiles.append(0xffffffff)
+                            log.debug("Deleted file: " + str(filename) + " : " + str(filesOld[filename].fileId))
 
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
+                    for x in range(len(changedFiles)):
+                        log.debug(changedFiles[x], )
 
-						break
+                    count = len(changedFiles)
+                    log.info("Number of changed files: " + str(count))
 
-					storageid = storagesopen
-					storagesopen += 1
+                    if count == 0:
+                        reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
+                        client_socket.send(reply)
+                    else:
+                        reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
+                        client_socket.send(reply)
 
-					storages[storageid] = s
-					storages[storageid].app = app
-					storages[storageid].version = version
+                        changedFilesTmp = []
+                        for fileid in changedFiles:
+                            changedFilesTmp.append(struct.pack("<L", fileid))
+                        updatefiles = b"".join(changedFilesTmp)
 
-					manifest_dirs = [
-						("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"),
-						(self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"),
-						(self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"),
-						(self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")
-					]
+                        reply = struct.pack(">LL", storageid, messageid)
+                        client_socket.send(reply)
+                        client_socket.send_withlen(updatefiles)
 
-					f = None
-					manifest = None
-					for base_dir, manifestpath, message in manifest_dirs:
-						file_path = os.path.join(base_dir, manifestpath)
-						print(file_path)
-						if os.path.isfile(file_path):
+                elif command[0:1] == b"\x06":  # SEND CHECKSUMS
 
-							with open(file_path, "rb") as f:
-								log.info(f"{clientid}{app}_{version} {message}")
-								if not f:
-									log.error("Manifest not found for %s %s " % (app, version))
-									reply = struct.pack(">LLc", connid, messageid, b"\x01")
-									client_socket.send(reply)
-									continue
-								manifest = f.read()
+                    log.info(f"{clientid}Sending checksums")
 
-					manifest_appid = struct.unpack('<L', manifest[4:8])[0]
-					manifest_verid = struct.unpack('<L', manifest[8:12])[0]
-					log.debug(clientid + ("Manifest ID: %s Version: %s" % (manifest_appid, manifest_verid)))
-					if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
-						log.error("Manifest doesn't match requested file: (%s, %s) (%s, %s)" % (app, version, manifest_appid, manifest_verid))
+                    (storageid, messageid) = struct.unpack(">xLL", command)
 
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-						break
+                    if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
+                        if islan:
+                            suffix = "_lan"
+                        else:
+                            suffix = "_wan"
+                    else:
+                        suffix = ""
 
-					globalvars.converting = "0"
+                    if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
+                    elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
+                    elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
+                    elif os.path.isdir(self.config["v3manifestdir2"]):
+                        if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                            filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
+                        else:
+                            log.error("Manifest not found for %s %s " % (app, version))
+                            reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                            client_socket.send(reply)
+                            break
+                    else:
+                        log.error("Checksums not found for %s %s " % (app, version))
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
+                        break
 
-					fingerprint = manifest[0x30:0x34]
-					oldchecksum = manifest[0x34:0x38]
-					manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
-					checksum = struct.pack("<I", zlib.adler32(manifest, 0))
-					manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
+                    f = open(filename, "rb")
+                    file = f.read()
+                    f.close()
 
-					log.debug(f"Checksum fixed from {binascii.b2a_hex(oldchecksum)} to {binascii.b2a_hex(checksum)}")
+                    # hack to rip out old sig, insert new
+                    file = file[0:-128]
+                    signature = encryption.rsa_sign_message(encryption.network_key, file)
 
-					storages[storageid].manifest = manifest
+                    file = file + signature
 
-					checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
+                    reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(file))
 
-					reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
+                    client_socket.send(reply)
 
-					client_socket.send(reply, False)
+                    reply = struct.pack(">LLL", storageid, messageid, len(file))
 
-				elif command[0:1] == b"\x01":  # HANDSHAKE
+                    client_socket.send(reply + file, False)
 
-					client_socket.send(b"")
-					break
+                elif command[0:1] == b"\x07":  # SEND DATA
 
-				elif command[0:1] == b"\x03":  # CLOSE STORAGE
+                    (storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
 
-					(storageid, messageid) = struct.unpack(">xLL", command)
+                    (chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
 
-					del storages[storageid]
+                    reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
 
-					reply = struct.pack(">LLc", storageid, messageid, b"\x00")
+                    client_socket.send(reply, False)
 
-					log.info(f"{clientid}Closing down storage %d" % storageid)
+                    for chunk in chunks:
+                        reply = struct.pack(">LLL", storageid, messageid, len(chunk))
 
-					client_socket.send(reply)
+                        client_socket.send(reply, False)
 
-				elif command[0:1] == b"\x04":  # SEND MANIFEST
+                        reply = struct.pack(">LLL", storageid, messageid, len(chunk))
 
-					log.info(f"{clientid}Sending manifest")
+                        client_socket.send(reply, False)
 
-					(storageid, messageid) = struct.unpack(">xLL", command)
+                        client_socket.send(chunk, False)
 
-					manifest = storages[storageid].manifest
+                elif command[0:1] == b"\x08":  # INVALID
 
-					reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
+                    log.warning("08 - Invalid Command!")
+                    client_socket.send(b"\x01")
 
-					client_socket.send(reply)
+                else:
 
-					reply = struct.pack(">LLL", storageid, messageid, len(manifest))
+                    log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
+                    client_socket.send(b"\x01")
 
-					client_socket.send(reply + manifest, False)
+                    break
 
-				elif command[0:1] == b"\x05":  # SEND UPDATE INFO
-					log.info(f"{clientid}Sending app update information")
-					(storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
-					appid = storages[storageid].app
-					version = storages[storageid].version
-					log.info("Old GCF version: " + str(appid) + "_" + str(oldversion))
-					log.info("New GCF version: " + str(appid) + "_" + str(version))
-					manifestNew = Manifest2(appid, version)
-					manifestOld = Manifest2(appid, oldversion)
+        elif msg == b"\x00\x00\x00\x07":  # \x07 for 2004+
 
-					if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
-						checksumNew = Checksum3(appid)
-					else:
-						checksumNew = Checksum2(appid, version)
+            log.info(f"{clientid}Storage mode entered")
 
-					if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
-						checksumOld = Checksum3(appid)
-					else:
-						checksumOld = Checksum2(appid, version)
+            storagesopen = 0
+            storages = {}
 
-					filesOld = {}
-					filesNew = {}
-					for n in manifestOld.nodes.values():
-						if n.fileId != 0xffffffff:
-							n.checksum = checksumOld.getchecksums_raw(n.fileId)
-							filesOld[n.fullFilename] = n
+            client_socket.send(b"\x01")  # this should just be the handshake
 
-					for n in manifestNew.nodes.values():
-						if n.fileId != 0xffffffff:
-							n.checksum = checksumNew.getchecksums_raw(n.fileId)
-							filesNew[n.fullFilename] = n
+            while True:
 
-					del manifestNew
-					del manifestOld
+                command = client_socket.recv_withlen()
 
-					changedFiles = []
+                if command[0:1] == b"\x00":  # BANNER
 
-					for filename in filesOld:
-						if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
-							changedFiles.append(filesOld[filename].fileId)
-							log.debug("Changed file: " + str(filename) + " : " + str(filesOld[filename].fileId))
-						if not filename in filesNew:
-							changedFiles.append(filesOld[filename].fileId)
-							# if not 0xffffffff in changedFiles:
-							# changedFiles.append(0xffffffff)
-							log.debug("Deleted file: " + str(filename) + " : " + str(filesOld[filename].fileId))
+                    if len(command) == 10:
+                        client_socket.send(b"\x01")
+                        break
+                    elif len(command) > 1:
+                        log.info(b"Banner message: " + binascii.b2a_hex(command))
 
-					for x in range(len(changedFiles)):
-						log.debug(changedFiles[x], )
+                        # TODO What about if http_port IS set to steam? shouldnt we send the steampowered.com URL?
+                        if config["use_webserver"].lower() == "true":
+                            if self.config["http_port"] != "steam" or self.config["http_port"] != "0" or globalvars.steamui_ver < 87:
+                                if self.config["public_ip"] != "0.0.0.0":
+                                    url = "http://" + self.config["public_ip"] + "/platform/banner/random.php"
+                                else:
+                                    url = "http://" + self.config["http_ip"] + "/platform/banner/random.php"
+                            else:
+                                if self.config["public_ip"] != "0.0.0.0":
+                                    url = "http://" + self.config["public_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+                                else:
+                                    url = "http://" + self.config["http_ip"] + ":" + self.config["http_port"] + "/platform/banner/random.php"
+                        else:
+                            url = "about:blank"
 
-					count = len(changedFiles)
-					log.info("Number of changed files: " + str(count))
+                        reply = struct.pack(">cH", b"\x01", len(url)) + url.encode()
 
-					if count == 0:
-						reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
-						client_socket.send(reply)
-					else:
-						reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
-						client_socket.send(reply)
+                        client_socket.send(reply)
+                    else:
+                        client_socket.send(b"")
 
-						changedFilesTmp = []
-						for fileid in changedFiles:
-							changedFilesTmp.append(struct.pack("<L", fileid))
-						updatefiles = b"".join(changedFilesTmp)
+                elif command[0:1] == b"\xf2":  # SEND CDR - f2 TO DISABLE FOR 2003 TESTING
 
-						reply = struct.pack(">LL", storageid, messageid)
-						client_socket.send(reply)
-						client_socket.send_withlen(updatefiles)
+                    blob = cdr_manipulator.fixblobs_configserver(islan)
+                    checksum = SHA.new(blob).digest()
 
-				elif command[0:1] == b"\x06":  # SEND CHECKSUMS
+                    if checksum == command[1:]:
+                        log.info(f"{clientid}Client has matching checksum for secondblob")
+                        log.debug(f"{clientid}We validate it: {binascii.b2a_hex(command)}")
 
-					log.info(f"{clientid}Sending checksums")
+                        client_socket.send(b"\x00\x00\x00\x00")
 
-					(storageid, messageid) = struct.unpack(">xLL", command)
-					if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
-						if islan:
-							suffix = "_lan"
-						else:
-							suffix = "_wan"
-					else:
-						suffix = ""
+                    else:
+                        log.info(f"{clientid}Client didn't match our checksum for secondblob")
+                        log.debug(f"{clientid}Sending new blob: {binascii.b2a_hex(command)}")
 
-					if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
-					elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-						filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
-					elif os.path.isdir(self.config["v3manifestdir2"]):
-						if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
-							filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
-						else:
-							log.error("Manifest not found for %s %s " % (app, version))
-							reply = struct.pack(">LLc", connid, messageid, b"\x01")
-							client_socket.send(reply)
-							break
-					else:
-						log.error("Checksums not found for %s %s " % (app, version))
-						reply = struct.pack(">LLc", connid, messageid, b"\x01")
-						client_socket.send(reply)
-						break
+                        client_socket.send_withlen(blob, False)
 
-					f = open(filename, "rb")
-					file = f.read()
-					f.close()
+                elif command[0:1] == b"\x09" or command[0:1] == b"\x0a" or command[0:1] == b"\x02":  # REQUEST MANIFEST #09 is used by early clients without a ticket# 02 used by 2003 steam
 
-					# hack to rip out old sig, insert new
-					file = file[0:-128]
-					signature = encryption.rsa_sign_message(encryption.network_key, file)
+                    if command[0:1] == b"\x0a":
+                        log.info(f"{clientid}Login packet used")
+                    # else :
+                    # log.error(clientid + "Not logged in")
 
-					file = file + signature
+                    # reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                    # client_socket.send(reply)
 
-					reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(file))
+                    # break
 
-					client_socket.send(reply)
+                    (connid, messageid, app, version) = struct.unpack(">xLLLL", command[0:17])
 
-					reply = struct.pack(">LLL", storageid, messageid, len(file))
+                    log.info(f"{clientid}Opening application %d %d" % (app, version))
+                    connid = pow(2, 31) + connid
 
-					client_socket.send(reply + file, False)
+                    try:
+                        s = stmstorages.Storage(app, self.config["storagedir"], version, islan)
+                    except Exception:
+                        log.error("Application not installed! %d %d" % (app, version))
 
-				elif command[0:1] == b"\x07":  # SEND DATA
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
 
-					(storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
+                        break
 
-					(chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
+                    storageid = storagesopen
+                    storagesopen += 1
 
-					reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
+                    storages[storageid] = s
+                    storages[storageid].app = app
+                    storages[storageid].version = version
 
-					client_socket.send(reply, False)
+                    manifest_dirs = [("files/cache/", f"{str(app)}_{str(version)}/{str(app)}_{str(version)}.manifest", "is a cached depot"), (self.config["v2manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.2 depot"), (self.config["manifestdir"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 depot"), (self.config["v3manifestdir2"], f"{str(app)}_{str(version)}.manifest", "is a v0.3 extra depot")]
 
-					for chunk in chunks:
-						reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+                    f = None
+                    manifest = None
+                    for base_dir, manifestpath, message in manifest_dirs:
+                        file_path = os.path.join(base_dir, manifestpath)
+                        print(file_path)
+                        if os.path.isfile(file_path):
 
-						client_socket.send(reply, False)
+                            with open(file_path, "rb") as f:
+                                log.info(f"{clientid}{app}_{version} {message}")
+                                if not f:
+                                    log.error("Manifest not found for %s %s " % (app, version))
+                                    reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                                    client_socket.send(reply)
+                                    continue
+                                manifest = f.read()
 
-						reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+                    manifest_appid = struct.unpack('<L', manifest[4:8])[0]
+                    manifest_verid = struct.unpack('<L', manifest[8:12])[0]
+                    log.debug(clientid + ("Manifest ID: %s Version: %s" % (manifest_appid, manifest_verid)))
+                    if (int(manifest_appid) != int(app)) or (int(manifest_verid) != int(version)):
+                        log.error("Manifest doesn't match requested file: (%s, %s) (%s, %s)" % (app, version, manifest_appid, manifest_verid))
 
-						client_socket.send(reply, False)
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
+                        break
 
-						client_socket.send(chunk, False)
+                    globalvars.converting = "0"
 
-				elif command[0:1] == b"\x08":  # INVALID
+                    fingerprint = manifest[0x30:0x34]
+                    oldchecksum = manifest[0x34:0x38]
+                    manifest = manifest[:0x30] + b"\x00" * 8 + manifest[0x38:]
+                    checksum = struct.pack("<I", zlib.adler32(manifest, 0))
+                    manifest = manifest[:0x30] + fingerprint + checksum + manifest[0x38:]
 
-					log.warning("08 - Invalid Command!")
-					client_socket.send(b"\x01")
+                    log.debug(f"Checksum fixed from {binascii.b2a_hex(oldchecksum)} to {binascii.b2a_hex(checksum)}")
 
-				else:
+                    storages[storageid].manifest = manifest
 
-					log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
-					client_socket.send(b"\x01")
+                    checksum = struct.unpack("<L", manifest[0x30:0x34])[0]  # FIXED, possible bug source
 
-					break
+                    reply = struct.pack(">LLcLL", connid, messageid, b"\x00", storageid, checksum)
 
-		elif msg == b"\x03\x00\x00\x00":  # UNKNOWN
-			log.info(f"{clientid}Unknown mode entered")
-			client_socket.send(b"\x00")
+                    client_socket.send(reply, False)
 
-		else:
-			log.warning(f"Invalid Command: {binascii.b2a_hex(msg)}")
+                elif command[0:1] == b"\x01":  # HANDSHAKE
 
-		client_socket.close()
-		log.info(f"{clientid}Disconnected from Content Server")
+                    client_socket.send(b"")
+                    break
 
-	def parse_manifest_files(self, contentserver_info):
+                elif command[0:1] == b"\x03":  # CLOSE STORAGE
 
-		# Define the locations to search for '.manifest' files
-		locations = ['files/cache/', self.config["v2manifestdir"], self.config["manifestdir"], self.config["v3manifestdir2"], self.config["betamanifestdir"]]
-		app_buffer = ""
-		for location in locations:
-			for file_name in os.listdir(location):
-				if file_name.endswith('.manifest'):
-					# Extract app ID and version from the file name
-					app_id, version = file_name.split('_')
-					version = version.rstrip('.manifest')
-					# for appid, version in self.applist:
-					# print("appid:", app_id)
-					# print("version:", version)
-					# Append app ID and version to app_list in this format
-					app_buffer += str(app_id) + "\x00" + str(version) + "\x00\x00"
-					app_list.append((app_id, version))
-		return app_buffer
+                    (storageid, messageid) = struct.unpack(">xLL", command)
+
+                    del storages[storageid]
+
+                    reply = struct.pack(">LLc", storageid, messageid, b"\x00")
+
+                    log.info(f"{clientid}Closing down storage %d" % storageid)
+
+                    client_socket.send(reply)
+
+                elif command[0:1] == b"\x04":  # SEND MANIFEST
+
+                    log.info(f"{clientid}Sending manifest")
+
+                    (storageid, messageid) = struct.unpack(">xLL", command)
+
+                    manifest = storages[storageid].manifest
+
+                    reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(manifest))
+
+                    client_socket.send(reply)
+
+                    reply = struct.pack(">LLL", storageid, messageid, len(manifest))
+
+                    client_socket.send(reply + manifest, False)
+
+                elif command[0:1] == b"\x05":  # SEND UPDATE INFO
+                    log.info(f"{clientid}Sending app update information")
+                    (storageid, messageid, oldversion) = struct.unpack(">xLLL", command)
+                    appid = storages[storageid].app
+                    version = storages[storageid].version
+                    log.info("Old GCF version: " + str(appid) + "_" + str(oldversion))
+                    log.info("New GCF version: " + str(appid) + "_" + str(version))
+                    manifestNew = Manifest2(appid, version)
+                    manifestOld = Manifest2(appid, oldversion)
+
+                    if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(version) + ".manifest"):
+                        checksumNew = Checksum3(appid)
+                    else:
+                        checksumNew = Checksum2(appid, version)
+
+                    if os.path.isfile(self.config["v2manifestdir"] + str(appid) + "_" + str(oldversion) + ".manifest"):
+                        checksumOld = Checksum3(appid)
+                    else:
+                        checksumOld = Checksum2(appid, version)
+
+                    filesOld = {}
+                    filesNew = {}
+                    for n in manifestOld.nodes.values():
+                        if n.fileId != 0xffffffff:
+                            n.checksum = checksumOld.getchecksums_raw(n.fileId)
+                            filesOld[n.fullFilename] = n
+
+                    for n in manifestNew.nodes.values():
+                        if n.fileId != 0xffffffff:
+                            n.checksum = checksumNew.getchecksums_raw(n.fileId)
+                            filesNew[n.fullFilename] = n
+
+                    del manifestNew
+                    del manifestOld
+
+                    changedFiles = []
+
+                    for filename in filesOld:
+                        if filename in filesNew and filesOld[filename].checksum != filesNew[filename].checksum:
+                            changedFiles.append(filesOld[filename].fileId)
+                            log.debug("Changed file: " + str(filename) + " : " + str(filesOld[filename].fileId))
+                        if not filename in filesNew:
+                            changedFiles.append(filesOld[filename].fileId)
+                            # if not 0xffffffff in changedFiles:
+                            # changedFiles.append(0xffffffff)
+                            log.debug("Deleted file: " + str(filename) + " : " + str(filesOld[filename].fileId))
+
+                    for x in range(len(changedFiles)):
+                        log.debug(changedFiles[x], )
+
+                    count = len(changedFiles)
+                    log.info("Number of changed files: " + str(count))
+
+                    if count == 0:
+                        reply = struct.pack(">LLcL", storageid, messageid, b"\x01", 0)
+                        client_socket.send(reply)
+                    else:
+                        reply = struct.pack(">LLcL", storageid, messageid, b"\x02", count)
+                        client_socket.send(reply)
+
+                        changedFilesTmp = []
+                        for fileid in changedFiles:
+                            changedFilesTmp.append(struct.pack("<L", fileid))
+                        updatefiles = b"".join(changedFilesTmp)
+
+                        reply = struct.pack(">LL", storageid, messageid)
+                        client_socket.send(reply)
+                        client_socket.send_withlen(updatefiles)
+
+                elif command[0:1] == b"\x06":  # SEND CHECKSUMS
+
+                    log.info(f"{clientid}Sending checksums")
+
+                    (storageid, messageid) = struct.unpack(">xLL", command)
+                    if storages[storageid].app in globalvars.game_engine_file_appids + globalvars.dedicated_server_appids:
+                        if islan:
+                            suffix = "_lan"
+                        else:
+                            suffix = "_wan"
+                    else:
+                        suffix = ""
+
+                    if os.path.isfile("files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = "files/cache/" + str(storages[storageid].app) + "_" + str(storages[storageid].version) + "/" + str(storages[storageid].app) + suffix + ".checksums"
+                    elif os.path.isfile(self.config["v2manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = self.config["v2storagedir"] + str(storages[storageid].app) + ".checksums"
+                    elif os.path.isfile(self.config["manifestdir"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                        filename = self.config["storagedir"] + str(storages[storageid].app) + ".checksums"
+                    elif os.path.isdir(self.config["v3manifestdir2"]):
+                        if os.path.isfile(self.config["v3manifestdir2"] + str(storages[storageid].app) + "_" + str(storages[storageid].version) + ".manifest"):
+                            filename = self.config["v3storagedir2"] + str(storages[storageid].app) + ".checksums"
+                        else:
+                            log.error("Manifest not found for %s %s " % (app, version))
+                            reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                            client_socket.send(reply)
+                            break
+                    else:
+                        log.error("Checksums not found for %s %s " % (app, version))
+                        reply = struct.pack(">LLc", connid, messageid, b"\x01")
+                        client_socket.send(reply)
+                        break
+
+                    f = open(filename, "rb")
+                    file = f.read()
+                    f.close()
+
+                    # hack to rip out old sig, insert new
+                    file = file[0:-128]
+                    signature = encryption.rsa_sign_message(encryption.network_key, file)
+
+                    file = file + signature
+
+                    reply = struct.pack(">LLcL", storageid, messageid, b"\x00", len(file))
+
+                    client_socket.send(reply)
+
+                    reply = struct.pack(">LLL", storageid, messageid, len(file))
+
+                    client_socket.send(reply + file, False)
+
+                elif command[0:1] == b"\x07":  # SEND DATA
+
+                    (storageid, messageid, fileid, filepart, numparts, priority) = struct.unpack(">xLLLLLB", command)
+
+                    (chunks, filemode) = storages[storageid].readchunks(fileid, filepart, numparts)
+
+                    reply = struct.pack(">LLcLL", storageid, messageid, b"\x00", len(chunks), filemode)
+
+                    client_socket.send(reply, False)
+
+                    for chunk in chunks:
+                        reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+
+                        client_socket.send(reply, False)
+
+                        reply = struct.pack(">LLL", storageid, messageid, len(chunk))
+
+                        client_socket.send(reply, False)
+
+                        client_socket.send(chunk, False)
+
+                elif command[0:1] == b"\x08":  # INVALID
+
+                    log.warning("08 - Invalid Command!")
+                    client_socket.send(b"\x01")
+
+                else:
+
+                    log.warning(f"{binascii.b2a_hex(command[0:1])} - Invalid Command!")
+                    client_socket.send(b"\x01")
+
+                    break
+
+        elif msg == b"\x03\x00\x00\x00":  # UNKNOWN
+            log.info(f"{clientid}Unknown mode entered")
+            client_socket.send(b"\x00")
+
+        else:
+            log.warning(f"Invalid Command: {binascii.b2a_hex(msg)}")
+
+        client_socket.close()
+        log.info(f"{clientid}Disconnected from Content Server")
+
+    def parse_manifest_files(self, contentserver_info):
+
+        # Define the locations to search for '.manifest' files
+        locations = ['files/cache/', self.config["v2manifestdir"], self.config["manifestdir"], self.config["v3manifestdir2"], self.config["betamanifestdir"]]
+        app_buffer = ""
+        for location in locations:
+            for file_name in os.listdir(location):
+                if file_name.endswith('.manifest'):
+                    # Extract app ID and version from the file name
+                    app_id, version = file_name.split('_')
+                    version = version.rstrip('.manifest')
+                    # for appid, version in self.applist:
+                    # print("appid:", app_id)
+                    # print("version:", version)
+                    # Append app ID and version to app_list in this format
+                    app_buffer += str(app_id) + "\x00" + str(version) + "\x00\x00"
+                    app_list.append((app_id, version))
+        return app_buffer

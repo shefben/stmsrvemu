@@ -1,5 +1,5 @@
 class ByteBuffer(object):
-    def __init__(self, data, position=0, fromEnd=False):
+    def __init__(self, data, position = 0, fromEnd = False):
         self.data = data
         self.seekAbsolute(position, fromEnd)
         self.posDict = {}
@@ -39,7 +39,8 @@ class ByteBuffer(object):
         if null_byte_position != -1:
             self.seekAbsolute(null_byte_position + 1)
         return string_data
-    def readDelim(self, char, skipChar=False):
+
+    def readDelim(self, char, skipChar = False):
         target = self.data.index(char, self.position)
         data = self.read(target - self.position)
         if skipChar:
@@ -54,7 +55,7 @@ class ByteBuffer(object):
         self.position += amount
         self._limitPosition()
 
-    def seekAbsolute(self, position, fromEnd=False):
+    def seekAbsolute(self, position, fromEnd = False):
         if fromEnd:
             self.position = len(self.data) - position
         else:

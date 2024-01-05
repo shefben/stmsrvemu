@@ -1,4 +1,3 @@
-
 class PacketHandler:
     def __init__(self, packet_data):
         self.packet_data = packet_data
@@ -50,9 +49,9 @@ class PacketHandler:
         self.msg_readcount += 4
         return value
 
-    def info_value_for_key(info, key) :
+    def info_value_for_key(info, key):
         pairs = info.split('\\')
         key_index = pairs.index(key) if key in pairs else -1
-        if key_index != -1 and key_index + 1 < len(pairs) :
+        if key_index != -1 and key_index + 1 < len(pairs):
             return pairs[key_index + 1]
         return 0

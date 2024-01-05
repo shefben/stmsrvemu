@@ -1,5 +1,3 @@
-
-
 import logging
 import os
 import sys
@@ -8,7 +6,6 @@ import zlib
 
 import config
 import globalvars
-
 from utilities import storages
 from utilities.checksums import Checksums
 from utilities.gcf import GCF
@@ -21,7 +18,7 @@ def create_progress_bar(total, filename):
         try:
             from tqdm import tqdm
             print("Converting File: " + filename)
-            return tqdm(total=total, unit="file", dynamic_ncols=False)
+            return tqdm(total = total, unit = "file", dynamic_ncols = False)
         except ImportError:
             pass
     # Return None when show_convert_bar is false
@@ -50,7 +47,7 @@ def gcf2storage(filename):
     storagedir = "files/cache/" + str(gcf.appid) + "_" + str(gcf.appversion) + "/"
 
     if not os.path.isdir(manifestdir):
-        os.makedirs(manifestdir, exist_ok=True)
+        os.makedirs(manifestdir, exist_ok = True)
 
     storage = storages.Old_Storage(gcf.appid, storagedir, file_suffix)
 
@@ -63,9 +60,7 @@ def gcf2storage(filename):
 
         if stored_manifest_data != gcf.manifest_data:
             print("Manifests differ!!")
-            sys.exit()
-        #else:
-        #    print("Manifests match, continuing..")
+            sys.exit()  # else:  #    print("Manifests match, continuing..")
     else:
         # print "New manifest"
 
@@ -123,8 +118,7 @@ def gcf2storage(filename):
                 file = []
                 for gcf_block in gcf.get_file(dirid):
                     file.append(gcf_block)
-                file = b"".join(file)
-                # print binascii.b2a_hex(file[:64])
+                file = b"".join(file)  # print binascii.b2a_hex(file[:64])
 
             else:
                 if do_updates:
@@ -145,8 +139,7 @@ def gcf2storage(filename):
                         if not gcf_checksums.validate_chunk(d.fileid, chunkid, chunk, checksum_filename):
                             # print "Checksum failed!"
                             # failed = "1"
-                            log.debug("Checksum fixed!")
-                            # sys.exit()
+                            log.debug("Checksum fixed!")  # sys.exit()
 
                         chunks.append(zlib.compress(chunk, 9))
                         chunkid += 1
@@ -187,14 +180,14 @@ def gcf2storage(filename):
 
             if totalsize != d.itemsize:
                 print("")
-                print(f"Different sizes, file incomplete? {d.fileid} {totalsize} {d.itemsize}")
-                # sys.exit()
+                print(f"Different sizes, file incomplete? {d.fileid} {totalsize} {d.itemsize}")  # sys.exit()
             else:
-                print("\b.", end=' ')
+                print("\b.", end = ' ')
 
         if progress_bar:
             progress_bar.close()  # Close the progress bar when don
             globalvars.hide_convert_prints = False
+
 
 if __name__ == "__main__":
     gcf2storage(sys.argv[1])

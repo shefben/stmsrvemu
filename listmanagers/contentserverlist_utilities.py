@@ -1,15 +1,15 @@
-import globalvars
 import logging
 import socket
 import struct
 import time
-
-from utilities import encryption
-from globalvars import config
 from builtins import str
 
+import globalvars
+from globalvars import config
+from utilities import encryption
 
 log = logging.getLogger("CSLSTMGR")
+
 
 def receive_removal(packed_info):
     unpacked_info = struct.unpack('!16s I 16s', packed_info)
@@ -19,10 +19,10 @@ def receive_removal(packed_info):
     return ip_address, port, region
 
 
-def send_removal(port, region) :
-    if globalvars.public_ip == "0.0.0.0" :
+def send_removal(port, region):
+    if globalvars.public_ip == "0.0.0.0":
         server_ip = globalvars.server_ip
-    else :
+    else:
         server_ip = globalvars.public_ip
     reg = region
 
@@ -31,7 +31,7 @@ def send_removal(port, region) :
     return remove_from_dir("\x2e" + encryption.encrypt(packed_info, globalvars.peer_password))
 
 
-def send_heartbeat(contentserver_info, applist, ispkg=False):
+def send_heartbeat(contentserver_info, applist, ispkg = False):
     packed_info = ""
     packed_info += contentserver_info['wan_ip'] + b'\x00'
     print(f"public IP: {contentserver_info['wan_ip']}")
@@ -104,7 +104,7 @@ def unpack_contentserver_info(encrypted_data):
 
 
 def heartbeat(encrypted_buffer):
-    if globalvars.public_ip == "0.0.0.0" :
+    if globalvars.public_ip == "0.0.0.0":
         csds_ipport = (globalvars.server_ip_b, config['contentdir_server_port'])
     else:
         csds_ipport = config["csds_ipport"]

@@ -1,8 +1,9 @@
 import os
 import time
 
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
 from utilities import converter
 
 
@@ -15,13 +16,14 @@ class BaseFileEventHandler(FileSystemEventHandler):
         # To be implemented in subclass
         raise NotImplementedError
 
+
 class GCFFileHandler(BaseFileEventHandler):
     def handle_file(self, file_path):
         if file_path.endswith('.gcf'):
             self.neutergcf(file_path)
 
     @staticmethod
-    def wait_until_file_is_ready(file_path, retries=3, delay=2):
+    def wait_until_file_is_ready(file_path, retries = 3, delay = 2):
         """Wait for the file to be fully copied or written."""
         last_size = -1
 
@@ -49,6 +51,7 @@ class GCFFileHandler(BaseFileEventHandler):
         else:
             print(f"File {file_path} was not ready for processing.")
 
+
 class DirectoryMonitor:
     def __init__(self, directory, event_handler):
         self.directory = directory
@@ -56,15 +59,13 @@ class DirectoryMonitor:
         self.observer = Observer()
 
     def start(self):
-        self.observer.schedule(self.event_handler, self.directory, recursive=False)
+        self.observer.schedule(self.event_handler, self.directory, recursive = False)
         self.observer.daemon = True
         self.observer.start()
 
     def stop(self):
         self.observer.stop()
         self.observer.join()
-
-
 
 
 """class GCFConvertMonitorThread(threading.Thread):

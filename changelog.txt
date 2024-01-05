@@ -4,7 +4,7 @@ converted from python 2.7 to 3.9
 Refactored code to be easier to read and more modular
 Implemented full cser server packet parsing and collected information saving
 auto-create ALL required folders
-Integrated Beta1 steam
+Integrated Beta 1 (2002) steam
 Added color coded console text
 Added exception/error catcher to improve readabilty of errors
 created a new masterserver to replace the old 3 masterservers
@@ -12,4 +12,25 @@ dynamic serverlists for the directoryserver and content directory server
 created harvest server for bugreport files and other memory dump files
 added missing packets to auth server and directory server (not operational, just for collecting packet data)
 added ini option to automatically retrieve public ip address
-
+removed http_name
+changed http_ip to be used ONLY for neutering.  This is because people may want to host their website somewhere other than where the stmserver is hosted
+    also because apache should only ever listen on a local IP unless there are multiple interfaces with lan/wan access or if you use an external ip for internet access
+added simultaneous lan/wan game/client validation
+fixed simultaneous lan/wan neutering
+added name suggestor and name suggestion dialog
+fixed overwriting user accounts that already exist
+added email functions
+added email templates
+added authserver email code (validation code, new user email etc..)
+added valve anti cheat server 1 for beta 1 hl engine to mid 2005 hl engine
+consolidated alot of repeated code
+added auto internal ip
+added auto external ip
+added white/black lists
+added configurable contentserver cellid
+added configurable contentserver region codes
+added location information for emails (country/state) for users own security (to check against who requested something such as changing passwords)
+added functionality for users who's external IP shows up for lan connections. they now are handled as lan users if their IP matches the servers external IP
+added optional built-in name suggestions
+added optional name suggestion additions (prepended and append additions)
+added option to completely disable cddb (firstblob) database

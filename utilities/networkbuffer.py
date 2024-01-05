@@ -1,6 +1,3 @@
-
-import struct
-
 """# Original string buffer
 original_string_buffer = "Hello, World!"
 
@@ -15,7 +12,7 @@ network_buffer = NetworkBuffer(buffer_bytes)
 
 
 class NetworkBuffer(object):
-    def __init__(self, buffer_data=None):
+    def __init__(self, buffer_data = None):
         if buffer_data is None:
             self.buffer = bytearray()
         else:
@@ -73,20 +70,12 @@ class NetworkBuffer(object):
         return value
 
     def extract_u32(self):
-        value = self.buffer[self.cursor] | (self.buffer[self.cursor + 1] << 8) | \
-                (self.buffer[self.cursor + 2] << 16) | (self.buffer[self.cursor + 3] << 24)
+        value = self.buffer[self.cursor] | (self.buffer[self.cursor + 1] << 8) | (self.buffer[self.cursor + 2] << 16) | (self.buffer[self.cursor + 3] << 24)
         self.cursor += 4
         return value
 
     def extract_u64(self):
-        value = (self.buffer[self.cursor] |
-                 (self.buffer[self.cursor + 1] << 8) |
-                 (self.buffer[self.cursor + 2] << 16) |
-                 (self.buffer[self.cursor + 3] << 24) |
-                 (self.buffer[self.cursor + 4] << 32) |
-                 (self.buffer[self.cursor + 5] << 40) |
-                 (self.buffer[self.cursor + 6] << 48) |
-                 (self.buffer[self.cursor + 7] << 56))
+        value = (self.buffer[self.cursor] | (self.buffer[self.cursor + 1] << 8) | (self.buffer[self.cursor + 2] << 16) | (self.buffer[self.cursor + 3] << 24) | (self.buffer[self.cursor + 4] << 32) | (self.buffer[self.cursor + 5] << 40) | (self.buffer[self.cursor + 6] << 48) | (self.buffer[self.cursor + 7] << 56))
         self.cursor += 8
         return value
 
@@ -132,6 +121,7 @@ class NetworkBuffer(object):
 
     def get_buffer_from_cursor(self):
         return self.buffer[self.cursor:]
+
     def finish_extracting(self):
         remaining_bytes = len(self.buffer) - self.cursor
         if remaining_bytes != 0:

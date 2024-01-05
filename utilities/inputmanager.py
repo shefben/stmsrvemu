@@ -10,6 +10,6 @@ def start_watchescape_thread():
             if ord(msvcrt.getch()) == escape_key_ord:
                 os._exit(0)
 
-    thread2 = threading.Thread(target=watchescape_thread)
+    thread2 = threading.Thread(target = watchescape_thread)
     thread2.daemon = True
     thread2.start()

@@ -1,26 +1,24 @@
 import datetime
-import pprint
-import threading
 import logging
+import threading
 from builtins import object
 
 log = logging.getLogger("CSLSTHNDLR")
+
+
 class ContentServerManager(object):
     contentserver_list = []
     lock = threading.Lock()
 
-    def add_contentserver_info(self, wan_ip, lan_ip, port, region,
-                               received_applist, is_permanent = 0, is_pkgcs = False):
+    def add_contentserver_info(self, wan_ip, lan_ip, port, region, received_applist, is_permanent = 0, is_pkgcs = False):
         if not all([wan_ip, lan_ip, port, region]):
             log.error("Missing required server information.")
             return False
         current_time = datetime.datetime.now()
         if is_pkgcs is True:
-            entry = (wan_ip, lan_ip, port, region, current_time, [],
-                     is_permanent, is_pkgcs)
+            entry = (wan_ip, lan_ip, port, region, current_time, [], is_permanent, is_pkgcs)
         else:
-            entry = (wan_ip, lan_ip, port, region, current_time, received_applist,
-                     is_permanent, is_pkgcs)
+            entry = (wan_ip, lan_ip, port, region, current_time, received_applist, is_permanent, is_pkgcs)
         with self.lock:
             self.contentserver_list.append(entry)
             log.info(f"{wan_ip} added to Content Directory Server List")
@@ -44,23 +42,23 @@ class ContentServerManager(object):
         empty_entries = []
         with self.lock:
             for entry in self.contentserver_list:
-                if not entry[5] or len(entry[5]) == 0: # TODO change to use entry[7] aka is_pkgcs
+                if not entry[5] or len(entry[5]) == 0:  # TODO change to use entry[7] aka is_pkgcs
                     if not islan:
                         empty_entries.append((entry[0], entry[2]))
                     else:
-                        empty_entries.append((entry[1], entry[2])) # Add LAN IP address and port to matches
+                        empty_entries.append((entry[1], entry[2]))  # Add LAN IP address and port to matches
         count = len(empty_entries)
         if count > 0:
             return empty_entries, count
         else:
             return None, 0  # No entries found
 
-    def find_ip_address(self, region=None, appid=None, version=None, islan = 0):
+    def find_ip_address(self, region = None, appid = None, version = None, islan = 0):
         if not region and not appid and not version:  # Check if all arguments are empty or None
             if not islan:
                 all_entries = [(entry[0], entry[2]) for entry in self.contentserver_list]
             else:
-                all_entries = [(entry[1], entry[2]) for entry in self.contentserver_list] # Add LAN IP address and port to matches
+                all_entries = [(entry[1], entry[2]) for entry in self.contentserver_list]  # Add LAN IP address and port to matches
             count = len(all_entries)
             if count > 0:
                 return all_entries, count
@@ -74,9 +72,9 @@ class ContentServerManager(object):
                         if region and entry[3] == region:
                             for app_entry in entry[5]:
                                 if app_entry[0] == appid and app_entry[1] == version:
-                                    if not islan :
+                                    if not islan:
                                         matches.append((entry[0], entry[2]))  # Add IP address and port to matches
-                                    else :
+                                    else:
                                         matches.append((entry[1], entry[2]))  # Add LAN IP address and port to matches
                         elif appid and version:
                             for app_entry in entry[5]:
@@ -99,7 +97,7 @@ class ContentServerManager(object):
                     return True
         return False
 
-    def print_contentserver_list(self, printapps=0):
+    def print_contentserver_list(self, printapps = 0):
         with self.lock:
             for entry in self.contentserver_list:
                 print("WAN IP Address:", entry[0])

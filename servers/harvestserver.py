@@ -1,7 +1,9 @@
 import logging
 import struct
 import time
+
 from utilities.networkhandler import UDPNetworkHandler
+
 
 # This server is used for collecting mini-crash dumps, Bugreport zips,
 class HarvestServer(UDPNetworkHandler):
@@ -35,19 +37,19 @@ class HarvestServer(UDPNetworkHandler):
 
         # Writing to a file
         with open(txtfilename, 'w') as file:
-            file.write(f'unknown1: {unknown1}\n') # One of these SHOULD be the sessionid from CSER
+            file.write(f'unknown1: {unknown1}\n')  # One of these SHOULD be the sessionid from CSER
             file.write(f'unknown2: {unknown2}\n')
             file.write(f'unknown3: {unknown3}\n')
             file.write(f'dump_file_size: {dump_file_size}\n')
             file.write(f'unknown4: {unknown4}\n')
             file.write(f'filename: {filename}\n')
 
-        self.serversocket.sendto(b"\x01", address) # send x01 for ok - accept upload or x00 for refuse upload
+        self.serversocket.sendto(b"\x01", address)  # send x01 for ok - accept upload or x00 for refuse upload
         dump = self.serversocket.recv(15682, False)
 
         # Writing to a file
         with open(filename, 'w') as file:
             file.write(dump)
 
-        self.serversocket.sendto(b"\x01", address) # 0x01 for successful upload, 0x00 for failed upload
+        self.serversocket.sendto(b"\x01", address)  # 0x01 for successful upload, 0x00 for failed upload
         self.serversocket.close()

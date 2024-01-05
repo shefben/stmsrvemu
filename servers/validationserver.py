@@ -2,10 +2,10 @@ import ast
 import binascii
 import logging
 import os.path
-#import socket
+import socket as real_socket
+# import socket
 import struct
 import time
-import socket as real_socket
 
 import utils
 from utilities import encryption
@@ -31,7 +31,7 @@ class validationserver(TCPNetworkHandler):
         log.debug(":" + binascii.b2a_hex(command[1:5]).decode("latin-1") + ":")
         log.debug(":" + binascii.b2a_hex(command).decode("latin-1") + ":")
 
-        if command[1:5] in [b"\x00\x00\x00\x01", b"\x00\x00\x00\x03", b"\x00\x00\x00\x04"]: # TODO IMPLEMENT COMMAND 0C - validate new valve cd key
+        if command[1:5] in [b"\x00\x00\x00\x01", b"\x00\x00\x00\x03", b"\x00\x00\x00\x04"]:  # TODO IMPLEMENT COMMAND 0C - validate new valve cd key
             client_socket.send(b"\x01" + real_socket.inet_aton(client_address[0]))  # CRASHES IF NOT 01 (protocol)
             ticket_full = client_socket.recv_withlen()
             ticket_full = binascii.b2a_hex(ticket_full)

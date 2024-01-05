@@ -1,8 +1,7 @@
-
-
-import cStringIO
 import os
 import sys
+
+import cStringIO
 
 from utilities.manifests import *
 
@@ -16,17 +15,7 @@ class NCF(object):
         self.f = open(filename, "rb")
 
         header = self.f.read(44)
-        (self.header_dummy1,
-         self.header_dummy2,
-         self.ncfversion,
-         self.appid,
-         self.appversion,
-         self.header_dummy3,
-         self.header_dummy4,
-         self.filesize,
-         self.blocksize,
-         self.blockcount,
-         self.header_dummy5) = struct.unpack("<LLLLLLLLLLL", header)
+        (self.header_dummy1, self.header_dummy2, self.ncfversion, self.appid, self.appversion, self.header_dummy3, self.header_dummy4, self.filesize, self.blocksize, self.blockcount, self.header_dummy5) = struct.unpack("<LLLLLLLLLLL", header)
 
         # if self.header_dummy1 != 1 or self.header_dummy2 != 1 or self.ncfversion != 6 :
         #    print "Invalid version numbers:", self.header_dummy1, self.header_dummy2, self.ncfversion
@@ -37,16 +26,14 @@ class NCF(object):
         #    #sys.exit()
 
         if self.filesize != 0:
-            print ("File size in header doesn't match real file size", self.filesize, os.path.getsize(filename))
+            print("File size in header doesn't match real file size", self.filesize, os.path.getsize(filename))
             sys.exit()
 
         if self.blocksize != 0:
             print("Unknown blocksize:", self.blocksize)
             sys.exit()
 
-        print ("Header data - appid: %i appver: %i blockcount: %i dummy5: %i" % (self.appid,
-                                                                          self.appversion, self.blockcount,
-                                                                          self.header_dummy5))
+        print("Header data - appid: %i appver: %i blockcount: %i dummy5: %i" % (self.appid, self.appversion, self.blockcount, self.header_dummy5))
 
         # block_header = self.f.read(32)
         # (blockcount,
@@ -109,15 +96,13 @@ class NCF(object):
         (dummy0, checksumsize) = struct.unpack("<LL", checksum_header)
         print(dummy0, checksumsize)
 
-        self.checksum_data = self.f.read(checksumsize)
-        # block_header = self.f.read(24)
-        # (appversion, blockcount, blocksize, self.firstblockoffset, blocksused, checksum) = struct.unpack("<LLLLLL", block_header)
+        self.checksum_data = self.f.read(checksumsize)  # block_header = self.f.read(24)  # (appversion, blockcount, blocksize, self.firstblockoffset, blocksused, checksum) = struct.unpack("<LLLLLL", block_header)
 
         # print hex(self.firstblockoffset)
 
     def get_file(self, dirid):
         if self.manifest.dir_entries[dirid].fileid == 0xffffffff:
-            print ("Tried to read directory file", dirid)
+            print("Tried to read directory file", dirid)
             sys.exit()
 
         # print "extracting", self.dirmap_entries[dirid], self.manifest.dir_entries[dirid].fullfilename, self.manifest.dir_entries[dirid].itemsize

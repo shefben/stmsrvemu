@@ -1,6 +1,6 @@
+import io
 import os
 import struct
-import io
 
 
 class Module:
@@ -30,7 +30,7 @@ class Module:
     def write(self):
         directory = os.path.dirname(self.Name)
         if directory:
-            os.makedirs(directory, exist_ok=True)
+            os.makedirs(directory, exist_ok = True)
         with open(self.Name, 'wb') as file:
             self._write_to_file(file)
 
@@ -51,10 +51,10 @@ class Module:
     def _process_data(data, key, pattern, encoding):
         inverted_key = ~key
         for i in range(0, len(data), 1024):
-            block = data[i:i+1024]
+            block = data[i:i + 1024]
             for j in range(0, len(block), 4):
                 # Processing each byte of the block
-                part = list(block[j:j+4])
+                part = list(block[j:j + 4])
                 for k in range(4):
                     if encoding:
                         part[k] ^= inverted_key & 0xff
@@ -66,7 +66,7 @@ class Module:
                 part[0], part[1], part[2], part[3] = part[3], part[2], part[1], part[0]
                 for k in range(4):
                     part[k] ^= pattern[(i + k) & 0xf]
-                block[j:j+4] = bytes(part)
+                block[j:j + 4] = bytes(part)
         return bytes(data)
 
     def compareHeader(self, module):

@@ -1,5 +1,3 @@
-
-
 import logging
 import msvcrt
 import os
@@ -24,7 +22,7 @@ def watchescape_thread():
             os.exit(0)
 
 
-thread2 = threading.Thread(target=watchescape_thread).start()
+thread2 = threading.Thread(target = watchescape_thread).start()
 
 config = read_config()
 

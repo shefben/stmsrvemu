@@ -1,12 +1,12 @@
 import binascii
 import logging
-import select
+import socket as _socket
 import struct
 import threading
 import time
-import socket as _socket
-from future.utils import old_div
 
+import select
+from future.utils import old_div
 
 from config import get_config as read_config
 
@@ -24,10 +24,10 @@ class ImpSocketThread(threading.Thread):
             self.imp_socket.run_frame()
 
 
-
 class ImpSocket(object):
     error = real_socket.error
-    def __init__(self, sock=None):
+
+    def __init__(self, sock = None):
         if sock is None or sock == "tcp":
             self.s = real_socket.socket(real_socket.AF_INET, real_socket.SOCK_STREAM)
         elif sock == "udp":
@@ -49,10 +49,8 @@ class ImpSocket(object):
         self.log_interval = 300  # 5 minutes
         self.thread = ImpSocketThread(self)
 
-        self.whitelist = self.load_ips_from_file(
-            "whitelist.txt") if config["enable_whitelist"] != "False" else None
-        self.blacklist = self.load_ips_from_file(
-            "blacklist.txt") if config["enable_blacklist"] != "False" else None
+        self.whitelist = self.load_ips_from_file("whitelist.txt") if config["enable_whitelist"] != "False" else None
+        self.blacklist = self.load_ips_from_file("blacklist.txt") if config["enable_blacklist"] != "False" else None
 
         self.select_timeout = 0.1  # Adjust the timeout as needed for responsiveness
 
@@ -113,7 +111,7 @@ class ImpSocket(object):
     def settimeout(self, timeout_time):
         self.s.settimeout(timeout_time)
 
-    def send(self, data, log=True):
+    def send(self, data, log = True):
         sentbytes = self.s.send(data)
         self.bytes_sent += sentbytes
         self.bytes_sent_total += sentbytes
@@ -123,15 +121,12 @@ class ImpSocket(object):
         else:
             outgoing_kbps = 0
         if log:
-            logging.debug(
-                str(self.address) + ": Sent data - " + binascii.b2a_hex(data).decode())
+            logging.debug(str(self.address) + ": Sent data - " + binascii.b2a_hex(data).decode())
         if sentbytes != len(data):
-            logging.warning(
-                "NOTICE!!! Number of bytes sent doesn't match what we tried to send "
-                + str(sentbytes) + " " + str(len(data)))
+            logging.warning("NOTICE!!! Number of bytes sent doesn't match what we tried to send " + str(sentbytes) + " " + str(len(data)))
         return sentbytes
 
-    def sendto(self, data, address, log=True):
+    def sendto(self, data, address, log = True):
         sentbytes = self.s.sendto(data, address)
         self.bytes_sent += sentbytes
         self.bytes_sent_total += sentbytes
@@ -141,16 +136,12 @@ class ImpSocket(object):
         else:
             outgoing_kbps = 0
         if log:
-            logging.debug(
-                str(address) + ": sendto Sent data - " +
-                binascii.b2a_hex(data).decode())
+            logging.debug(str(address) + ": sendto Sent data - " + binascii.b2a_hex(data).decode())
         if sentbytes != len(data):
-            logging.warning(
-                "NOTICE!!! Number of bytes sent doesn't match what we tried to send "
-                + str(sentbytes) + " " + str(len(data)))
+            logging.warning("NOTICE!!! Number of bytes sent doesn't match what we tried to send " + str(sentbytes) + " " + str(len(data)))
         return sentbytes
 
-    def send_withlen_short(self, data, log=True):
+    def send_withlen_short(self, data, log = True):
         lengthstr = struct.pack(">H", len(data))
         if log:
             logging.debug(str(self.address) + ": Sent data with length - " + binascii.b2a_hex(lengthstr).decode() + " " + binascii.b2a_hex(data).decode())
@@ -158,7 +149,7 @@ class ImpSocket(object):
         sentbytes = lengthstr + data
         return sentbytes
 
-    def send_withlen(self, data, log=True):
+    def send_withlen(self, data, log = True):
         lengthstr = struct.pack(">L", len(data))
         if log:
             logging.debug(str(self.address) + ": Sent data with length - " + binascii.b2a_hex(lengthstr).decode() + " " + binascii.b2a_hex(data).decode())
@@ -170,7 +161,7 @@ class ImpSocket(object):
                 logging.warning("Warning! Connection Lost!")
             totalsent = totalsent + sent
 
-    def recv(self, length, log=True):
+    def recv(self, length, log = True):
         data = self.s.recv(length)
         self.bytes_received += len(data)
         elapsed_time = int(time.time()) - self.start_time
@@ -179,12 +170,10 @@ class ImpSocket(object):
         else:
             incoming_kbps = 0
         if log:
-            logging.debug(
-                str(self.address) + ": Received data - " +
-                binascii.b2a_hex(data).decode())
+            logging.debug(str(self.address) + ": Received data - " + binascii.b2a_hex(data).decode())
         return data
 
-    def recvfrom(self, length, log=True):
+    def recvfrom(self, length, log = True):
         data, address = self.s.recvfrom(length)
 
         self.bytes_received += len(data)
@@ -195,12 +184,10 @@ class ImpSocket(object):
         else:
             incoming_kbps = 0
         if log:
-            logging.debug(
-                str(address) + ": recvfrom Received data - " +
-                binascii.hexlify(data).decode())
+            logging.debug(str(address) + ": recvfrom Received data - " + binascii.hexlify(data).decode())
         return data, address
 
-    def recv_all(self, length, log=True):
+    def recv_all(self, length, log = True):
         data = b""
         while len(data) < length:
             chunk = self.recv(length - len(data), False)
@@ -208,39 +195,31 @@ class ImpSocket(object):
                 raise RuntimeError("Socket connection broken")
             data = data + chunk
         if log:
-            logging.debug(
-                str(self.address) + ": Received all data - " +
-                binascii.b2a_hex(data).decode())
+            logging.debug(str(self.address) + ": Received all data - " + binascii.b2a_hex(data).decode())
         return data
 
-    def recv_withlen(self, log=True):
+    def recv_withlen(self, log = True):
         lengthstr = self.recv(4, False)
         if len(lengthstr) != 4:
-            logging.debug("Command header not long enough, should be 4, is " +
-                          str(len(lengthstr)))
+            logging.debug("Command header not long enough, should be 4, is " + str(len(lengthstr)))
             return b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"  # DUMMY RETURN FOR FILESERVER
         else:
             length = struct.unpack(">L", lengthstr)[0]
             data = self.recv_all(length, False)
-            logging.debug(
-                str(self.address) + ": Received data with length  - " +
-                binascii.b2a_hex(lengthstr).decode() + " " + binascii.b2a_hex(data).decode())
-            return data
-
-    def recv_withlen_short(self, log = True) :
-        lengthstr = self.recv(2, False)
-        if len(lengthstr) != 2 :
-            logging.debug("Command header not long enough, should be 2, is " + str(len(lengthstr)))
-            #return "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" #DUMMY RETURN FOR FILESERVER
-        else :
-            length = struct.unpack(">H", lengthstr)[0]
-
-            data = self.recv_all(length, False)
-            #if not data[0] == "\x07":
             logging.debug(str(self.address) + ": Received data with length  - " + binascii.b2a_hex(lengthstr).decode() + " " + binascii.b2a_hex(data).decode())
             return data
 
+    def recv_withlen_short(self, log = True):
+        lengthstr = self.recv(2, False)
+        if len(lengthstr) != 2:
+            logging.debug("Command header not long enough, should be 2, is " + str(len(lengthstr)))  # return "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" #DUMMY RETURN FOR FILESERVER
+        else:
+            length = struct.unpack(">H", lengthstr)[0]
 
+            data = self.recv_all(length, False)
+            # if not data[0] == "\x07":
+            logging.debug(str(self.address) + ": Received data with length  - " + binascii.b2a_hex(lengthstr).decode() + " " + binascii.b2a_hex(data).decode())
+            return data
 
     def get_outgoing_data_rate(self):
         elapsed_time = time.time() - self.start_time
@@ -281,25 +260,19 @@ class ImpSocket(object):
             write_sockets = []  # Monitor this socket for outgoing data
 
             # Use select to block until a socket becomes ready
-            readable, writable, _ = select.select(read_sockets, write_sockets,
-                                                  [], self.select_timeout)
+            readable, writable, _ = select.select(read_sockets, write_sockets, [], self.select_timeout)
 
             if elapsed_time >= self.log_interval:
                 # Calculate per-minute data rates
-                outgoing_kbps_minute = old_div(old_div((
-                    self.bytes_sent -
-                    self.bytes_sent_minute), elapsed_time), 1024)
-                incoming_kbps_minute = old_div(old_div((
-                    self.bytes_received -
-                    self.bytes_received_minute), elapsed_time), 1024)
+                outgoing_kbps_minute = old_div(old_div((self.bytes_sent - self.bytes_sent_minute), elapsed_time), 1024)
+                incoming_kbps_minute = old_div(old_div((self.bytes_received - self.bytes_received_minute), elapsed_time), 1024)
 
                 # Reset per-minute counters
                 self.start_time_minute = current_time
                 self.bytes_sent_minute = self.bytes_sent
                 self.bytes_received_minute = self.bytes_received
 
-                # Log statistics to a file
-                # self.log_statistics(outgoing_kbps_minute, incoming_kbps_minute)
+                # Log statistics to a file  # self.log_statistics(outgoing_kbps_minute, incoming_kbps_minute)
 
             # Add a sleep to avoid high CPU usage when no activity is happening
             time.sleep(self.select_timeout)
@@ -310,7 +283,6 @@ class ImpSocket(object):
             self.log_file = open(log_filename, "a")
 
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        log_message = "%s Outgoing (KBps): %.2f, Incoming (KBps): %.2f\n" % (
-            timestamp, outgoing_kbps_minute, incoming_kbps_minute)
+        log_message = "%s Outgoing (KBps): %.2f, Incoming (KBps): %.2f\n" % (timestamp, outgoing_kbps_minute, incoming_kbps_minute)
         self.log_file.write(log_message)
         self.log_file.flush()

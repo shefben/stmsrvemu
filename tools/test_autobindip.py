@@ -1,5 +1,6 @@
-import socket
 import configparser
+import socket
+
 
 def get_server_ip():
     """Get the server's IP address."""
@@ -12,7 +13,8 @@ def get_server_ip():
         print(f"Error obtaining IP address: {e}")
         return None
 
-def write_ip_to_config(ip_address, config_file='emulator.ini'):
+
+def write_ip_to_config(ip_address, config_file = 'emulator.ini'):
     """Write the server's IP address to the configuration file."""
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -25,6 +27,7 @@ def write_ip_to_config(ip_address, config_file='emulator.ini'):
     with open(config_file, 'w') as configfile:
         config.write(configfile)
 
+
 def main():
     ip_address = get_server_ip()
     if ip_address:
@@ -33,6 +36,7 @@ def main():
         print(f"IP Address written to {config_file}")
     else:
         print("Could not detect the IP address.")
+
 
 if __name__ == "__main__":
     main()

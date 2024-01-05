@@ -1,6 +1,6 @@
+import mmap
 import os
 import sys
-import mmap
 from io import BytesIO
 
 from utilities.manifests import *
@@ -16,53 +16,31 @@ class GCF(object):
         clientid = ""
         self.f = open(filename, "rb")
         self.filesize = os.path.getsize(filename)
-        self.mapped_file = mmap.mmap(self.f.fileno(), 0, access=mmap.ACCESS_READ)
+        self.mapped_file = mmap.mmap(self.f.fileno(), 0, access = mmap.ACCESS_READ)
 
         # Read the header using memory-mapped file
         header = self.mapped_file.read(44)
-        (self.header_dummy1,
-         self.header_dummy2,
-         self.gcfversion,
-         self.appid,
-         self.appversion,
-         self.header_dummy3,
-         self.header_dummy4,
-         self.filesize,
-         self.blocksize,
-         self.blockcount,
-         self.header_dummy5) = struct.unpack("<LLLLLLLLLLL", header)
+        (self.header_dummy1, self.header_dummy2, self.gcfversion, self.appid, self.appversion, self.header_dummy3, self.header_dummy4, self.filesize, self.blocksize, self.blockcount, self.header_dummy5) = struct.unpack("<LLLLLLLLLLL", header)
 
         if self.header_dummy1 != 1 or self.header_dummy2 != 1 or self.gcfversion != 6:
-            log.error(
-                "Invalid version numbers: " + str(self.header_dummy1) + str(self.header_dummy2) + str(self.gcfversion))
+            log.error("Invalid version numbers: " + str(self.header_dummy1) + str(self.header_dummy2) + str(self.gcfversion))
             sys.exit()
 
         if self.header_dummy3 != 0 or self.header_dummy4 != 0:
-            log.debug("Unknown dummy3 and dummy4 values: " + str(self.header_dummy3) + str(self.header_dummy4))
-            # sys.exit()
+            log.debug("Unknown dummy3 and dummy4 values: " + str(self.header_dummy3) + str(self.header_dummy4))  # sys.exit()
 
         if self.filesize != os.path.getsize(filename):
-            log.error("File size in header doesn't match real file size " + str(self.filesize) + str(
-                os.path.getsize(filename)))
+            log.error("File size in header doesn't match real file size " + str(self.filesize) + str(os.path.getsize(filename)))
             sys.exit()
 
         if self.blocksize != 8192:
             log.error("Unknown blocksize: " + str(self.blocksize))
             sys.exit()
 
-        log.debug("Header data - appid: %i appver: %i blockcount: %i dummy5: %i" % (self.appid,
-                                                                                    self.appversion, self.blockcount,
-                                                                                    self.header_dummy5))
+        log.debug("Header data - appid: %i appver: %i blockcount: %i dummy5: %i" % (self.appid, self.appversion, self.blockcount, self.header_dummy5))
 
         block_header = self.mapped_file.read(32)
-        (blockcount,
-         blocksused,
-         dummy0,
-         dummy1,
-         dummy2,
-         dummy3,
-         dummy4,
-         checksum) = struct.unpack("<LLLLLLLL", block_header)
+        (blockcount, blocksused, dummy0, dummy1, dummy2, dummy3, dummy4, checksum) = struct.unpack("<LLLLLLLL", block_header)
 
         if blockcount != self.blockcount:
             log.error("Different block counts in header and block header: " + str(self.blockcount) + str(blockcount))
@@ -78,8 +56,7 @@ class GCF(object):
         self.block_entries = {}
         for i in range(self.blockcount):
             b = GCF_block_entry()
-            (b.entry_type, b.file_data_offset, b.file_data_size, b.first_data_block_index, b.next_block_entry_index,
-             b.prev_block_entry_index, b.dir_index) = struct.unpack("<LLLLLLL", block_data.read(28))
+            (b.entry_type, b.file_data_offset, b.file_data_size, b.first_data_block_index, b.next_block_entry_index, b.prev_block_entry_index, b.dir_index) = struct.unpack("<LLLLLLL", block_data.read(28))
             self.block_entries[i] = b
 
         frag_header = self.mapped_file.read(16)
@@ -119,8 +96,7 @@ class GCF(object):
 
         self.checksum_data = self.mapped_file.read(checksumsize)
         block_header = self.mapped_file.read(24)
-        (appversion, blockcount, blocksize, self.firstblockoffset, blocksused, checksum) = struct.unpack("<LLLLLL",
-                                                                                                         block_header)
+        (appversion, blockcount, blocksize, self.firstblockoffset, blocksused, checksum) = struct.unpack("<LLLLLL", block_header)
 
         # print hex(self.firstblockoffset)
 

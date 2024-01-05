@@ -5,21 +5,19 @@
 # Modified: 10/27/2023
 # version: Beta 2 (threaded)
 
+import glob
 import os
+import pickle
 import struct
 import zlib
-import pickle
-import re
-import glob
-
 from multiprocessing import Pool
 
 
 def expand_wildcards_in_minfootprint():
-    filename='minfootprint.txt'
+    filename = 'minfootprint.txt'
     non_wildcard_lines = []
     wildcard_lines = []
-    
+
     # Read and categorize lines as wildcard or non-wildcard
     with open(filename, 'r') as file:
         for line in file:
@@ -33,7 +31,7 @@ def expand_wildcards_in_minfootprint():
     expanded_lines = []
     for line in wildcard_lines:
         path_pattern = os.path.join(directory_path, line)  # Assuming directory_path is defined globally or passed as a parameter
-        expanded_lines.extend(glob.glob(path_pattern, recursive=True))
+        expanded_lines.extend(glob.glob(path_pattern, recursive = True))
 
     # Sort expanded lines
     expanded_lines.sort()
@@ -47,7 +45,7 @@ def expand_wildcards_in_minfootprint():
             file.write(line + '\n')
 
 
-def load_special_flags(filename='special_file_flags.ini'):
+def load_special_flags(filename = 'special_file_flags.ini'):
     """
     Load special flags from the given file and return as a dictionary.
     """
@@ -72,7 +70,8 @@ def load_special_flags(filename='special_file_flags.ini'):
                         flags[path] = flag_value
     return flags
 
-def parse_minfootprint_file(filename='minfootprint.txt'):
+
+def parse_minfootprint_file(filename = 'minfootprint.txt'):
     """
     Parse the 'minfootprint.txt' file and return a list of relative file paths.
     """
@@ -84,6 +83,7 @@ def parse_minfootprint_file(filename='minfootprint.txt'):
                 if file_path:
                     file_paths.append(file_path)
     return file_paths
+
 
 def process_file_chunk(args):
     file_path, chunk_size = args
@@ -97,6 +97,7 @@ def process_file_chunk(args):
             compressed_chunk = chunk  # zlib.compress(chunk)
             compressed_chunks.append(compressed_chunk)
     return compressed_chunks
+
 
 def generate_gcf(directory_path, app_id, app_version, fingerprint):
     special_flags = load_special_flags()
@@ -116,7 +117,7 @@ def generate_gcf(directory_path, app_id, app_version, fingerprint):
         minfootprint_file_paths = parse_minfootprint_file("minfootprint_temp.txt")
     else:
         minfootprint_file_paths = parse_minfootprint_file()
-    
+
     # Define a structure to hold directory and file data
     items = []
 
@@ -127,23 +128,13 @@ def generate_gcf(directory_path, app_id, app_version, fingerprint):
             parent_index = 0 if os.path.dirname(root) == directory_path else [item['index'] for item in items if item['path'] == os.path.relpath(os.path.dirname(root), directory_path)][0]
 
         relative_root = os.path.relpath(root, directory_path)
-        
-        items.append({
-            'type': 'dir',
-            'path': relative_root,
-            'parent': parent_index,
-            'index': node_index,
-        })
+
+        items.append({'type':'dir', 'path':relative_root, 'parent':parent_index, 'index':node_index, })
         node_index += 1
-        
+
         for file in files:
             relative_path = os.path.relpath(os.path.join(root, file), directory_path)
-            items.append({
-                'type': 'file',
-                'path': relative_path,
-                'parent': [item['index'] for item in items if item['path'] == os.path.relpath(root, directory_path)][0],
-                'index': node_index,
-            })
+            items.append({'type':'file', 'path':relative_path, 'parent':[item['index'] for item in items if item['path'] == os.path.relpath(root, directory_path)][0], 'index':node_index, })
             node_index += 1
 
     # Process items and generate manifest
@@ -155,46 +146,46 @@ def generate_gcf(directory_path, app_id, app_version, fingerprint):
         next_index = 0
         for idx, sibling in enumerate(siblings):
             if sibling['index'] == current_index and idx < len(siblings) - 1:
-                next_index = siblings[idx+1]['index']
+                next_index = siblings[idx + 1]['index']
                 break
 
         if item['type'] == 'dir':
             current_dir_index = item['index']
-            
+
             # Child count
             child_count = sum(1 for i in items if i['parent'] == current_dir_index)
-            
+
             # Child index
             children = [i for i in items if i['parent'] == current_dir_index]
             child_index = children[0]['index'] if children else 0
-            
+
             # Add directory to manifest
             manifest_data += struct.pack("<IIIIIII", len(filename_string), child_count, 0xffffffff, 0x00000000, parent_index, next_index, child_index)
-            
+
             # Add directory to filename string
-            if item['path'] != "." :
+            if item['path'] != ".":
                 directory_name = item['path'].split(os.sep)[-1]
                 filename_string += directory_name + "\x00"
-            else :
+            else:
                 filename_string = "\x00"
 
             print("Processed directory: {}, Index: {}, Parent Index: {}, Next Index: {}, Child Index: {}".format(item['path'], current_dir_index, parent_index, next_index, child_index))
-            
+
         elif item['type'] == 'file':
             file_count += 1
             file_index.append(item['index'])
             flag = special_flags.get(item['path'], 0x0000400a)
-            
+
             # Processing for gcfdircopytable
             if item['path'] in minfootprint_file_paths:
                 print("file {} added to minfootprint table!".format(item['path']))
                 gcfdircopytable += struct.pack("<I", item['index'])
-            
+
             # Add file to manifest using the special flag
             manifest_data += struct.pack("<IIIIIII", len(filename_string), 0, file_count, flag, parent_index, next_index, 0)
 
             print("Processing file: {}, Index: {}, Parent Index: {}, File Count: {}, Next File Index: {}".format(item['path'], item['index'], parent_index, file_count, next_index))
-            
+
             # Process the file in chunks and compress each chunk
             file_path = os.path.join(directory_path, item['path'])
             content_size = os.path.getsize(file_path)
@@ -203,73 +194,62 @@ def generate_gcf(directory_path, app_id, app_version, fingerprint):
             compressed_chunks = pool.map(process_file_chunk, [(file_path, chunk_size)])
             pool.close()
             pool.join()
-            
+
             # Flatten the list of compressed chunks
             compressed_data = ''.join(compressed_chunks[0])
-            
+
             # Update index data
-            index_data[file_count] = {
-                'total_chunks': len(compressed_chunks[0]),
-                'chunks_info': [{
-                    'chunkID': i,
-                    'offset': i * chunk_size,
-                    'length': len(chunk)
-                } for i, chunk in enumerate(compressed_chunks[0])]
-            }
-            
+            index_data[file_count] = {'total_chunks':len(compressed_chunks[0]), 'chunks_info':[{'chunkID':i, 'offset':i * chunk_size, 'length':len(chunk)} for i, chunk in enumerate(compressed_chunks[0])]}
+
             dat_file_data.append(compressed_data)
-            
+
             print("Processed {} chunks for file: {}".format(len(compressed_chunks[0]), item['path']))  # Print number of chunks processed for the current file
 
             # Add file to filename string
             filename_string += item['path'].split(os.sep)[-1] + "\x00"
-    
+
     # After processing all the chunks, concatenate them into a single string
     dat_file_data = ''.join(dat_file_data)
-    
+
     if not gcfdircopytable:
-        for i in range(file_count):        
+        for i in range(file_count):
             gcfdircopytable += struct.pack("<I", file_index[i])
-        
+
     filename_string = filename_string.encode("utf-8")
-    
+
     while len(filename_string) % 4 != 0:
-        filename_string += b"\x00"            
-    # generate header of manifest file
-    manif_version = 3 # Manifest Version
-    manif_appid = app_id # application id
-    manif_appversion = int(app_version) # application version
-    manif_num_nodes = item['index']+1 # total node count
-    manif_file_count = len(file_index) # total file count
-    manif_dirnamesize = len(filename_string) # total size of the filename string with the null bytes
-    manif_info1count = 1 # ymgve: 1, just 1
-    manif_copycount = len(file_index) # Files that should be copied from the cache to the local drive
-    manif_localcount = 0 # also known as user config files / files that should not be written over using cache files
-    manif_compressedblocksize = 0x8000 # 8 byte compressed blocks
+        filename_string += b"\x00"  # generate header of manifest file
+    manif_version = 3  # Manifest Version
+    manif_appid = app_id  # application id
+    manif_appversion = int(app_version)  # application version
+    manif_num_nodes = item['index'] + 1  # total node count
+    manif_file_count = len(file_index)  # total file count
+    manif_dirnamesize = len(filename_string)  # total size of the filename string with the null bytes
+    manif_info1count = 1  # ymgve: 1, just 1
+    manif_copycount = len(file_index)  # Files that should be copied from the cache to the local drive
+    manif_localcount = 0  # also known as user config files / files that should not be written over using cache files
+    manif_compressedblocksize = 0x8000  # 8 byte compressed blocks
     manif_totalsize = 0x38 + manif_num_nodes * 0x1c + manif_dirnamesize + (manif_info1count + manif_num_nodes) * 4 + manif_copycount * 4 + manif_localcount * 4
 
-        
-    manif = struct.pack("<IIIIIIIIIIIIII", manif_version, manif_appid, manif_appversion, manif_num_nodes, manif_file_count, manif_compressedblocksize, 
-                        manif_totalsize, manif_dirnamesize, manif_info1count, manif_copycount, manif_localcount, 2, 0, 0)
-        
+    manif = struct.pack("<IIIIIIIIIIIIII", manif_version, manif_appid, manif_appversion, manif_num_nodes, manif_file_count, manif_compressedblocksize, manif_totalsize, manif_dirnamesize, manif_info1count, manif_copycount, manif_localcount, 2, 0, 0)
+
     manif = manif[:0x1c] + struct.pack("<I", len(filename_string)) + manif[0x20:]
-        
+
     hashtable = struct.pack("<I", 1)
-    for idx in range(manif_num_nodes-1):
+    for idx in range(manif_num_nodes - 1):
         hashtable += struct.pack("<I", idx)
     hashtable += struct.pack("<I", (manif_num_nodes - 1) | 0x80000000)
-    
+
     final_manifest = manif + manifest_data + filename_string + hashtable + gcfdircopytable
-    
+
     # Checksums for manifest itself (no file checksums):
     final_manifest = final_manifest[:0x30] + '\x00' * 8 + final_manifest[0x38:]
     checksum_value = hex_fingerprint + struct.pack("<I", zlib.adler32(str(final_manifest), 0) & 0xFFFFFFFF)
     final_manifest = final_manifest[:0x30] + checksum_value + final_manifest[0x38:]
 
-    
     with open("{}_{}.manifest".format(app_id, app_version), "wb") as f:
         f.write(final_manifest)
-        
+
     # Saving the .dat file and .index file
     with open("{}_{}.dat".format(app_id, app_version), "wb") as f:
         f.write(dat_file_data)
@@ -277,16 +257,17 @@ def generate_gcf(directory_path, app_id, app_version, fingerprint):
     with open("{}_{}.index".format(app_id, app_version), "wb") as f:
         pickle.dump(index_data, f)
 
+
 if __name__ == "__main__":
     import sys
-        
-    if (len(sys.argv) < 2 or (len(sys.argv) < 5 and sys.argv[1].lower() != "help")) :
+
+    if (len(sys.argv) < 2 or (len(sys.argv) < 5 and sys.argv[1].lower() != "help")):
         print("Usage: python manifest_generator.py <directory_path> <app_id> <app version> <unique 4 character fingerprint>")
         print("Or for general usage and help use: python manifest_generator.py help")
         print("For help using special_file_flags.ini use: python manifest_generator.py help flags")
         print("For help using minfootprint.txt use: python manifest_generator.py help footprint")
         sys.exit(1)
-        
+
     if (sys.argv[1].lower() == "help" and sys.argv[2].lower() == "flags"):
         print("special_file_flags.ini Information:")
         print("NOTE: All Directories already automatically are flagged as such (0x0) and should not be included in the hex additiion")
@@ -322,20 +303,16 @@ if __name__ == "__main__":
         print("")
         print("# Apply a flag recursively to all files and directories under a certain path")
         print("valve/textures/*=0x40")
-        print("")        
+        print("")
         print("# Another file with a different flag (executable and readonly)")
         print("hl.exe=0xa00")
         print("")
-        sys.exit(1)
-    elif (sys.argv[1].lower() == "help" and sys.argv[2].lower() == "footprint"):
-        print("minfootprint.txt Information:")
+        sys.exit(1) elif (sys.argv[1].lower() == "help" and sys.argv[2].lower() == "footprint"): print("minfootprint.txt Information:")
         print("The format of the file minfootprint.txt should be like this example:")
         print("valve\sprites\shellchrome.spr")
         print("valve\woncomm.lst")
         print("hw.dll")
-        sys.exit(1)
-    elif (sys.argv[1].lower() == "help") :
-        print("This tool is used to take raw files and generate a manifest that can be sent to beta 1 and beta 2 steam clients.")
+        sys.exit(1) elif (sys.argv[1].lower() == "help"): print("This tool is used to take raw files and generate a manifest that can be sent to beta 1 and beta 2 steam clients.")
         print("It also takes each file, compresses it and adds it to a storage (.dat file) for later retrieval on the server when the client requests a certain file id")
         print("and generates a \'.index\' file which holds where in the \'.dat\' file a specific fileid is and how big that file is in there.")
         print("App_id Must be a number with NO letters or special characters.")
@@ -348,12 +325,12 @@ if __name__ == "__main__":
         print("Or for help use: python manifest_generator.py help")
         sys.exit(1)
 
-    # This function will expand ALL wildcard dir files into a temporary miinfootprint file.
-    print("...Expanding Wildcard (*) entries (if any) in minfootprint.txt...")
-    expand_wildcards_in_minfootprint()
+        # This function will expand ALL wildcard dir files into a temporary miinfootprint file.
+        print("...Expanding Wildcard (*) entries (if any) in minfootprint.txt...")
+        expand_wildcards_in_minfootprint()
 
-    directory_path = sys.argv[1]
-    app_id = int(sys.argv[2], 16)  # Taking app_id in hex format from command line argument
-    app_version = "".join(re.findall(r'\d', sys.argv[3]))  # Extracting only numbers from app_version
-    fingerprint = sys.argv[4]
-    generate_gcf(directory_path, app_id, app_version, fingerprint)
+        directory_path = sys.argv[1]
+        app_id = int(sys.argv[2], 16)  # Taking app_id in hex format from command line argument
+        app_version = "".join(re.findall(r'\d', sys.argv[3]))  # Extracting only numbers from app_version
+        fingerprint = sys.argv[4]
+        generate_gcf(directory_path, app_id, app_version, fingerprint)

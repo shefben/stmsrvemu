@@ -7,21 +7,20 @@ from datetime import datetime
 
 import ipcalc
 
-import utils
 import globalvars
-
+import utils
 from listmanagers.dirlistmanager import manager
-from listmanagers.serverlist_utilities import unpack_server_info, send_listrequest, forward_heartbeat, \
-    unpack_removal_info
-from utilities import socket
+from listmanagers.serverlist_utilities import forward_heartbeat, send_listrequest, unpack_removal_info, unpack_server_info
 from utilities.networkhandler import TCPNetworkHandler
 
 dirConnectionTotalCount = 0
+
 
 def expired_servers_thread():
     while True:
         time.sleep(3600)  # 1 hour
         manager.remove_old_entries()
+
 
 class directoryserver(TCPNetworkHandler):
 
@@ -32,27 +31,20 @@ class directoryserver(TCPNetworkHandler):
 
         super(directoryserver, self).__init__(config, int(port), self.server_type)
 
-        if globalvars.public_ip == "0.0.0.0" :
+        if globalvars.public_ip == "0.0.0.0":
             server_ip = globalvars.server_ip_b
-        else :
+        else:
             server_ip = globalvars.public_ip_b
 
         if self.server_type == "masterdirserver":  # add ourselves to the serverlist as a directoryserver type,
             # with a 0'd timestamp to indicate that it cannot be removed
-            manager.add_server_info(server_ip,globalvars.server_ip_b, self.config["dir_server_port"], self.server_type, 1)
-            # log = logging.getLogger("master_dirserver")
+            manager.add_server_info(server_ip, globalvars.server_ip_b, self.config["dir_server_port"], self.server_type, 1)  # log = logging.getLogger("master_dirserver")
         else:
             self.server_type = "dirserver"
-            self.server_info = {
-                'wan_ip': server_ip,
-                'lan_ip': globalvars.server_ip_b,
-                'port': int(self.port),
-                'server_type': self.server_type,
-                'timestamp': int(time.time())
-            }
+            self.server_info = {'wan_ip':server_ip, 'lan_ip':globalvars.server_ip_b, 'port':int(self.port), 'server_type':self.server_type, 'timestamp':int(time.time())}
         log = logging.getLogger("DirectorySRV")
 
-        thread = threading.Thread(target=expired_servers_thread)  # Thread for removing servers older
+        thread = threading.Thread(target = expired_servers_thread)  # Thread for removing servers older
         # than 1 hour
         thread.daemon = True
         thread.start()
@@ -75,8 +67,7 @@ class directoryserver(TCPNetworkHandler):
         # datarate_thread.daemon = True
         # datarate_thread.start()
         else:
-            self.slavedir_list = []  # Initialize the 'Slave' Directory server list so we
-            # can keep track about whom to forward add-to-list requests on
+            self.slavedir_list = []  # Initialize the 'Slave' Directory server list so we  # can keep track about whom to forward add-to-list requests on
 
     def netstats(self):
         while True:
@@ -89,25 +80,25 @@ class directoryserver(TCPNetworkHandler):
         log = logging.getLogger("DIRSrv")
         clientid = str(client_address) + ": "
 
-        if globalvars.dir_ismaster == "true" :
+        if globalvars.dir_ismaster == "true":
             log.info(f"{clientid} Connected to Directory Server")
-        else :
+        else:
             log.info(f"{clientid} Connected to Slave/Peer Directory Server")
 
         # Determine if connection is local or external
         if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == "0.0.0.0":
             islan = True
-        else :
+        else:
             islan = False
 
         msg = client_socket.recv(4)
 
-        log.debug(binascii.b2a_hex(msg).decode( ))
+        log.debug(binascii.b2a_hex(msg).decode())
 
-        if msg == b"\x05\xaa\x6c\x15" :  # Slave to master serverlist request
+        if msg == b"\x05\xaa\x6c\x15":  # Slave to master serverlist request
             self.handle_slavereq(log, clientid, client_socket)
 
-        elif msg == b"\x00\x3e\x7b\x11" :  # Add/Remove Server from List
+        elif msg == b"\x00\x3e\x7b\x11":  # Add/Remove Server from List
             self.handle_processServer(log, clientid, client_socket)
 
         elif msg == b"\x00\x00\x00\x01" or msg == b"\x00\x00\x00\x02":
@@ -115,8 +106,8 @@ class directoryserver(TCPNetworkHandler):
             dirConnectionTotalCount += 1  # only count user's, ignore heartbeat/other servers
 
             client_socket.send(b"\x01")
-            msg = client_socket.recv_withlen( )
-            command = msg[0 :1]
+            msg = client_socket.recv_withlen()
+            command = msg[0:1]
             log.debug(binascii.b2a_hex(command).decode())
             reply = b"\x00\x00"
 
@@ -217,15 +208,13 @@ class directoryserver(TCPNetworkHandler):
 
                 else:
 
-                    log.info(f"{clientid}Sent unknown command: " + repr(command) + " Data: " + binascii.b2a_hex(
-                        msg).decode())
+                    log.info(f"{clientid}Sent unknown command: " + repr(command) + " Data: " + binascii.b2a_hex(msg).decode())
 
                     reply == b"\x00\x00"
 
-            elif command == b"\x0B" :  # master VCDS Validation (New valve cdkey Authentication) server
+            elif command == b"\x0B":  # master VCDS Validation (New valve cdkey Authentication) server
 
-                log.info(
-                    clientid + "Sending out list of VCDS Validation (New valve CDKey Authentication) Master Servers")
+                log.info(clientid + "Sending out list of VCDS Validation (New valve CDKey Authentication) Master Servers")
 
                 reply = manager.get_and_prep_server_list("ValidationSRV", islan)
 
@@ -410,7 +399,7 @@ class directoryserver(TCPNetworkHandler):
             try:
                 client_socket.inet_aton(wan_ip)
             except client_socket.error:
-                log.warning(f"{clientid} Sent bad heartbeat packet: {binascii.b2a_hex(msg).decode( )}")
+                log.warning(f"{clientid} Sent bad heartbeat packet: {binascii.b2a_hex(msg).decode()}")
                 client_socket.send(b"\x00")  # message decryption failed, the only response we give for failure
                 client_socket.close()
                 log.info(f"{clientid} Disconnected from Directory Server")
@@ -435,8 +424,7 @@ class directoryserver(TCPNetworkHandler):
             else:  # relay anything going to the master to all slaves.
                 if len(self.slavedir_list) != 0:
                     for entry in self.slavedir_list:
-                        if entry[0] != wan_ip and int(entry[2]) != int(
-                                port):  # make sure we aren't sending the slave server its own heartbeat...
+                        if entry[0] != wan_ip and int(entry[2]) != int(port):  # make sure we aren't sending the slave server its own heartbeat...
                             forward_heartbeat(wan_ip, port, msg)
 
         elif command == b"\x1d":  # Remove server entry from the list
@@ -444,7 +432,7 @@ class directoryserver(TCPNetworkHandler):
             try:
                 client_socket.inet_aton(wan_ip)
             except client_socket.error:
-                log.warning(f"{clientid} Sent bad removal request packet: {binascii.b2a_hex(msg).decode( )}")
+                log.warning(f"{clientid} Sent bad removal request packet: {binascii.b2a_hex(msg).decode()}")
                 client_socket.send(b"\x00")  # message decryption failed, the only response we give for failure
                 client_socket.close()
                 log.info(f"{clientid} Disconnected from Directory Server")

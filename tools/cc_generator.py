@@ -1,45 +1,15 @@
-import random
 import os
-from randomtimestamp import randomtimestamp
+import random
 from datetime import datetime
+
+from randomtimestamp import randomtimestamp
 
 
 class CC():
     '''Individual card info and methods.
   '''
 
-    CCDATA = {
-        'amex': {
-            'len_num': 15,
-            'len_cvv': 4,
-            'pre': [34, 37],
-            'remaining': 13
-        },
-        'discover': {
-            'len_num': 16,
-            'len_cvv': 3,
-            'pre': [6001],
-            'remaining': 12
-        },
-        'mc': {
-            'len_num': 16,
-            'len_cvv': 3,
-            'pre': [51, 55],
-            'remaining': 14
-        },
-        'visa13': {
-            'len_num': 13,
-            'len_cvv': 3,
-            'pre': [4],
-            'remaining': 12
-        },
-        'visa16': {
-            'len_num': 16,
-            'len_cvv': 3,
-            'pre': [4],
-            'remaining': 15
-        },
-    }
+    CCDATA = {'amex':{'len_num':15, 'len_cvv':4, 'pre':[34, 37], 'remaining':13}, 'discover':{'len_num':16, 'len_cvv':3, 'pre':[6001], 'remaining':12}, 'mc':{'len_num':16, 'len_cvv':3, 'pre':[51, 55], 'remaining':14}, 'visa13':{'len_num':13, 'len_cvv':3, 'pre':[4], 'remaining':12}, 'visa16':{'len_num':16, 'len_cvv':3, 'pre':[4], 'remaining':15}, }
 
     def __init__(self):
         self.cc_type = None
@@ -53,13 +23,7 @@ class CC():
         '''Generates a card expiration date that is
     between 1 and 3 years from today. Sets `cc_exp`.
     '''
-        self.cc_exp = randomtimestamp(
-            start_year=datetime.now().year + 1,
-            text=True,
-            end_year=datetime.now().year + 3,
-            start=None,
-            end=None,
-            pattern="%m-%Y")
+        self.cc_exp = randomtimestamp(start_year = datetime.now().year + 1, text = True, end_year = datetime.now().year + 3, start = None, end = None, pattern = "%m-%Y")
 
     def generate_cc_cvv(self):
         '''Generates a type-specific CVV number.
@@ -103,26 +67,27 @@ class CC():
     def return_new_card(self):
         '''Returns a dictionary of card details.
     '''
-        return {'cc_type': self.cc_type,
-                'cc_num': self.cc_num,
-                'cc_cvv': self.cc_cvv,
-                'cc_exp': self.cc_exp}
+        return {'cc_type':self.cc_type, 'cc_num':self.cc_num, 'cc_cvv':self.cc_cvv, 'cc_exp':self.cc_exp}
 
     def print_new_card(self):
         '''Prints a single card to console.
     '''
         hr = '--------------------------------'
 
-        if self.cc_type == "mc" : self.cc_type = "Mastercard"
-        if self.cc_type == "visa16" : self.cc_type = "Visa"
-        if self.cc_type == "discover" : self.cc_type = "Discover"
-        if self.cc_type == "amex" : self.cc_type = "American Express"
+        if self.cc_type == "mc":
+            self.cc_type = "Mastercard"
+        if self.cc_type == "visa16":
+            self.cc_type = "Visa"
+        if self.cc_type == "discover":
+            self.cc_type = "Discover"
+        if self.cc_type == "amex":
+            self.cc_type = "American Express"
 
         ##print(f'%s' % hr)
-        #print(f'Type: %s' % self.cc_type)
-        #print(f'Number: %s' % self.cc_num)
-        #print(f'CVV: %s' % self.cc_cvv)
-        #print(f'Exp: %s' % self.cc_exp)
+        # print(f'Type: %s' % self.cc_type)
+        # print(f'Number: %s' % self.cc_num)
+        # print(f'CVV: %s' % self.cc_cvv)
+        # print(f'Exp: %s' % self.cc_exp)
 
         try:
             os.mkdir("files")
@@ -137,7 +102,8 @@ class CC():
         except:
             a = 0
 
-        if self.cc_type == "American Express" and os.path.isfile("files/pkg_add/steamui/payment_methods.txt") : os.remove("files/pkg_add/steamui/payment_methods.txt")
+        if self.cc_type == "American Express" and os.path.isfile("files/pkg_add/steamui/payment_methods.txt"):
+            os.remove("files/pkg_add/steamui/payment_methods.txt")
 
         with open("files/pkg_add/steamui/payment_methods.txt", "a") as card_writer:
             card_writer.write('Type: %s \n' % self.cc_type)
@@ -158,7 +124,7 @@ class CCNumGen():
 
     card_types = ['amex', 'discover', 'mc', 'visa13', 'visa16']
 
-    def __init__(self, type='visa16', number=1):
+    def __init__(self, type = 'visa16', number = 1):
 
         self.type = type
         self.num = number
@@ -171,8 +137,8 @@ class CCNumGen():
             print('Number of cards must be a whole number. Task ended.')
             return
 
-        #print(self.hr)
-        #print(f'Generating %s %s card(s)...' % (self.num, self.type))
+        # print(self.hr)
+        # print(f'Generating %s %s card(s)...' % (self.num, self.type))
 
         for x_ in range(0, self.num):
             new = CC()
@@ -184,9 +150,7 @@ class CCNumGen():
             self.card_list.append(new.return_new_card())
             new.print_new_card()
 
-        #print(self.hr)
-        #print('Task complete.')
-        #print(self.hr)
+        # print(self.hr)  # print('Task complete.')  # print(self.hr)
 
     def print_card_list(self):
         '''Prints the list of cards to console.
@@ -200,5 +164,5 @@ class CCNumGen():
 amex = CCNumGen('amex', 1)
 discover = CCNumGen('discover', 1)
 mc = CCNumGen('mc', 1)
-#visa13 = CCNumGen('visa13', 2)
+# visa13 = CCNumGen('visa13', 2)
 visa16 = CCNumGen('visa16', 1)
