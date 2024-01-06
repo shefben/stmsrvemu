@@ -1,8 +1,9 @@
 # Stm Server Emulator  for python 3.9
 
 You will be required to install sqlalchemy in python usin the following command:
+```
 python -m pip install -r requirements.txt
-
+```
 
 Code is there for beta1 but is not fully integrated so will not work (if you know python you can try it out yourself, but i havnt tested it yet)
 
@@ -68,8 +69,8 @@ game registration, and other things.
 
 some other changes i hope to make are as followed:
   
-+ Replaced user's .py file with a mysql database
-+ Create a php script to query the database and also add/remove users and also add / remove subscriptions
-+ Get tracker/friends server working for all steam versions
-+ Get steam v2 (2003) working properly
-+ Add Packets to allow for outside server's to be added to directoryserver list (like having multiple content servers that can automatically add to the directoryserver list)
+- [ ] Replaced user's .py file with a mysql database
+- [ ] Create a php script to query the database and also add/remove users and also add / remove subscriptions
+- [ ] Get tracker/friends server working for all steam versions
+- [x] Get steam v2 (2003) working properly
+- [x] Add Packets to allow for outside server's to be added to directoryserver list (like having multiple content servers that can automatically add to the directoryserver list)
