@@ -77,11 +77,7 @@ def modify_apache_config(file_path, port, webroot):
 
     if config_modified:
         with open(file_path, 'w') as f:
-            f.write('\n'.join(new_lines))  # print("Apache configuration file modified successfully.")
-
-
-# else:
-# print("No relevant configuration found.")
+            f.write('\n'.join(new_lines))  # print("Apache configuration file modified successfully.")  # else:  # print("No relevant configuration found.")
 
 
 def check_config(apache_conf_path, port, webroot, default_apache_conf_path):

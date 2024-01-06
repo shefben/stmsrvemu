@@ -174,12 +174,12 @@ class clientupdateserver(TCPNetworkHandler):
 
                             if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == str(client_address[0]):
                                 if not os.path.isfile("files/cache/internal/betav2/" + filename):
-                                    neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/internal/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], islan)
+                                    neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/internal/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], True)
                                 f = open('files/cache/internal/betav2/' + filename, 'rb')
                             else:
                                 if not os.path.isfile("files/cache/external/" + filename.decode()):
                                     if not os.path.isfile("files/cache/external/betav2/" + filename):
-                                        neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/external/betav2/" + filename, self.config["public_ip"], self.config["dir_server_port"], islan)
+                                        neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/external/betav2/" + filename, self.config["public_ip"], self.config["dir_server_port"], False)
                                     f = open('files/cache/external/betav2/' + filename, 'rb')
                         else:
                             try:
@@ -187,7 +187,7 @@ class clientupdateserver(TCPNetworkHandler):
                             except OSError as error:
                                 log.debug(clientid + "Beta pkg dir already exists")
                             if not os.path.isfile("files/cache/betav2/" + filename):
-                                neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], islan)
+                                neuter(self.config["packagedir"] + "betav2/" + filename, "files/cache/betav2/" + filename, self.config["server_ip"], self.config["dir_server_port"], True)
                             f = open('files/cache/betav2/' + filename, 'rb')
 
                         file = f.read()

@@ -4,13 +4,14 @@ from config import get_config
 
 config = get_config()
 
-local_ver = "0.73.RC4.4"
+local_ver = "BensCodebase"
 emu_ver = "0"
 update_exception1 = ""
 update_exception2 = ""
 clear_config = False
 converting = "0"
 checksum_temp_file = 0
+server_net = None
 
 # NOTE: Ben's added vars
 cs_region = "US"
@@ -30,24 +31,6 @@ public_ip_b = b""
 hide_convert_prints = False
 prepended_modifiers = []
 appended_modifiers = []
-
-dedicated_server_appids = [4, 5, 153, 154, 203, 204, 205, 210, 310, 311, 313, 314, 524, 538, 560, 561, 562, 601, 602, 635, 740, 1203, 1204, 1213, 1241, 1253, 1254, 1273, 2144, 2145, 2403, 2404, 2740, 2741, 2912, 2915, 2916, 4207, 4240, 4270, 4922, 4940, 8680, 8710, 8730, 8770, 13180, 13181, 13182, 17505, 17515, 17525, 17535, 17575, 17585, 17705, 17718]
-game_engine_file_appids = [0, 3, 7, 8, 200, 201, 212, 216, 217, 254, 255, 256, 257, 258, 264, 315, 316, 317, 322, 521, 572, 573, 1000, 1002, 1202, 1212, 1304, 1309, 1634, 1644, 2101, 2131, 2811, 4411, 4421, 6301, 6401, 6551, 6861, 6871, 6881, 7001, 7011, 7221, 7801, 7811, 8001, 8011, 10622, 10644, 13141, 16422, 17712]
-
-
-def startcser_sessionidtracker():
-    from utilities import sessionid_manager
-    return sessionid_manager.SessionIDManager()
-
-
-session_id_manager = startcser_sessionidtracker()  # used by cser and harvest server to prevent fake report uploads
-
-# hl1serverlist = list(range(10000))
-# hl1challengenum = 0
-# hl2serverlist = list(range(10000))
-# hl2challengenum = 0
-# rdkfserverlist = list(range(10000))
-# rdkfchallengenum = 0
 tracker = 0
 tgt_version = "2"
 # steam1_blob_sent = 0
@@ -55,9 +38,24 @@ record_ver = 0
 steam_ver = 0
 steamui_ver = 0
 compiling_cdr = False
-server_net = ipaddress.IPv4Network(config["server_ip"] + '/' + config["server_sm"], strict = False)
-
 firstblob_eval = None
+
+dedicated_server_appids = [4, 5, 153, 154, 203, 204, 205, 210, 310, 311, 313, 314, 524, 538, 560, 561, 562, 601, 602, 635, 740, 1203, 1204, 1213, 1241, 1253, 1254, 1273, 2144, 2145, 2403, 2404, 2740, 2741, 2912, 2915, 2916, 4207, 4240, 4270, 4922, 4940, 8680, 8710, 8730, 8770, 13180, 13181, 13182, 17505, 17515, 17525, 17535, 17575, 17585, 17705, 17718]
+game_engine_file_appids = [0, 3, 7, 8, 200, 201, 212, 216, 217, 254, 255, 256, 257, 258, 264, 315, 316, 317, 322, 521, 572, 573, 1000, 1002, 1202, 1212, 1304, 1309, 1634, 1644, 2101, 2131, 2811, 4411, 4421, 6301, 6401, 6551, 6861, 6871, 6881, 7001, 7011, 7221, 7801, 7811, 8001, 8011, 10622, 10644, 13141, 16422, 17712]
+
+# hl1serverlist = list(range(10000))
+# hl1challengenum = 0
+# hl2serverlist = list(range(10000))
+# hl2challengenum = 0
+# rdkfserverlist = list(range(10000))
+# rdkfchallengenum = 0
+
+def startcser_sessionidtracker():
+    from utilities import sessionid_manager
+    return sessionid_manager.SessionIDManager()
+
+
+session_id_manager = startcser_sessionidtracker()  # used by cser and harvest server to prevent fake report uploads
 
 if steamui_ver < 87:
     http_port_neuter = ""
@@ -105,7 +103,6 @@ loopback_ips = (b"127.0.0.1", b"127.0.0.2")
 
 
 def replaceCDRstring(islan):
-
     if islan and config["http_ip"] == "":
         octal_ip = config["server_ip"]
     elif config["http_ip"] != "":

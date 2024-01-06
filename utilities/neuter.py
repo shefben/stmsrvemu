@@ -138,7 +138,7 @@ def replace_dirip_in_file(file, filename, search, server_ip, server_port, dirgro
     replace = ips + (b'\x00' * (searchlength - len(ips)))
     if file.find(search) != -1:
         file = file.replace(search, replace)
-        log.debug(f"{filename}: Replaced directory server IP group {dirgroup}")
+        log.debug(f"{filename.decode()}: Replaced directory server IP group {dirgroup}")
     return file
 
 

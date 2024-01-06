@@ -1,5 +1,6 @@
 import binascii
 import filecmp
+import ipaddress
 import logging
 import os
 import random
@@ -444,6 +445,17 @@ def setserverip():
 def initialize():
     autoupdate(None)
 
+    if config["auto_public_ip"].lower() == "true" or config["auto_server_ip"].lower() == "true":
+        if config["auto_public_ip"].lower() == "true":
+            globalvars.public_ip = get_external_ip()
+            globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
+        if config["auto_server_ip"].lower() == "true":
+            globalvars.server_ip = get_internal_ip()
+            globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
+    else:
+        checkip()
+        setserverip()
+
     # Initial loading for ccdb for steam.exe neutering and palcement.
     globalvars.firstblob_eval = ccdb.load_ccdb()
 
@@ -513,17 +525,7 @@ def initialize():
             os.mkdir("files/cache")
             shutil.copy("emulator.ini", "files/cache/emulator.ini.cache")
             print()
-    if config["auto_public_ip"].lower() == "true" or config["auto_server_ip"].lower() == "true":
-        if config["auto_public_ip"].lower() == "true":
-            globalvars.public_ip = get_external_ip()
-            globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
-        if config["auto_server_ip"].lower() == "true":
-            globalvars.server_ip = get_internal_ip()
-            globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
-    else:
-        checkip()
-        setserverip()
-
+    globalvars.server_net = ipaddress.IPv4Network(config["server_ip"] + '/' + config["server_sm"], strict = False)
 
 def finalinitialize(log):
     #  modify the steam and hlsupdatetool binary files
@@ -730,15 +732,18 @@ def parent_initializer():
 
     globalvars.cs_region = config["cs_region"].upper()
     globalvars.dir_ismaster = config["dir_ismaster"].lower()
-    globalvars.server_ip = config["server_ip"]
-    globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
-    globalvars.public_ip = config["public_ip"]
-    globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
     globalvars.use_sdk = config["use_sdk"].lower()
     globalvars.db_type = config["database_type"].lower()
     globalvars.use_file_blobs = config["use_file_blobs"].lower()
     globalvars.smtp_enable = config['smtp_enabled'].lower()
+
     initialize()
+
+    # IP Address variables must be set after initializer() incase user wants to use auto_ip and leave the server_ip or public_ip blank
+    globalvars.server_ip = config["server_ip"]
+    globalvars.server_ip_b = globalvars.server_ip.encode("latin-1")
+    globalvars.public_ip = config["public_ip"]
+    globalvars.public_ip_b = globalvars.public_ip.encode("latin-1")
 
     if not globalvars.update_exception1 == "":
         log.debug("Update1 error: " + str(globalvars.update_exception1))
@@ -765,7 +770,6 @@ def parent_initializer():
 
 
 def get_location(ip_address):
-
     # If the IP is a LAN IP then we grab the servers external IP, we assume the client and server both use the same external IP and we get the location information for the email!
     if str(ip_address) in ipcalc.Network(str(globalvars.server_net)):
         ip_address = get_external_ip(locationcheck = True)

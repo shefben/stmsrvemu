@@ -86,7 +86,7 @@ class directoryserver(TCPNetworkHandler):
             log.info(f"{clientid} Connected to Slave/Peer Directory Server")
 
         # Determine if connection is local or external
-        if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == "0.0.0.0":
+        if str(client_address[0]) in ipcalc.Network(str(globalvars.server_net)) or globalvars.public_ip == "0.0.0.0" or client_address[0] == globalvars.server_ip_b:
             islan = True
         else:
             islan = False

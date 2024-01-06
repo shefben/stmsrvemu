@@ -501,7 +501,6 @@ class TrackerServer(UDPNetworkHandler):
             nsent = 0
             for row in self.usermgr.search_users():
                 if client.uid != row[0]:
-
                     msg = Message(client, 1011)  # search result
                     msg.add_int("uid", row[0])
                     msg.add_str("UserName", row[1])

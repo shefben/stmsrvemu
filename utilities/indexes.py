@@ -3,7 +3,6 @@ import struct
 
 
 def readindexes(filename):
-
     indexes = {}
     filemodes = {}
 
@@ -28,7 +27,6 @@ def readindexes(filename):
 
 
 def readindexes_old(filename):
-
     indexes = {}
     filemodes = {}
 
