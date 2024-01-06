@@ -4,22 +4,14 @@ Stm Server Emulator: PLEASE NOTE: $${\color{green}THIS \ \ \ REPO \ \ \  IS \ \ 
 THERE  \ \ \ IS  \ \ \ NO \ \ \  MERGING; \ \ \ THIS \ \ \ MEANS \ \ \  THAT \ \ \  THIS \ \ \  REPO \ \ \  WILL \ \ \  ALWAYS \ \ \  SHOW \ \ \  AS \ \ \  BEING \ \ \  <number>  \ \ \ COMITS  \ \ \ BEHIND.}$$
 
 You will be required to install sqlalchemy in python usin the following command:
-python -m pip install sqlalchemy
-
-and these librarys as well:
-sqlalchemy
-numpy
-tqdm
-requests
-psutil
-future
+python -m pip install -r requirements.txt
 
 
 Code is there for beta1 but is not fully integrated so will not work (if you know python you can try it out yourself, but i havnt tested it yet)
 
 Source code for the server emulator for clients 2003beta2-2011
 
-Compile on Python 3.9 x86-32 if you want to run/build from source using:
+Compile on Python 3.9.13 64-bit if you want to run/build from source using:
 
 python.exe -m PyInstaller -F -i source-content.ico emulator.py
 
