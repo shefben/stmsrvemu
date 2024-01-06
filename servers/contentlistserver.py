@@ -71,7 +71,7 @@ class contentlistserver(TCPNetworkHandler):
                 reply = self.packet_getpkgcs(clientid, islan)
 
             elif msg[2:3] == b"\x01":
-                reply = self.packet_getcswithapps(clientid, msg)
+                reply = self.packet_getcswithapps(clientid, msg, islan)
             else:
                 log.warning(f"Invalid message! {binascii.b2a_hex(msg).decode()}")
 
